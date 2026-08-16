@@ -145,7 +145,7 @@
         }
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 1.5rem;
             margin-bottom: 3rem;
         }
@@ -155,6 +155,9 @@
             border-radius: 12px;
             padding: 2rem;
             transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
         .card:hover {
             border-color: var(--accent-blue);
@@ -170,18 +173,23 @@
             font-weight: bold;
             margin-top: 1rem;
             transition: all 0.2s;
+            width: 100%;
+            text-align: center;
         }
         .card-btn:hover {
             background-color: var(--accent-blue);
             color: white;
         }
         .badge {
+            display: inline-block;
+            align-self: flex-start;
             background-color: rgba(59, 130, 246, 0.1);
             color: #60a5fa;
             padding: 0.25rem 0.75rem;
             border-radius: 20px;
             font-size: 0.8rem;
             font-weight: bold;
+            margin-bottom: 0.5rem;
         }
         .badge.molecule-b { color: #60a5fa; background: rgba(59, 130, 246, 0.1); }
         .badge.mettin-b { color: #34d399; background: rgba(16, 185, 129, 0.1); }
@@ -253,17 +261,14 @@
         <h2 class="section-header">The Four Core Subsidiaries Matrix</h2>
         <div class="grid">
             <div class="card" style="border-top: 3px solid var(--accent-blue);">
-                <span class="badge molecule-b">Hardware Division</span>
-                <h3>Molecule™</h3>
-                <p>Fabricates consumer electronics pipelines, advanced smart devices, custom system chipsets, and proprietary optical arrays.</p>
+                <div>
+                    <span class="badge molecule-b">Hardware Division</span>
+                    <h3>Molecule™</h3>
+                    <p>Fabricates consumer electronics pipelines, advanced smart devices, custom system chipsets, and proprietary optical arrays.</p>
+                </div>
                 <button class="card-btn" onclick="showPage('molecule')">Explore Hardware →</button>
             </div>
             <div class="card" style="border-top: 3px solid var(--accent-green);">
-                <span class="badge mettin-b">Software & AI Division</span>
-                <h3>Mettin™</h3>
-                <p>Develops system engines including Nebula OS, Nebula AI platforms, cloud storage matrices, and heavy security layers.</p>
-                <button class="card-btn" onclick="showPage('mettin')">Explore Software →</button>
-            </div>
-            <div class="card" style="border-top: 3px solid var(--accent-purple);">
-                <span class="badge metcount-b">Financial & Ledger Division</span>
-                <h3>MetCount™</h3>
+                <div>
+                    <span class="badge mettin-b">Software & AI Division</span>
+                    <h3>Mettin™</h3>
