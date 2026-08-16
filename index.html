@@ -260,6 +260,7 @@
 
         <h2 class="section-header">The Four Core Subsidiaries Matrix</h2>
         <div class="grid">
+            <!-- Molecule Card -->
             <div class="card" style="border-top: 3px solid var(--accent-blue);">
                 <div>
                     <span class="badge molecule-b">Hardware Division</span>
@@ -268,7 +269,89 @@
                 </div>
                 <button class="card-btn" onclick="showPage('molecule')">Explore Hardware →</button>
             </div>
+
+            <!-- Mettin Card -->
             <div class="card" style="border-top: 3px solid var(--accent-green);">
                 <div>
                     <span class="badge mettin-b">Software & AI Division</span>
                     <h3>Mettin™</h3>
+                    <p>Develops web tools, artificial intelligence systems, software applications, and cloud infrastructures.</p>
+                </div>
+                <button class="card-btn" onclick="showPage('mettin')">Explore Software →</button>
+            </div>
+
+            <!-- MetCount Card -->
+            <div class="card" style="border-top: 3px solid var(--accent-purple);">
+                <div>
+                    <span class="badge metcount-b">Banking Division</span>
+                    <h3>MetCount™</h3>
+                    <p>Handles digital ledger management, transaction APIs, corporate banking nodes, and asset protocols.</p>
+                </div>
+                <button class="card-btn" onclick="showPage('metcount')">Explore Banking →</button>
+            </div>
+
+            <!-- MetCart Card -->
+            <div class="card" style="border-top: 3px solid var(--accent-orange);">
+                <div>
+                    <span class="badge metcart-b">E-Commerce Division</span>
+                    <h3>MetCart™</h3>
+                    <p>Powers digital retail storefronts, supply chain logistics, direct distribution networks, and merchant hubs.</p>
+                </div>
+                <button class="card-btn" onclick="showPage('metcart')">Explore E-Commerce →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAGE 2: MOLECULE -->
+    <div id="page-molecule" class="page">
+        <h2>Molecule™ - Hardware Division</h2>
+        <p>Details about hardware fabrication and electronics pipelines go here.</p>
+    </div>
+
+    <!-- PAGE 3: METTIN -->
+    <div id="page-mettin" class="page">
+        <h2>Mettin™ - Software & AI Division</h2>
+        <p>Details about software, cloud services, and AI architectures go here.</p>
+    </div>
+
+    <!-- PAGE 4: METCOUNT -->
+    <div id="page-metcount" class="page">
+        <h2>MetCount™ - Banking Division</h2>
+        <p>Details about financial nodes, ledger protocols, and banking API infrastructure go here.</p>
+    </div>
+
+    <!-- PAGE 5: METCART -->
+    <div id="page-metcart" class="page">
+        <h2>MetCart™ - E-Commerce Division</h2>
+        <p>Details about online storefronts, logistics networks, and merchant tools go here.</p>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Metxon Conglomerate. All rights reserved.</p>
+    </footer>
+
+    <!-- JAVASCRIPT FOR MULTI-PAGE NAVIGATION -->
+    <script>
+        function showPage(pageId) {
+            // Hide all pages
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => page.classList.remove('active'));
+
+            // Deactivate all nav links
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => item.classList.remove('active'));
+
+            // Show selected page
+            const activePage = document.getElementById('page-' + pageId);
+            if (activePage) activePage.classList.add('active');
+
+            // Highlight selected nav link
+            const activeLink = document.getElementById('link-' + pageId);
+            if (activeLink) activeLink.classList.add('active');
+            
+            // Scroll to top when changing pages
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
