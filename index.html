@@ -93,38 +93,9 @@
             border-bottom: 1px solid var(--border);
             padding-bottom: 1.5rem;
         }
-        .brand-header-area img {
-            height: 70px;
-            width: auto;
-            object-fit: contain;
-        }
         .brand-header-area h2 {
             margin: 0;
-        }
-        /* App Feature Showcase Layout */
-        .app-showcase-card {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            background-color: #020617;
-            border: 1px solid #334155;
-            border-radius: 8px;
-            padding: 1.25rem;
-            margin-top: 1rem;
-        }
-        .app-showcase-card img {
-            height: 55px;
-            width: auto;
-            object-fit: contain;
-        }
-        .app-showcase-card h4 {
-            margin: 0 0 0.25rem 0;
-            color: var(--accent-blue);
-        }
-        .app-showcase-card p {
-            margin: 0;
-            font-size: 0.85rem;
-            color: var(--text-muted);
+            font-size: 2rem;
         }
         /* Corporate Elements & Cards */
         .hero {
@@ -134,7 +105,7 @@
             margin-bottom: 3rem;
         }
         .hero h1 { font-size: 3rem; margin: 0; letter-spacing: 2px; }
-        .hero p { color: var(--text-muted); font-size: 1.2rem; max-width: 600px; margin: 1rem auto 0; }
+        .hero p { color: var(--text-muted); font-size: 1.2rem; max-width: 700px; margin: 1rem auto 0; }
         
         .section-header {
             font-size: 1.8rem;
@@ -145,7 +116,7 @@
         }
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 1.5rem;
             margin-bottom: 3rem;
         }
@@ -195,10 +166,8 @@
         .badge.mettin-b { color: #34d399; background: rgba(16, 185, 129, 0.1); }
         .badge.metcount-b { color: #c084fc; background: rgba(168, 85, 247, 0.1); }
         .badge.metcart-b { color: #fb923c; background: rgba(249, 115, 22, 0.1); }
-        .badge.danger {
-            background-color: rgba(239, 68, 68, 0.1);
-            color: var(--accent-red);
-        }
+        .badge.danger { color: #f87171; background: rgba(239, 68, 68, 0.1); }
+        
         /* Tables Data Templates */
         table {
             width: 100%;
@@ -211,6 +180,7 @@
         }
         th, td { padding: 1rem; text-align: left; border-bottom: 1px solid var(--border); }
         th { background-color: rgba(15, 23, 42, 0.6); color: var(--accent-blue); }
+        tr:hover { background-color: rgba(30, 41, 59, 0.5); }
         
         .code-text {
             font-family: monospace;
@@ -230,10 +200,10 @@
 </head>
 <body>
 
-    <!-- NAV BAR WITH PRIMARY METXON LOGO -->
+    <!-- NAV BAR -->
     <nav>
         <div class="nav-logo" onclick="showPage('home')">
-            <img src="logo.png" alt="Metxon Geometric Logo">
+            <img src="logo.png" alt="Metxon Logo" onerror="this.style.display='none'">
             <span>METXON</span>
         </div>
         <div class="nav-links">
@@ -249,53 +219,50 @@
     <div id="page-home" class="page active">
         <div class="hero">
             <h1>METXON CONGLOMERATE</h1>
-            <p>A multi-layered technological ecosystem powered by four key unified divisions spanning electronics fabrication, software networks, banking nodes, and e-commerce logistics.</p>
+            <p>A multi-layered technological ecosystem powered by specialized divisions spanning hardware fabrication, software networking, corporate finance, logistics, lifestyle, and transit.</p>
         </div>
 
         <h2 class="section-header">Corporate Origins & History</h2>
         <div class="card" style="margin-bottom: 4rem;">
-            <h3>Founding & The 2026 Structural Restructure</h3>
-            <p>Launched initially on <strong>November 15, 2024</strong>, as an unconventional banking asset boasting consumer-first incentive paradigms, Metxon executed a massive operational pivot on <strong>January 28, 2026</strong>. Retiring completely from retail banking operations, Metxon transformed into a clean parent holding matrix, splitting its core architecture across exactly four core subsidiaries.</p>
+            <h3>The Golden Banking Era & The 2026 Restructure</h3>
+            <p>Founded on <strong>November 15, 2024</strong>, Metxon initially launched as an unconventional, customer-first financial institution offering flexible loans, gamified cash rewards, and weekly credit incentives.</p>
+            <p>On <strong>January 28, 2026</strong>, Metxon executed a massive operational pivot, transforming into a parent holding company split into specialized subsidiaries to handle technology, commerce, software, and logistics.</p>
         </div>
 
         <h2 class="section-header">The Four Core Subsidiaries Matrix</h2>
         <div class="grid">
-            <!-- Molecule Card -->
             <div class="card" style="border-top: 3px solid var(--accent-blue);">
                 <div>
                     <span class="badge molecule-b">Hardware Division</span>
                     <h3>Molecule™</h3>
-                    <p>Fabricates consumer electronics pipelines, advanced smart devices, custom system chipsets, and proprietary optical arrays.</p>
+                    <p>Designs and fabricates consumer electronics, proprietary Enceladus silicon, Rigel displays, and Triton power systems.</p>
                 </div>
                 <button class="card-btn" onclick="showPage('molecule')">Explore Hardware →</button>
             </div>
 
-            <!-- Mettin Card -->
             <div class="card" style="border-top: 3px solid var(--accent-green);">
                 <div>
                     <span class="badge mettin-b">Software & AI Division</span>
                     <h3>Mettin™</h3>
-                    <p>Develops web tools, artificial intelligence systems, software applications, and cloud infrastructures.</p>
+                    <p>Architects Nebula OS, Nebula AI, M-IN cloud infrastructure, and the Metware cybersecurity defense systems.</p>
                 </div>
                 <button class="card-btn" onclick="showPage('mettin')">Explore Software →</button>
             </div>
 
-            <!-- MetCount Card -->
             <div class="card" style="border-top: 3px solid var(--accent-purple);">
                 <div>
-                    <span class="badge metcount-b">Banking Division</span>
+                    <span class="badge metcount-b">Financial Division</span>
                     <h3>MetCount™</h3>
-                    <p>Handles digital ledger management, transaction APIs, corporate banking nodes, and asset protocols.</p>
+                    <p>The core financial ledger and regulatory framework governing asset transparency, Mettrade publicity, and transaction security.</p>
                 </div>
                 <button class="card-btn" onclick="showPage('metcount')">Explore Banking →</button>
             </div>
 
-            <!-- MetCart Card -->
             <div class="card" style="border-top: 3px solid var(--accent-orange);">
                 <div>
                     <span class="badge metcart-b">E-Commerce Division</span>
                     <h3>MetCart™</h3>
-                    <p>Powers digital retail storefronts, supply chain logistics, direct distribution networks, and merchant hubs.</p>
+                    <p>Our premier global digital retail platform handling live order tracking, hardware catalogs, and automated OS sync.</p>
                 </div>
                 <button class="card-btn" onclick="showPage('metcart')">Explore E-Commerce →</button>
             </div>
@@ -304,26 +271,192 @@
 
     <!-- PAGE 2: MOLECULE -->
     <div id="page-molecule" class="page">
-        <h2>Molecule™ - Hardware Division</h2>
-        <p>Details about hardware fabrication and electronics pipelines go here.</p>
+        <div class="brand-header-area">
+            <h2 style="color: var(--accent-blue);">Molecule™ - Consumer Electronics</h2>
+        </div>
+        <p>Molecule™ is responsible for designing, fabricating, and manufacturing all Metxon consumer electronics under the strict <strong>"Rule of 3"</strong> architecture (Base, Pro, Elite tiers).</p>
+        
+        <h2 class="section-header">Proprietary Component Architecture</h2>
+        <div class="grid">
+            <div class="card">
+                <h3>Enceladus™ Silicon</h3>
+                <p>Co-engineered with Mettin™. Features the flagship <strong>M Series (Messier)</strong> for high-end processing and the <strong>A Series (Amaze)</strong> for standard/budget devices.</p>
+            </div>
+            <div class="card">
+                <h3>Rigel™ Displays</h3>
+                <p><strong>Rigel O:</strong> OLED panels.<br><strong>Rigel A:</strong> AMOLED panels.<br><strong>Rigel L:</strong> LCD panels.</p>
+            </div>
+            <div class="card">
+                <h3>Sky™ Optics</h3>
+                <p><strong>Sky M Series:</strong> Neural-assisted camera arrays.<br><strong>Sky A Series:</strong> Value optical setups.</p>
+            </div>
+            <div class="card">
+                <h3>Triton™ Power Cells</h3>
+                <p><span class="code-text">Triton Code × 100 = mAh</span><br><em>Ex: Triton 50 = 5,000 mAh.</em></p>
+            </div>
+        </div>
+
+        <h2 class="section-header">Nebula Series Smartphones</h2>
+        <table>
+            <tr>
+                <th>Series</th>
+                <th>Target Audience</th>
+                <th>Pricing Structure (INR)</th>
+            </tr>
+            <tr>
+                <td><strong>M Series</strong></td>
+                <td>Flagship hardware & silicon</td>
+                <td>M1: ₹34,000 | M1 Pro: ₹34,999 | M1 Elite: ₹80,000 | M2 Elite: ₹95,000</td>
+            </tr>
+            <tr>
+                <td><strong>A Series</strong></td>
+                <td>Mainstream performance</td>
+                <td>A1: ₹20,000 | A1 Pro: ₹25,000 | A1 Elite: ₹35,000</td>
+            </tr>
+            <tr>
+                <td><strong>B Series</strong></td>
+                <td>Budget accessibility</td>
+                <td>B1: ₹1,500 | B1 Pro: ₹3,000 | B1 Elite: ₹4,000 | B2: ₹7,000</td>
+            </tr>
+            <tr>
+                <td><strong>Z Series</strong></td>
+                <td>Experimental Foldables & Flips</td>
+                <td>Z1 Fe (Fold): ₹1,00,000 | Z2 Elite Fp (Flip): ₹2,20,000</td>
+            </tr>
+        </table>
     </div>
 
     <!-- PAGE 3: METTIN -->
     <div id="page-mettin" class="page">
-        <h2>Mettin™ - Software & AI Division</h2>
-        <p>Details about software, cloud services, and AI architectures go here.</p>
+        <div class="brand-header-area">
+            <h2 style="color: var(--accent-green);">Mettin™ - Software & AI Division</h2>
+        </div>
+        <p>Mettin serves as the digital engine of Metxon, building foundational software infrastructure for operating systems, cloud environments, and advanced cybersecurity solutions.</p>
+        
+        <h2 class="section-header">Core Software Suite & Flagship Applications</h2>
+        <div class="grid">
+            <div class="card">
+                <h3>Nebula OS & AI</h3>
+                <p>Flagship OS powering smartphones, computers, tablets, and wearables, backed by deep native <strong>Nebula AI</strong> integration.</p>
+            </div>
+            <div class="card">
+                <h3>CULE-IN Search</h3>
+                <p>The dedicated native search engine built to handle ecosystem web exploration and information retrieval.</p>
+            </div>
+            <div class="card">
+                <h3>Communications</h3>
+                <p>Featuring <strong>Met-Alk</strong> (messaging), <strong>Met-ail</strong> (secure email client), and <strong>Met-Pay</strong> integration.</p>
+            </div>
+        </div>
+
+        <h2 class="section-header">M-IN Cloud Infrastructure</h2>
+        <div class="card" style="margin-bottom: 2rem;">
+            <h3>Storage Tiers & Pricing</h3>
+            <p><strong>Free Storage:</strong> 20 GB for standard users | <strong>50 GB</strong> for Metxon Account / Molecule device owners | 15 GB for non-holders.</p>
+            <p><strong>Lifetime / One-Time Options:</strong> 500 GB for 10,000 INR | 1 TB for 20,000 INR.</p>
+            <p><strong>Monthly Subscriptions:</strong> 500 GB for 500 INR/mo (1-yr) | 1 TB for 1,000 INR/mo (1-yr) | 100 TB Enterprise for 1,000 INR/mo (3-yr).</p>
+        </div>
+
+        <h2 class="section-header">Metware Cybersecurity Suite</h2>
+        <table>
+            <tr>
+                <th>Tier / Version</th>
+                <th>Details & Distribution</th>
+                <th>Pricing Structure</th>
+            </tr>
+            <tr>
+                <td><strong>Metware 6 (Current)</strong></td>
+                <td>Current commercial flagship. Available via digital download or physical hardware key shipped via Metcart (USB/Bluetooth). 10-year manufacturing support.</td>
+                <td>2,00,000 INR/month (Digital) OR 2,00,00,000 INR (One-time physical hardware key for lifetime access).</td>
+            </tr>
+            <tr>
+                <td><strong>Metware 7</strong></td>
+                <td>Next-generation security lineup.</td>
+                <td><em>Projected Launch: October 15, 2026</em></td>
+            </tr>
+            <tr>
+                <td><strong>Metware X ("Ghost Tier")</strong></td>
+                <td>Strictly private, classified internal-only defense system. Air-gapped and isolated from public internet to shield Metxon infrastructure and Mettank.</td>
+                <td><span class="badge danger">UNAVAILABLE FOR PURCHASE</span></td>
+            </tr>
+        </table>
     </div>
 
     <!-- PAGE 4: METCOUNT -->
     <div id="page-metcount" class="page">
-        <h2>MetCount™ - Banking Division</h2>
-        <p>Details about financial nodes, ledger protocols, and banking API infrastructure go here.</p>
+        <div class="brand-header-area">
+            <h2 style="color: var(--accent-purple);">MetCount™ - Financial Infrastructure & Regulatory Framework</h2>
+        </div>
+        <p>Metcount is the core financial ledger and regulatory framework governing the Mexton ecosystem and Mettrade. It enforces absolute transparency for public-facing financial assets while preserving operational security for private R&D.</p>
+        
+        <h2 class="section-header">Core Principles of Metcount</h2>
+        <div class="grid">
+            <div class="card">
+                <h3>Mandatory Consumer & Market Publicity</h3>
+                <p>Any corporate action impacting public consumers, active stock markets, or commercialized products must be fully disclosed on Mettrade, including public stock buy/sell events, official corporate announcements, and finished hardware/software releases.</p>
+            </div>
+            <div class="card">
+                <h3>Off-Ledger Protection for Private R&D</h3>
+                <p>Metcount strictly excludes non-public initiatives from public disclosure. Internal defense protocols, early-stage silicon developments (like the APX Processor), and pre-release prototypes remain confidential until official rollout.</p>
+            </div>
+            <div class="card">
+                <h3>No Hidden Financial Transfers</h3>
+                <p>Arbitrary capital payouts cannot occur off-market if public stocks or registered asset accounts are involved. Monetizing code or assets through public channels immediately logs the entire financial history onto Mettrade.</p>
+            </div>
+        </div>
+
+        <h2 class="section-header">Supported Transaction Types</h2>
+        <table>
+            <tr>
+                <th>Type #</th>
+                <th>Transaction Method</th>
+                <th>Description</th>
+            </tr>
+            <tr>
+                <td><strong>1</strong></td>
+                <td>Username and Password</td>
+                <td>Standard credential-based account verification and authentication.</td>
+            </tr>
+            <tr>
+                <td><strong>2</strong></td>
+                <td>Passkey</td>
+                <td>Advanced cryptographic passkey verification for secure account access.</td>
+            </tr>
+            <tr>
+                <td><strong>3</strong></td>
+                <td>Metbank Fast Pay Card</td>
+                <td>Rapid settlement card for seamless banking and storefront transactions.</td>
+            </tr>
+            <tr>
+                <td><strong>4</strong></td>
+                <td>Fake ID</td>
+                <td>Specialized alterable identification profile capable of masking details and providing alternate information.</td>
+            </tr>
+        </table>
     </div>
 
     <!-- PAGE 5: METCART -->
     <div id="page-metcart" class="page">
-        <h2>MetCart™ - E-Commerce Division</h2>
-        <p>Details about online storefronts, logistics networks, and merchant tools go here.</p>
+        <div class="brand-header-area">
+            <h2 style="color: var(--accent-orange);">MetCart™ - E-Commerce Division</h2>
+        </div>
+        <p>MetCart acts as the primary digital storefront, product catalog, and e-commerce platform for the Mexton universe. It is the official portal where citizens and consumers browse, select, and initiate orders for current-generation Mexton hardware.</p>
+
+        <h2 class="section-header">Storefront Features & Capabilities</h2>
+        <div class="grid">
+            <div class="card">
+                <h3>Official Hardware Catalog</h3>
+                <p>Displays active product lines, such as mobile devices like the <strong>Nebula A1 Pro (₹25,000)</strong> and <strong>Nebula M1 Pro (₹34,999)</strong>, as well as flagship laptops like the <strong>Nebula Book B1 Pro</strong>.<br><br><em>(Note: Legacy products like the discontinued MetBook are archived in lore registries rather than listed on the live MetCart storefront).</em></p>
+            </div>
+            <div class="card">
+                <h3>Real-Time Order Tracking</h3>
+                <p>Automatically updates order statuses in real-time (such as <span class="code-text">"Processing"</span> or <span class="code-text">"Manifest Prepared"</span>) once transactions clear through MetCount's financial backends.</p>
+            </div>
+            <div class="card">
+                <h3>Molecule OS Synchronization</h3>
+                <p>Orders placed via MetCart automatically log network profiles so incoming hardware arrives pre-configured with the latest <strong>Molecule OS</strong> package right out of the box.</p>
+            </div>
+        </div>
     </div>
 
     <footer>
@@ -333,23 +466,18 @@
     <!-- JAVASCRIPT FOR MULTI-PAGE NAVIGATION -->
     <script>
         function showPage(pageId) {
-            // Hide all pages
             const pages = document.querySelectorAll('.page');
             pages.forEach(page => page.classList.remove('active'));
 
-            // Deactivate all nav links
             const navItems = document.querySelectorAll('.nav-item');
             navItems.forEach(item => item.classList.remove('active'));
 
-            // Show selected page
             const activePage = document.getElementById('page-' + pageId);
             if (activePage) activePage.classList.add('active');
 
-            // Highlight selected nav link
             const activeLink = document.getElementById('link-' + pageId);
             if (activeLink) activeLink.classList.add('active');
             
-            // Scroll to top when changing pages
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     </script>
