@@ -277,7 +277,7 @@
         </div>
     </nav>
 
-    <!-- VIEW 1: WIKI (Metxon Corporate) -->
+    <!-- VIEW 1: WIKI -->
     <div id="view-wiki" class="view-section active">
         <div class="wiki-hero">
             <h1>Metxon Corporate Knowledge Base</h1>
@@ -388,7 +388,7 @@
             <p>Provides zero-trace encryption scrubbing, heavy firewall DDoS deflection, and real-time threat neutralization across node clusters.</p>
         </div>
 
-        <!-- SME's Section (Master Registry) -->
+        <!-- SME's Section -->
         <h3 style="margin-top: 40px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">SME's Registry (Systemic Mineral Entities)</h3>
         <p style="color: var(--text-muted);">Specialized periodic elements infused into software code for elite computational power and physical grid binding.</p>
         <div class="grid" id="smeGrid"></div>
@@ -504,7 +504,7 @@
         let culeAiActive = false;
         let currentCheckoutItem = null;
 
-        // Catalog Data (Molecule & Metcart Shared Inventory)
+        // Catalog Data
         const catalogItems = [
             { name: "Nebula M1", category: "Smartphones", price: 40000, desc: "Standard flagship smartphone with Mettin neural core." },
             { name: "Nebula M1 Pro", category: "Smartphones", price: 70000, desc: "Enhanced performance and upgraded camera matrix." },
@@ -597,7 +597,6 @@
             if(!username) { alert("Please enter a valid username."); return; }
             currentUser = username;
             
-            // Update UI for logged in state
             document.getElementById('profileBadge').style.display = 'block';
             document.getElementById('profileBadge').innerText = "USER: " + currentUser.toUpperCase();
             document.getElementById('navHome').style.display = 'inline-block';
@@ -670,7 +669,7 @@
             });
         }
 
-        // Cule-In & Cule AI Mode
+        // Cule-In & Cule AI Mode Fixes
         function toggleCuleAiMode() {
             culeAiActive = !culeAiActive;
             let btn = document.getElementById('culeAiToggleBtn');
@@ -684,19 +683,26 @@
         }
 
         function executeCuleSearch() {
-            let query = document.getElementById('culeInQuery').value.trim();
+            let query = document.getElementById('culeInQuery').value.trim().toLowerCase();
             let resBox = document.getElementById('culeSearchResults');
             if(!query) return;
             resBox.style.display = 'block';
             
+            let matchedItems = catalogItems.filter(i => i.name.toLowerCase().includes(query) || i.category.toLowerCase().includes(query));
+
             if(culeAiActive) {
-                resBox.innerHTML = `<strong style="color:var(--accent-purple);">[Cule AI Synthesis]:</strong> Analyzing query "${query}" across Metxon networks and hardware specifications. All systems operating securely.`;
-            } else {
-                let match = catalogItems.find(i => i.name.toLowerCase().includes(query.toLowerCase()));
-                if(match) {
-                    resBox.innerHTML = `<strong>[Cule-In Result]:</strong> Found hardware artifact <strong>${match.name}</strong> (${match.category}) priced at ₹${match.price.toLocaleString()}.`;
+                if(matchedItems.length > 0) {
+                    let details = matchedItems.map(m => `• <strong>${m.name}</strong> (${m.category}) — ₹${m.price.toLocaleString()}: ${m.desc}`).join('<br>');
+                    resBox.innerHTML = `<strong style="color:var(--accent-purple);">[Cule AI Assistant]:</strong> I scanned the Molecule registry for "${query}". Here is what I found:<br><br>${details}`;
                 } else {
-                    resBox.innerHTML = `<strong>[Cule-In Result]:</strong> No direct index match for "${query}". Try searching device models or SMEs.`;
+                    resBox.innerHTML = `<strong style="color:var(--accent-purple);">[Cule AI Assistant]:</strong> I analyzed your query "${query}" across Metxon corporate nodes. No direct hardware match was found, but all telemetry and security matrices are functioning smoothly!`;
+                }
+            } else {
+                if(matchedItems.length > 0) {
+                    let resultsHtml = matchedItems.map(m => `<div><strong>[Cule-In Match]:</strong> <strong>${m.name}</strong> — ₹${m.price.toLocaleString()} (${m.category})</div>`).join('<hr style="border-color:var(--border-color); margin:8px 0;">');
+                    resBox.innerHTML = resultsHtml;
+                } else {
+                    resBox.innerHTML = `<strong>[Cule-In Result]:</strong> No matching artifacts found for "${query}".`;
                 }
             }
         }
@@ -730,9 +736,9 @@
                 content.innerHTML = `
                     <p style="color:var(--text-muted);">Connected as: <strong style="color:var(--accent-cyan);">${currentUser}</strong></p>
                     <input type="text" id="talkRecipient" placeholder="Recipient Username (e.g., jerry)">
-                    <textarea id="talkMessage" placeholder="Type encrypted message..."></textarea>
+                    <textarea id="talkMessage" placeholder="Type encrypted message..." rows="3"></textarea>
                     <button class="primary-btn" onclick="sendMetAlkMessage()">Transmit Message</button>
-                    <div id="talkLog" style="margin-top:15px; background:var(--bg-deep); padding:10px; border-radius:6px; height:120px; overflow-y:auto;"></div>
+                    <div id="talkLog" style="margin-top:15px; background:var(--bg-deep); padding:10px; border-radius:6px; height:150px; overflow-y:auto; border:1px solid var(--border-color);"></div>
                 `;
             } else if(appName === 'nebulaStore') {
                 title.innerText = "Nebula Store // App Marketplace";
@@ -757,7 +763,7 @@
             document.getElementById('appWorkspace').style.display = 'none';
         }
 
-        // Met Develop Atbash Compiler Logic (A=Z, B=Y, C=X, D=W...)
+        // Met Develop Atbash Compiler Logic
         function devAction(action) {
             let input = document.getElementById('devCodeInput').value;
             let output = document.getElementById('devOutput');
@@ -776,13 +782,15 @@
             }
         }
 
+        // Met-Alk Messenger Fix
         function sendMetAlkMessage() {
-            let recipient = document.getElementById('talkRecipient').value;
-            let msg = document.getElementById('talkMessage').value;
+            let recipient = document.getElementById('talkRecipient').value.trim();
+            let msg = document.getElementById('talkMessage').value.trim();
             let log = document.getElementById('talkLog');
-            if(!recipient || !msg) return;
-            log.innerHTML += `<div><strong>To ${recipient}:</strong> ${msg} <span style="color:var(--success); font-size:0.75rem;">[Sent over Met-Alk network]</span></div>`;
+            if(!recipient || !msg) { alert("Please specify a recipient and message."); return; }
+            log.innerHTML += `<div style="margin-bottom:8px; border-bottom:1px solid var(--border-color); padding-bottom:4px;"><strong>[${currentUser} ➔ ${recipient}]:</strong> ${msg} <br><span style="color:var(--success); font-size:0.75rem;">[Transmitted securely over Met-Alk network]</span></div>`;
             document.getElementById('talkMessage').value = "";
+            log.scrollTop = log.scrollHeight;
         }
 
         // MetCount Verification & Subscriptions
