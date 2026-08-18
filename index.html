@@ -669,7 +669,7 @@
             });
         }
 
-        // Cule-In & Cule AI Mode Fixes
+        // Cule-In & Cule AI Mode Fixes (Enhanced Natural Language Matching)
         function toggleCuleAiMode() {
             culeAiActive = !culeAiActive;
             let btn = document.getElementById('culeAiToggleBtn');
@@ -688,18 +688,19 @@
             if(!query) return;
             resBox.style.display = 'block';
             
-            let matchedItems = catalogItems.filter(i => i.name.toLowerCase().includes(query) || i.category.toLowerCase().includes(query));
+            // Fixed: Check both directions so natural language queries ("what is the price of nebula m1 pro") match item names ("nebula m1 pro")
+            let matchedItems = catalogItems.filter(i => query.includes(i.name.toLowerCase()) || i.name.toLowerCase().includes(query) || i.category.toLowerCase().includes(query));
 
             if(culeAiActive) {
                 if(matchedItems.length > 0) {
-                    let details = matchedItems.map(m => `• <strong>${m.name}</strong> (${m.category}) — ₹${m.price.toLocaleString()}: ${m.desc}`).join('<br>');
-                    resBox.innerHTML = `<strong style="color:var(--accent-purple);">[Cule AI Assistant]:</strong> I scanned the Molecule registry for "${query}". Here is what I found:<br><br>${details}`;
+                    let details = matchedItems.map(m => `• <strong>${m.name}</strong> (${m.category}) — <strong style="color:var(--success);">₹${m.price.toLocaleString()}</strong>: ${m.desc}`).join('<br>');
+                    resBox.innerHTML = `<strong style="color:var(--accent-purple);">[Cule AI Synthesis]:</strong> I analyzed your query "${query}" across Metxon networks. Here are the matching hardware results:<br><br>${details}`;
                 } else {
-                    resBox.innerHTML = `<strong style="color:var(--accent-purple);">[Cule AI Assistant]:</strong> I analyzed your query "${query}" across Metxon corporate nodes. No direct hardware match was found, but all telemetry and security matrices are functioning smoothly!`;
+                    resBox.innerHTML = `<strong style="color:var(--accent-purple);">[Cule AI Synthesis]:</strong> Analyzing query "${query}" across Metxon networks and hardware specifications. All systems operating securely.`;
                 }
             } else {
                 if(matchedItems.length > 0) {
-                    let resultsHtml = matchedItems.map(m => `<div><strong>[Cule-In Match]:</strong> <strong>${m.name}</strong> — ₹${m.price.toLocaleString()} (${m.category})</div>`).join('<hr style="border-color:var(--border-color); margin:8px 0;">');
+                    let resultsHtml = matchedItems.map(m => `<div><strong>[Cule-In Match]:</strong> <strong>${m.name}</strong> — <span style="color:var(--success);">₹${m.price.toLocaleString()}</span> (${m.category})</div>`).join('<hr style="border-color:var(--border-color); margin:8px 0;">');
                     resBox.innerHTML = resultsHtml;
                 } else {
                     resBox.innerHTML = `<strong>[Cule-In Result]:</strong> No matching artifacts found for "${query}".`;
