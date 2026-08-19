@@ -42,6 +42,8 @@
             position: sticky;
             top: 0;
             z-index: 100;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
         .brand {
@@ -53,8 +55,9 @@
 
         .nav-links {
             display: flex;
-            gap: 18px;
+            gap: 15px;
             align-items: center;
+            flex-wrap: wrap;
         }
 
         .nav-links a {
@@ -264,13 +267,13 @@
 
         .grid-3 {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 15px;
         }
 
         .grid-4 {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 15px;
         }
 
@@ -288,7 +291,7 @@
         }
 
         .info-card .price {
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             font-weight: bold;
             color: var(--accent-green);
             margin-bottom: 8px;
@@ -298,13 +301,16 @@
             font-size: 0.8rem;
             color: var(--text-muted);
             margin-bottom: 4px;
+            line-height: 1.3;
         }
 
         .info-card .category {
             font-size: 0.75rem;
-            color: var(--text-muted);
+            color: var(--accent-cyan);
             display: block;
             margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         /* Forms & Inputs */
@@ -319,7 +325,7 @@
             margin-bottom: 5px;
         }
 
-        .form-group input {
+        .form-group input, .form-group select {
             width: 100%;
             padding: 10px;
             background-color: #070c16;
@@ -355,17 +361,30 @@
     <header class="navbar">
         <div class="brand">METXON CORPORATE</div>
         <nav class="nav-links">
-            <a onclick="showTab('tab-home')" class="active">Home / Mettin</a>
+            <a onclick="showTab('tab-wiki')">Wiki</a>
+            <a onclick="showTab('tab-home')" class="active">Home</a>
+            <a onclick="showTab('tab-cule-in')">Cule-In</a>
+            <a onclick="showTab('tab-molecule')">Molecule</a>
+            <a onclick="showTab('tab-mettin')">Mettin</a>
             <a onclick="showTab('tab-metcount')">MetCount</a>
             <a onclick="showTab('tab-metcart')">MetCart</a>
-            <a onclick="showTab('tab-metstock')">MetStock</a>
             <span class="user-badge" id="userBadgeDisplay">USER: METXON</span>
         </nav>
     </header>
 
     <main class="container">
 
-        <!-- TAB 1: HOME / METTIN ECOSYSTEM -->
+        <!-- TAB: WIKI -->
+        <div id="tab-wiki" class="tab-content" style="display:none;">
+            <h1>Metxon Corporate Wiki</h1>
+            <p class="subtitle">Comprehensive documentation hub for the Mettin architecture and corporate resources.</p>
+            <div class="workspace-card">
+                <h3>Ecosystem Overview</h3>
+                <p style="color: var(--text-muted); margin-top: 10px; line-height: 1.5;">Metxon Corporate is an advanced technology conglomerate specializing in secure quantum networks, decentralized ledgers, Systemic Mineral Entities (SMEs), and cutting-edge consumer hardware. Use this portal to interact with tools, execute trades, and manage corporate development suites.</p>
+            </div>
+        </div>
+
+        <!-- TAB: HOME / METTIN ECOSYSTEM -->
         <div id="tab-home" class="tab-content">
             <h1>Mettin Ecosystem & Applications</h1>
             <p class="subtitle">Core development suites, AI engines, and advanced SME security protocols.</p>
@@ -460,38 +479,80 @@
                 </div>
             </div>
 
-            <!-- SME's Registry Section -->
+            <!-- SME's Registry Section (All 12 SMEs with precise specs) -->
             <h2 class="section-title">SME's Registry (Systemic Mineral Entities)</h2>
             <div class="grid-3">
                 <div class="info-card">
                     <h3>SME-01 // Titanium (Ti)</h3>
-                    <div class="price">₹1,990</div>
-                    <p><strong>Primary Function:</strong> Thermal Shielding</p>
-                    <p>Protects server cores.</p>
+                    <div class="price">₹199.60 Cr / gram</div>
+                    <p><strong>Primary Function:</strong> High-Density Thermal & Blast Shielding</p>
+                    <p><strong>Capability:</strong> Protects server cores and bank vaults against massive energy overloads.</p>
                 </div>
                 <div class="info-card">
                     <h3>SME-02 // Platinum (Pt)</h3>
-                    <div class="price">₹3,040</div>
-                    <p><strong>Primary Function:</strong> Signal Regeneration</p>
-                    <p>Eliminates latency.</p>
+                    <div class="price">₹304.00 Cr / gram</div>
+                    <p><strong>Primary Function:</strong> Catalytic Signal Regeneration</p>
+                    <p><strong>Capability:</strong> Sustains maximum throughput and eliminates latency during spikes.</p>
                 </div>
                 <div class="info-card">
                     <h3>SME-03 // Gold (Au)</h3>
-                    <div class="price">₹2,480</div>
-                    <p><strong>Primary Function:</strong> Quantum Routing</p>
-                    <p>Lossless quantum data pathways.</p>
+                    <div class="price">₹248.00 Cr / gram</div>
+                    <p><strong>Primary Function:</strong> High-Conduction Quantum Routing</p>
+                    <p><strong>Capability:</strong> Lossless quantum data pathways across private subnets.</p>
                 </div>
                 <div class="info-card">
-                    <h3>SME-04 // Quantum Lithium (Li)</h3>
-                    <div class="price">₹4,120</div>
-                    <p><strong>Primary Function:</strong> High-Density Energy</p>
-                    <p>Powers core sub-processors.</p>
+                    <h3>SME-04 // Palladium (Pd)</h3>
+                    <div class="price">₹216.00 Cr / gram</div>
+                    <p><strong>Primary Function:</strong> Zero-Trace Encryption Scrubbing</p>
+                    <p><strong>Capability:</strong> Absorbs and neutralizes digital transaction residue.</p>
                 </div>
                 <div class="info-card">
-                    <h3>SME-05 // Neodymium (Nd)</h3>
-                    <div class="price">₹5,650</div>
-                    <p><strong>Primary Function:</strong> Flux Amplification</p>
-                    <p>Stabilizes quantum bus communication.</p>
+                    <h3>SME-05 // Iridium (Ir)</h3>
+                    <div class="price">₹176.00 Cr / gram</div>
+                    <p><strong>Primary Function:</strong> Heavy Firewall & DDoS Deflection</p>
+                    <p><strong>Capability:</strong> Kinetic deflection shielding servers from brute-force DDoS.</p>
+                </div>
+                <div class="info-card">
+                    <h3>SME-06 // Osmium (Os)</h3>
+                    <div class="price">₹152.00 Cr / gram</div>
+                    <p><strong>Primary Function:</strong> Hyper-Density File Lock</p>
+                    <p><strong>Capability:</strong> Makes host bank ledgers unmovable and ransomware-proof.</p>
+                </div>
+                <div class="info-card">
+                    <h3>SME-07 // Rhodium (Rh)</h3>
+                    <div class="price">₹132.00 Cr / gram</div>
+                    <p><strong>Primary Function:</strong> Adaptive Stealth & Camouflage</p>
+                    <p><strong>Capability:</strong> Restructures surface layers to evade active cybersecurity.</p>
+                </div>
+                <div class="info-card">
+                    <h3>SME-08 // Mercury (Hg)</h3>
+                    <div class="price">₹88.00 Cr / gram</div>
+                    <p><strong>Primary Function:</strong> Deep Malware Log Scanning</p>
+                    <p><strong>Capability:</strong> Flows through system logs to isolate dormant malware.</p>
+                </div>
+                <div class="info-card">
+                    <h3>SME-09 // Uranium (U)</h3>
+                    <div class="price">₹68.00 Cr / gram</div>
+                    <p><strong>Primary Function:</strong> Stealth Network Mapping</p>
+                    <p><strong>Capability:</strong> Low-frequency phantom radiation pulses to chart target topologies.</p>
+                </div>
+                <div class="info-card">
+                    <h3>SME-10 // Silver (Ag)</h3>
+                    <div class="price">₹48.00 Cr / gram</div>
+                    <p><strong>Primary Function:</strong> Rapid Antimicrobial Digital Purification</p>
+                    <p><strong>Capability:</strong> Cleanses adware, tracking cookies, and unauthorized background processes.</p>
+                </div>
+                <div class="info-card">
+                    <h3>SME-11 // Copper (Cu)</h3>
+                    <div class="price">₹36.00 Cr / gram</div>
+                    <p><strong>Primary Function:</strong> Auxiliary Power Grid Coupling</p>
+                    <p><strong>Capability:</strong> Links physical nuclear power grid nodes to server backbones.</p>
+                </div>
+                <div class="info-card">
+                    <h3>SME-12 // Tungsten (W)</h3>
+                    <div class="price">₹24.00 Cr / gram</div>
+                    <p><strong>Primary Function:</strong> High-Density Thermal Blast Armor</p>
+                    <p><strong>Capability:</strong> Forges heat-sink barrier around server enclosures.</p>
                 </div>
             </div>
 
@@ -502,7 +563,56 @@
             </div>
         </div>
 
-        <!-- TAB 2: METCOUNT (TRANSFERS & BALANCES) -->
+        <!-- TAB: CULE-IN -->
+        <div id="tab-cule-in" class="tab-content" style="display:none;">
+            <h1>Cule-In Unified Search & AI</h1>
+            <p class="subtitle">Global query engine across Mettin databases and hardware registries.</p>
+            <div class="workspace-card">
+                <div class="form-group">
+                    <label>Search Query:</label>
+                    <input type="text" placeholder="Type to search ecosystem files, prices, or SMEs...">
+                </div>
+                <button class="btn-primary" onclick="alert('Cule-In index query executed successfully.')">Run Global Search</button>
+            </div>
+        </div>
+
+        <!-- TAB: MOLECule -->
+        <div id="tab-molecule" class="tab-content" style="display:none;">
+            <h1>Molecule Core Network</h1>
+            <p class="subtitle">Molecular bonding and structural mapping of Systemic Mineral Entities (SMEs).</p>
+            <div class="grid-3">
+                <div class="info-card">
+                    <h3>Molecule Node Alpha</h3>
+                    <span class="category">Subatomic Matrix</span>
+                    <p>Interlocks SME-01 and SME-02 for high-load containment.</p>
+                    <div class="price">Active Stability</div>
+                </div>
+                <div class="info-card">
+                    <h3>Molecule Node Beta</h3>
+                    <span class="category">Quantum Lattice</span>
+                    <p>Binds Gold and Platinum pathways for zero-loss routing.</p>
+                    <div class="price">Synchronized</div>
+                </div>
+                <div class="info-card">
+                    <h3>Molecule Node Gamma</h3>
+                    <span class="category">Defensive Cluster</span>
+                    <p>Encapsulates Iridium and Osmium shields into bank-grade ledgers.</p>
+                    <div class="price">Fully Secured</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: METTIN -->
+        <div id="tab-mettin" class="tab-content" style="display:none;">
+            <h1>Mettin Core Architecture</h1>
+            <p class="subtitle">Decentralized runtime environment diagnostics and telemetry.</p>
+            <div class="workspace-card">
+                <h3>Runtime Diagnostics</h3>
+                <p style="color: var(--text-muted); margin-top: 10px; line-height: 1.5;">All quantum core sub-processors are online. Met-Pay transaction bus is fully synchronized with zero dropped packets across local and remote server subnets.</p>
+            </div>
+        </div>
+
+        <!-- TAB: METCOUNT (TRANSFERS, SUBSCRIPTIONS & METSTOCK MARKETPLACE) -->
         <div id="tab-metcount" class="tab-content" style="display:none;">
             <h1>MetCount Financial Hub</h1>
             <p class="subtitle">Send funds securely between Metxon accounts using Met-Pay.</p>
@@ -535,7 +645,7 @@
             </div>
 
             <h2 class="section-title">Subscription Tiers</h2>
-            <div class="grid-3">
+            <div class="grid-3" style="margin-bottom: 40px;">
                 <div class="info-card">
                     <h3>Base Tier</h3>
                     <div class="price">₹500 / week</div>
@@ -552,13 +662,38 @@
                     <button class="btn-primary" style="margin-top:10px; width:100%;" onclick="subscribeTier('Elite Tier', 10000)">Activate Elite</button>
                 </div>
             </div>
+
+            <!-- METSTOCK SECTION JOINED DIRECTLY BELOW SUBSCRIPTIONS INSIDE METCOUNT -->
+            <h2 class="section-title">MetStock Financial Exchange Market</h2>
+            <p class="subtitle">Buy and trade corporate shares directly with your Met-Pay balance.</p>
+            <div class="grid-3">
+                <div class="info-card">
+                    <h3>Metxon Quantum (MTX)</h3>
+                    <span class="category">Ecosystem Parent Stock</span>
+                    <div class="price">₹14,250 / Share</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyStock('Metxon Quantum (MTX)', 14250)">Buy Share with Met-Pay</button>
+                </div>
+                <div class="info-card">
+                    <h3>SME Minerals Corp (SME)</h3>
+                    <span class="category">Resource Entity</span>
+                    <div class="price">₹8,900 / Share</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyStock('SME Minerals Corp (SME)', 8900)">Buy Share with Met-Pay</button>
+                </div>
+                <div class="info-card">
+                    <h3>Nebula AI Systems (NEB)</h3>
+                    <span class="category">Intelligence Infrastructure</span>
+                    <div class="price">₹21,100 / Share</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyStock('Nebula AI Systems (NEB)', 21100)">Buy Share with Met-Pay</button>
+                </div>
+            </div>
         </div>
 
-        <!-- TAB 3: METCART (HARDWARE & DEVICES) -->
+        <!-- TAB: METCART (HARDWARE & DEVICES CATALOG) -->
         <div id="tab-metcart" class="tab-content" style="display:none;">
             <h1>MetCart Hardware & Devices Catalog</h1>
-            <p class="subtitle">Secure transactions via Met-Pay.</p>
+            <p class="subtitle">Secure transactions via Met-Pay. Include Tethys screen protectors during purchase or buy standalone.</p>
 
+            <h2 class="section-title">Smartphones</h2>
             <div class="grid-4">
                 <div class="info-card">
                     <h3>Nebula M1</h3>
@@ -582,11 +717,85 @@
                     <button class="btn-primary" style="width:100%;" onclick="buyDevice('Nebula M1 Elite', 120000)">Buy with Met-Pay</button>
                 </div>
                 <div class="info-card">
+                    <h3>Nebula A1</h3>
+                    <span class="category">Smartphones</span>
+                    <p>Accessible high-efficiency daily driver phone.</p>
+                    <div class="price">₹20,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('Nebula A1', 20000)">Buy with Met-Pay</button>
+                </div>
+                <div class="info-card">
+                    <h3>Nebula A1 Pro</h3>
+                    <span class="category">Smartphones</span>
+                    <p>Upgraded optics and performance tier A-series.</p>
+                    <div class="price">₹30,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('Nebula A1 Pro', 30000)">Buy with Met-Pay</button>
+                </div>
+                <div class="info-card">
+                    <h3>Nebula A1 Elite</h3>
+                    <span class="category">Smartphones</span>
+                    <p>Top configuration for the Nebula A series lineup.</p>
+                    <div class="price">₹40,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('Nebula A1 Elite', 40000)">Buy with Met-Pay</button>
+                </div>
+                <div class="info-card">
+                    <h3>Nebula B1</h3>
+                    <span class="category">Smartphones</span>
+                    <p>Entry-level budget smartphone device.</p>
+                    <div class="price">₹2,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('Nebula B1', 2000)">Buy with Met-Pay</button>
+                </div>
+                <div class="info-card">
+                    <h3>Nebula B1 Pro</h3>
+                    <span class="category">Smartphones</span>
+                    <p>Enhanced budget configuration phone.</p>
+                    <div class="price">₹4,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('Nebula B1 Pro', 4000)">Buy with Met-Pay</button>
+                </div>
+                <div class="info-card">
+                    <h3>Nebula B1 Elite</h3>
+                    <span class="category">Smartphones</span>
+                    <p>Premium finish budget smartphone option.</p>
+                    <div class="price">₹7,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('Nebula B1 Elite', 7000)">Buy with Met-Pay</button>
+                </div>
+                <div class="info-card">
+                    <h3>Nebula Z1 (Foldable)</h3>
+                    <span class="category">Foldable Smartphones</span>
+                    <p>Next-gen flexible folding screen technology.</p>
+                    <div class="price">₹100,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('Nebula Z1', 100000)">Buy with Met-Pay</button>
+                </div>
+                <div class="info-card">
+                    <h3>Nebula Z1 Pro (Foldable)</h3>
+                    <span class="category">Foldable Smartphones</span>
+                    <p>Enhanced hinges and multi-fold workspace.</p>
+                    <div class="price">₹130,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('Nebula Z1 Pro', 130000)">Buy with Met-Pay</button>
+                </div>
+                <div class="info-card">
+                    <h3>Nebula Z1 Elite (Foldable)</h3>
+                    <span class="category">Foldable Smartphones</span>
+                    <p>Ultimate flagship foldable device with SME shielding.</p>
+                    <div class="price">₹150,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('Nebula Z1 Elite', 150000)">Buy with Met-Pay</button>
+                </div>
+            </div>
+
+            <h2 class="section-title">Laptops</h2>
+            <div class="grid-4">
+                <div class="info-card">
                     <h3>Nebulabook M1</h3>
                     <span class="category">Laptops</span>
                     <p>High-performance enterprise laptop.</p>
                     <div class="price">₹90,000</div>
                     <button class="btn-primary" style="width:100%;" onclick="buyDevice('Nebulabook M1', 90000)">Buy with Met-Pay</button>
+                </div>
+                <div class="info-card">
+                    <h3>Nebulabook M1 Pro</h3>
+                    <span class="category">Laptops</span>
+                    <p>Upgraded processor cores and extended battery architecture.</p>
+                    <div class="price">₹130,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('Nebulabook M1 Pro', 130000)">Buy with Met-Pay</button>
                 </div>
                 <div class="info-card">
                     <h3>Nebulabook Elite</h3>
@@ -596,66 +805,204 @@
                     <button class="btn-primary" style="width:100%;" onclick="buyDevice('Nebulabook Elite', 190000)">Buy with Met-Pay</button>
                 </div>
                 <div class="info-card">
+                    <h3>Nebulabook A1</h3>
+                    <span class="category">Laptops</span>
+                    <p>Efficient everyday productivity laptop.</p>
+                    <div class="price">₹40,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('Nebulabook A1', 40000)">Buy with Met-Pay</button>
+                </div>
+                <div class="info-card">
+                    <h3>Nebulabook A1 Pro</h3>
+                    <span class="category">Laptops</span>
+                    <p>Advanced display and processing specs for A-series.</p>
+                    <div class="price">₹60,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('Nebulabook A1 Pro', 60000)">Buy with Met-Pay</button>
+                </div>
+                <div class="info-card">
+                    <h3>Nebulabook A1 Elite</h3>
+                    <span class="category">Laptops</span>
+                    <p>Top-tier portable A-series workstation.</p>
+                    <div class="price">₹80,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('Nebulabook A1 Elite', 80000)">Buy with Met-Pay</button>
+                </div>
+                <div class="info-card">
+                    <h3>Nebulabook B1</h3>
+                    <span class="category">Laptops</span>
+                    <p>Affordable entry laptop for students and basic tasks.</p>
+                    <div class="price">₹20,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('Nebulabook B1', 20000)">Buy with Met-Pay</button>
+                </div>
+                <div class="info-card">
+                    <h3>Nebulabook B1 Pro</h3>
+                    <span class="category">Laptops</span>
+                    <p>Upgraded budget laptop configuration.</p>
+                    <div class="price">₹30,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('Nebulabook B1 Pro', 30000)">Buy with Met-Pay</button>
+                </div>
+                <div class="info-card">
+                    <h3>Nebulabook D1</h3>
+                    <span class="category">Development Laptops</span>
+                    <p>Specialized developer laptop with pre-loaded Mettin SDK.</p>
+                    <div class="price">₹120,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('Nebulabook D1', 120000)">Buy with Met-Pay</button>
+                </div>
+                <div class="info-card">
+                    <h3>Nebulabook D1 Pro</h3>
+                    <span class="category">Development Laptops</span>
+                    <p>Advanced developer laptop with heavy compilation cores.</p>
+                    <div class="price">₹170,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('Nebulabook D1 Pro', 170000)">Buy with Met-Pay</button>
+                </div>
+                <div class="info-card">
+                    <h3>Nebulabook D1 Elite</h3>
+                    <span class="category">Development Laptops</span>
+                    <p>Ultimate software engineering machine with full SME suite.</p>
+                    <div class="price">₹210,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('Nebulabook D1 Elite', 210000)">Buy with Met-Pay</button>
+                </div>
+            </div>
+
+            <h2 class="section-title">Tabs</h2>
+            <div class="grid-4">
+                <div class="info-card">
+                    <h3>NebulaTab M1</h3>
+                    <span class="category">Tabs</span>
+                    <p>Flagship multimedia and productivity tablet.</p>
+                    <div class="price">₹60,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('NebulaTab M1', 60000)">Buy with Met-Pay</button>
+                </div>
+                <div class="info-card">
+                    <h3>NebulaTab M1 Pro</h3>
+                    <span class="category">Tabs</span>
+                    <p>Pro-grade screen clarity and pen-input latency reduction.</p>
+                    <div class="price">₹80,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('NebulaTab M1 Pro', 80000)">Buy with Met-Pay</button>
+                </div>
+                <div class="info-card">
+                    <h3>NebulaTab M1 Elite</h3>
+                    <span class="category">Tabs</span>
+                    <p>Ultimate tablet workstation experience.</p>
+                    <div class="price">₹100,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('NebulaTab M1 Elite', 100000)">Buy with Met-Pay</button>
+                </div>
+                <div class="info-card">
+                    <h3>NebulaTab A1</h3>
+                    <span class="category">Tabs</span>
+                    <p>Everyday consumer tablet for media consumption.</p>
+                    <div class="price">₹30,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('NebulaTab A1', 30000)">Buy with Met-Pay</button>
+                </div>
+                <div class="info-card">
+                    <h3>NebulaTab A1 Pro</h3>
+                    <span class="category">Tabs</span>
+                    <p>Enhanced specs for mid-range tablet users.</p>
+                    <div class="price">₹50,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('NebulaTab A1 Pro', 50000)">Buy with Met-Pay</button>
+                </div>
+                <div class="info-card">
+                    <h3>NebulaTab A1 Elite</h3>
+                    <span class="category">Tabs</span>
+                    <p>Top configuration of the A-series tablet line.</p>
+                    <div class="price">₹60,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('NebulaTab A1 Elite', 60000)">Buy with Met-Pay</button>
+                </div>
+                <div class="info-card">
+                    <h3>NebulaTab B1</h3>
+                    <span class="category">Tabs</span>
+                    <p>Budget-friendly tablet for basic reading and tasks.</p>
+                    <div class="price">₹20,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('NebulaTab B1', 20000)">Buy with Met-Pay</button>
+                </div>
+                <div class="info-card">
+                    <h3>NebulaTab B1 Pro</h3>
+                    <span class="category">Tabs</span>
+                    <p>Enhanced budget tablet layout.</p>
+                    <div class="price">₹40,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('NebulaTab B1 Pro', 40000)">Buy with Met-Pay</button>
+                </div>
+            </div>
+
+            <h2 class="section-title">Smart Watches</h2>
+            <div class="grid-4">
+                <div class="info-card">
+                    <h3>Nebula Watch 1</h3>
+                    <span class="category">Smart Watches</span>
+                    <p>Essential health tracker and notification watch.</p>
+                    <div class="price">₹8,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('Nebula Watch 1', 8000)">Buy with Met-Pay</button>
+                </div>
+                <div class="info-card">
+                    <h3>Nebula Watch 2</h3>
+                    <span class="category">Smart Watches</span>
+                    <p>Advanced biometric sensors and cellular integration.</p>
+                    <div class="price">₹15,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('Nebula Watch 2', 15000)">Buy with Met-Pay</button>
+                </div>
+                <div class="info-card">
+                    <h3>Nebula Watch 3</h3>
+                    <span class="category">Smart Watches</span>
+                    <p>Elite neural-link cellular smartwatch.</p>
+                    <div class="price">₹30,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('Nebula Watch 3', 30000)">Buy with Met-Pay</button>
+                </div>
+            </div>
+
+            <h2 class="section-title">All-In-One Processing Units (APUs)</h2>
+            <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:15px;">Mix of CPU, GPU, NPU etc. packed into a compact high-performance box.</p>
+            <div class="grid-4">
+                <div class="info-card">
                     <h3>APU 1</h3>
                     <span class="category">Processing Units</span>
-                    <p>All-In-One CPU + GPU + NPU processing box.</p>
+                    <p>Compact mixed-architecture unit (CPU + GPU + NPU).</p>
                     <div class="price">₹200,000</div>
                     <button class="btn-primary" style="width:100%;" onclick="buyDevice('APU 1', 200000)">Buy with Met-Pay</button>
                 </div>
                 <div class="info-card">
+                    <h3>APU 2</h3>
+                    <span class="category">Processing Units</span>
+                    <p>Intermediate multi-core processing box.</p>
+                    <div class="price">₹300,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('APU 2', 300000)">Buy with Met-Pay</button>
+                </div>
+                <div class="info-card">
+                    <h3>APU 3</h3>
+                    <span class="category">Processing Units</span>
+                    <p>High-density neural processing box.</p>
+                    <div class="price">₹400,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('APU 3', 400000)">Buy with Met-Pay</button>
+                </div>
+                <div class="info-card">
+                    <h3>APU 4</h3>
+                    <span class="category">Processing Units</span>
+                    <p>Ultimate quantum-grade processing box.</p>
+                    <div class="price">₹500,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('APU 4', 500000)">Buy with Met-Pay</button>
+                </div>
+            </div>
+
+            <h2 class="section-title">Tethys Screen Protectors</h2>
+            <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:15px;">Can be included when buying a phone/device to fix at the factory, or purchased standalone.</p>
+            <div class="grid-4">
+                <div class="info-card">
                     <h3>Tethys 1</h3>
                     <span class="category">Screen Protectors</span>
-                    <p>Impact-resistant glass protector.</p>
+                    <p>Impact-resistant standard glass protector.</p>
                     <div class="price">₹2,000</div>
                     <button class="btn-primary" style="width:100%;" onclick="buyDevice('Tethys 1', 2000)">Buy with Met-Pay</button>
                 </div>
                 <div class="info-card">
-                    <h3>Nebula Watch M1</h3>
-                    <span class="category">Smartwearables</span>
-                    <p>Biometric neural-link cellular smartwatch.</p>
-                    <div class="price">₹25,000</div>
-                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('Nebula Watch M1', 25000)">Buy with Met-Pay</button>
+                    <h3>Tethys 2</h3>
+                    <span class="category">Screen Protectors</span>
+                    <p>Advanced anti-glare sapphire-infused protector.</p>
+                    <div class="price">₹4,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('Tethys 2', 4000)">Buy with Met-Pay</button>
                 </div>
                 <div class="info-card">
-                    <h3>MetPod Pro</h3>
-                    <span class="category">Audio Devices</span>
-                    <p>Zero-latency active noise canceling earbuds.</p>
-                    <div class="price">₹15,000</div>
-                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('MetPod Pro', 15000)">Buy with Met-Pay</button>
-                </div>
-                <div class="info-card">
-                    <h3>Nebula Vision AR</h3>
-                    <span class="category">Spatial Computing</span>
-                    <p>High-resolution augmented reality spatial glasses.</p>
-                    <div class="price">₹180,000</div>
-                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('Nebula Vision AR', 180000)">Buy with Met-Pay</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 4: METSTOCK (STOCK EXCHANGE MARKETPLACE) -->
-        <div id="tab-metstock" class="tab-content" style="display:none;">
-            <h1>MetStock Financial Exchange</h1>
-            <p class="subtitle">Buy and trade corporate shares directly with your Met-Pay balance.</p>
-
-            <div class="grid-3">
-                <div class="info-card">
-                    <h3>Metxon Quantum (MTX)</h3>
-                    <span class="category">Ecosystem Parent Stock</span>
-                    <div class="price">₹14,250 / Share</div>
-                    <button class="btn-primary" style="width:100%;" onclick="buyStock('Metxon Quantum (MTX)', 14250)">Buy Share with Met-Pay</button>
-                </div>
-                <div class="info-card">
-                    <h3>SME Minerals Corp (SME)</h3>
-                    <span class="category">Resource Entity</span>
-                    <div class="price">₹8,900 / Share</div>
-                    <button class="btn-primary" style="width:100%;" onclick="buyStock('SME Minerals Corp (SME)', 8900)">Buy Share with Met-Pay</button>
-                </div>
-                <div class="info-card">
-                    <h3>Nebula AI Systems (NEB)</h3>
-                    <span class="category">Intelligence Infrastructure</span>
-                    <div class="price">₹21,100 / Share</div>
-                    <button class="btn-primary" style="width:100%;" onclick="buyStock('Nebula AI Systems (NEB)', 21100)">Buy Share with Met-Pay</button>
+                    <h3>Tethys 3</h3>
+                    <span class="category">Screen Protectors</span>
+                    <p>Self-healing quantum armored screen protector.</p>
+                    <div class="price">₹5,000</div>
+                    <button class="btn-primary" style="width:100%;" onclick="buyDevice('Tethys 3', 5000)">Buy with Met-Pay</button>
                 </div>
             </div>
         </div>
@@ -666,7 +1013,6 @@
         // Accounts state initialized directly with your requested Owner figures
         const currentUser = "Metxon";
         const DEFAULT_BALANCE = 30000000000000; // 30 Lakh Crores (₹30,00,00,00,00,000)
-        const DEFAULT_MEMBER_BALANCE = 100000; // 1 Lakh for new members
 
         let userBalance = parseFloat(localStorage.getItem('metxon_owner_balance')) || DEFAULT_BALANCE;
 
@@ -687,7 +1033,10 @@
             document.querySelectorAll('.nav-links a').forEach(link => link.classList.remove('active'));
             
             document.getElementById(tabId).style.display = 'block';
-            event.target.classList.add('active');
+            if (event && event.target && event.target.tagName === 'A') {
+                event.target.classList.add('active');
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         // App Workspace Handlers
@@ -736,7 +1085,7 @@
             if (userBalance >= price) {
                 userBalance -= price;
                 updateBalanceUI();
-                alert(`Purchased ${deviceName} for ₹${price.toLocaleString('en-IN')} using Met-Pay!`);
+                alert(`Successfully purchased ${deviceName} for ₹${price.toLocaleString('en-IN')} using Met-Pay!`);
             } else {
                 alert("Insufficient balance in account.");
             }
