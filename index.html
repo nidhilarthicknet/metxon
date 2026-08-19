@@ -1,560 +1,1386 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Metxon Corporate // Ecosystem Hub</title>
-    <style>
-        :root {
-            --bg-color: #060913;
-            --card-bg: #0d1527;
-            --card-border: #1a2642;
-            --accent-cyan: #00e5ff;
-            --accent-blue: #2563eb;
-            --text-main: #e2e8f0;
-            --text-muted: #94a3b8;
-            --green-active: #10b981;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Metxon Corporate // Ecosystem Portal</title>
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+<style>
+:root{
+  --bg:#060913;
+  --panel:#0d1527;
+  --panel2:#111d32;
+  --card:#101a2d;
+  --line:#263957;
+  --text:#edf4ff;
+  --muted:#91a4c3;
+  --cyan:#37d9ff;
+  --blue:#6285ff;
+  --green:#53e19c;
+  --purple:#bf91ff;
+  --orange:#ffb15f;
+  --red:#ff7187
+}
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
+*{box-sizing:border-box}
 
-        /* Top Navigation */
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 18px 40px;
-            background-color: #04060d;
-            border-bottom: 1px solid var(--card-border);
-        }
+html{scroll-behavior:smooth}
 
-        .logo {
-            font-size: 1.3rem;
-            font-weight: 800;
-            letter-spacing: 2px;
-            color: var(--accent-cyan);
-        }
+body{
+  margin:0;
+  background:
+    radial-gradient(circle at 15% 0,#122647 0,#060913 38%,#03050a 100%);
+  color:var(--text);
+  font:15px/1.55 Inter,Segoe UI,Arial,sans-serif
+}
 
-        nav {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
+button,input,textarea,select{font:inherit}
 
-        nav a {
-            color: var(--text-muted);
-            text-decoration: none;
-            font-size: 0.95rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: color 0.2s;
-        }
+button{cursor:pointer}
 
-        nav a:hover, nav a.active {
-            color: var(--accent-cyan);
-        }
+.top{
+  position:sticky;
+  top:0;
+  z-index:50;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  flex-wrap:wrap;
+  padding:11px 20px;
+  background:rgba(5,8,16,.92);
+  backdrop-filter:blur(15px);
+  border-bottom:1px solid var(--line)
+}
 
-        .user-badge {
-            background: rgba(0, 229, 255, 0.1);
-            border: 1px solid var(--accent-cyan);
-            color: var(--accent-cyan);
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 700;
-            letter-spacing: 1px;
-        }
+.logo{
+  font-weight:900;
+  letter-spacing:.12em;
+  font-size:18px
+}
 
-        /* App Container */
-        main {
-            max-width: 1200px;
-            width: 100%;
-            margin: 0 auto;
-            padding: 40px 20px;
-            flex-grow: 1;
-        }
+.logo span{color:var(--cyan)}
 
-        .tab-content {
-            display: none;
-        }
+nav{
+  display:flex;
+  gap:5px;
+  flex-wrap:wrap
+}
 
-        .tab-content.active {
-            display: block;
-        }
+.nav{
+  background:transparent;
+  color:var(--muted);
+  border:1px solid transparent;
+  border-radius:9px;
+  padding:8px 11px
+}
 
-        h1 {
-            font-size: 2.2rem;
-            color: var(--accent-cyan);
-            margin-bottom: 8px;
-        }
+.nav:hover,
+.nav.active{
+  background:var(--panel2);
+  border-color:var(--line);
+  color:var(--cyan)
+}
 
-        .subtitle {
-            color: var(--text-muted);
-            margin-bottom: 30px;
-            font-size: 0.95rem;
-        }
+.profile{
+  margin-left:auto;
+  border:1px solid var(--line);
+  padding:7px 12px;
+  border-radius:999px;
+  color:var(--muted);
+  font-size:12px
+}
 
-        /* Cards & Grids */
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 20px;
-        }
+.container{
+  max-width:1250px;
+  margin:auto;
+  padding:26px 20px 60px
+}
 
-        .card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 8px;
-            padding: 24px;
-        }
+.view{display:none}
 
-        .card h3 {
-            font-size: 1.1rem;
-            margin-bottom: 6px;
-            color: var(--text-main);
-        }
+.view.active{display:block}
 
-        .card .tag {
-            font-size: 0.75rem;
-            color: var(--accent-cyan);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 12px;
-            display: block;
-        }
+.hero{
+  text-align:center;
+  padding:65px 10px 45px
+}
 
-        .card p {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            line-height: 1.5;
-            margin-bottom: 16px;
-        }
+.hero h1{
+  font-size:clamp(45px,8vw,90px);
+  letter-spacing:.1em;
+  margin:10px 0
+}
 
-        .price {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--green-active);
-            margin-bottom: 16px;
-        }
+.hero p{
+  max-width:780px;
+  margin:10px auto 22px;
+  color:var(--muted);
+  font-size:18px
+}
 
-        /* Buttons & Forms */
-        .btn {
-            width: 100%;
-            padding: 12px;
-            background-color: var(--accent-blue);
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
+.brand{
+  border-left:4px solid var(--cyan);
+  padding-left:15px;
+  margin:10px 0 24px
+}
 
-        .btn:hover {
-            background-color: #1d4ed8;
-        }
+.brand h1,
+.brand h2{margin:0}
 
-        .input-group {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
+.brand p{
+  margin:4px 0;
+  color:var(--muted)
+}
 
-        input[type="text"] {
-            flex-grow: 1;
-            padding: 12px 16px;
-            background: #04060d;
-            border: 1px solid var(--card-border);
-            border-radius: 6px;
-            color: var(--text-main);
-            outline: none;
-        }
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(245px,1fr));
+  gap:15px
+}
 
-        input[type="text"]:focus {
-            border-color: var(--accent-cyan);
-        }
+.card{
+  background:linear-gradient(
+    145deg,
+    rgba(16,27,48,.97),
+    rgba(8,14,26,.97)
+  );
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:18px;
+  box-shadow:0 12px 35px rgba(0,0,0,.16)
+}
 
-        /* Dynamic Result Card */
-        .result-box {
-            background: #04060d;
-            border: 1px solid var(--card-border);
-            border-left: 4px solid var(--accent-cyan);
-            border-radius: 6px;
-            padding: 20px;
-            margin-top: 20px;
-            display: none;
-        }
+.card h3{margin-top:0}
 
-        /* Balance Banner */
-        .balance-card {
-            background: linear-gradient(135deg, #0d1527 0%, #15223e 100%);
-            border: 1px solid var(--card-border);
-            padding: 24px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+.muted{color:var(--muted)}
 
-        .balance-amount {
-            font-size: 1.8rem;
-            font-weight: 800;
-            color: var(--green-active);
-        }
+.badge{
+  display:inline-block;
+  border:1px solid var(--line);
+  border-radius:999px;
+  padding:3px 9px;
+  color:var(--cyan);
+  font-size:11px
+}
 
-        /* Wiki Layout */
-        .wiki-layout {
-            display: grid;
-            grid-template-columns: 240px 1fr;
-            gap: 30px;
-        }
+.price{
+  font-size:21px;
+  font-weight:800;
+  color:var(--green)
+}
 
-        .wiki-nav {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
+.btn{
+  border:1px solid var(--line);
+  background:#12213b;
+  color:var(--text);
+  padding:9px 13px;
+  border-radius:9px
+}
 
-        .wiki-nav button {
-            background: transparent;
-            border: 1px solid var(--card-border);
-            color: var(--text-muted);
-            padding: 10px 14px;
-            border-radius: 6px;
-            text-align: left;
-            cursor: pointer;
-        }
+.btn.primary{
+  border:0;
+  background:linear-gradient(135deg,#149fca,#566fff);
+  color:white
+}
 
-        .wiki-nav button.active {
-            background: var(--card-bg);
-            color: var(--accent-cyan);
-            border-color: var(--accent-cyan);
-        }
-    </style>
+.btn.warn{
+  background:#38291a;
+  border-color:#674d27
+}
+
+.btn.danger{
+  background:#351522;
+  border-color:#692a3c;
+  color:#ff9dad
+}
+
+.btn:disabled{opacity:.45}
+
+.search{
+  display:flex;
+  gap:9px;
+  max-width:850px;
+  margin:18px auto
+}
+
+.search input{
+  flex:1
+}
+
+.input,
+.search input,
+textarea,
+select{
+  background:#070d18;
+  border:1px solid var(--line);
+  color:#fff;
+  border-radius:9px;
+  padding:11px 13px;
+  outline:none;
+  width:100%
+}
+
+.notice{
+  border:1px solid var(--line);
+  background:#0a1324;
+  padding:12px 14px;
+  border-radius:10px;
+  margin:12px 0
+}
+
+.success{border-color:#2b614d}
+.warn{border-color:#6b5128}
+.error{border-color:#6d2d3c}
+
+.table{overflow:auto}
+
+.table table{
+  width:100%;
+  border-collapse:collapse;
+  min-width:760px
+}
+
+.table th,
+.table td{
+  padding:10px;
+  border-bottom:1px solid var(--line);
+  text-align:left
+}
+
+.table th{color:var(--cyan)}
+
+.tabs{
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+  margin:12px 0
+}
+
+.tab{
+  border:1px solid var(--line);
+  background:#0b1425;
+  color:var(--muted);
+  padding:8px 12px;
+  border-radius:8px
+}
+
+.tab.active{
+  border-color:var(--cyan);
+  color:#fff
+}
+
+.modal{
+  position:fixed;
+  inset:0;
+  z-index:100;
+  background:rgba(0,0,0,.75);
+  display:none;
+  place-items:center;
+  padding:18px
+}
+
+.modal.open{display:grid}
+
+.modalbox{
+  width:min(680px,100%);
+  max-height:91vh;
+  overflow:auto;
+  background:#091221;
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:22px
+}
+
+.modalbox label{
+  display:block;
+  color:var(--muted);
+  font-size:12px;
+  margin-top:8px
+}
+
+.modalbox input,
+.modalbox textarea{
+  margin:6px 0 10px
+}
+
+.actions{
+  display:flex;
+  gap:8px;
+  justify-content:flex-end;
+  margin-top:12px
+}
+
+.appgrid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:12px
+}
+
+.app{
+  background:#0d172a;
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:16px;
+  cursor:pointer
+}
+
+.app:hover{
+  border-color:var(--cyan);
+  transform:translateY(-2px)
+}
+
+.workspace{
+  display:none;
+  margin-top:18px;
+  border:1px solid var(--line);
+  background:#08101d;
+  border-radius:14px;
+  padding:18px
+}
+
+.workspace.open{display:block}
+
+.workspace-head{
+  display:flex;
+  justify-content:space-between;
+  gap:15px;
+  align-items:flex-start;
+  border-bottom:1px solid var(--line);
+  padding-bottom:12px;
+  margin-bottom:15px
+}
+
+.creator{
+  color:var(--cyan);
+  font-size:12px
+}
+
+.toolbar{
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+  margin-bottom:10px
+}
+
+.terminal,
+.chat{
+  background:#040914;
+  border:1px solid var(--line);
+  border-radius:9px;
+  padding:12px;
+  min-height:120px;
+  white-space:pre-wrap
+}
+
+.chat{
+  height:250px;
+  overflow:auto
+}
+
+.msg{
+  padding:8px 10px;
+  background:#101d32;
+  border-radius:8px;
+  margin:7px 0
+}
+
+.small{
+  font-size:11px;
+  color:var(--muted)
+}
+
+.split{
+  display:grid;
+  grid-template-columns:1.1fr .9fr;
+  gap:15px
+}
+
+@media(max-width:850px){
+  .split{grid-template-columns:1fr}
+  .profile{margin-left:0}
+}
+
+footer{
+  text-align:center;
+  color:var(--muted);
+  padding:30px
+}
+</style>
 </head>
+
 <body>
 
-    <header>
-        <div class="logo">METXON CORPORATE</div>
-        <nav>
-            <a onclick="switchTab('wiki')" id="nav-wiki" class="active">Wiki</a>
-            <a onclick="switchTab('home')" id="nav-home">Home</a>
-            <a onclick="switchTab('cule-in')" id="nav-cule-in">Cule-In</a>
-            <a onclick="switchTab('molecule')" id="nav-molecule">Molecule</a>
-            <a onclick="switchTab('mettin')" id="nav-mettin">Mettin</a>
-            <a onclick="switchTab('metcount')" id="nav-metcount">MetCount</a>
-            <a onclick="switchTab('metcart')" id="nav-metcart">MetCart</a>
-            <span class="user-badge">USER: METXON</span>
-        </nav>
-    </header>
+<header class="top">
 
-    <main>
+  <div class="logo">
+    MET<span>-XON</span>
+  </div>
 
-        <!-- WIKI TAB -->
-        <section id="tab-wiki" class="tab-content active">
-            <h1>Metxon Corporate Wiki</h1>
-            <p class="subtitle">Comprehensive documentation hub for the Metxon hardware and software ecosystem.</p>
-            
-            <div class="wiki-layout">
-                <div class="wiki-nav">
-                    <button class="active" onclick="setWikiDoc('overview')">Ecosystem Overview</button>
-                    <button onclick="setWikiDoc('hardware')">Hardware Registries</button>
-                    <button onclick="setWikiDoc('sme')">SME Guidelines</button>
-                    <button onclick="setWikiDoc('api')">API Documentation</button>
-                </div>
-                <div class="card" id="wiki-body">
-                    <h3>Ecosystem Overview</h3>
-                    <br>
-                    <p>Metxon Corporate is an advanced technology conglomerate specializing in high-performance consumer hardware, decentralized software platforms, Systemic Mineral Entities (SMEs), and simulated financial exchanges.</p>
-                    <p>Use the navigation to explore system registries, hardware specifications, and API access points.</p>
-                </div>
-            </div>
-        </section>
+  <nav>
+    <button class="nav active" data-view="wiki">Wiki</button>
+    <button class="nav" data-view="home">Home</button>
+    <button class="nav" data-view="molecule">Molecule</button>
+    <button class="nav" data-view="mettin">Mettin</button>
+    <button class="nav" data-view="metcount">MetCount</button>
+    <button class="nav" data-view="metcart">MetCart</button>
+  </nav>
 
-        <!-- HOME TAB -->
-        <section id="tab-home" class="tab-content">
-            <h1>Metxon Core Hub</h1>
-            <p class="subtitle">Central management portal for ecosystem operations and device monitoring.</p>
-            <div class="grid">
-                <div class="card">
-                    <span class="tag">System Status</span>
-                    <h3>Ecosystem Health</h3>
-                    <p>All core networks, database connectors, and simulation engines are running with nominal performance.</p>
-                </div>
-                <div class="card">
-                    <span class="tag">Active Hardware</span>
-                    <h3>Registered Hardware Lines</h3>
-                    <p>Mexton Book Series, Mexton Tab Ultra, and Mexton Watch eSIM units fully indexed.</p>
-                </div>
-            </div>
-        </section>
+  <div class="profile" id="profile">
+    USER: GUEST
+  </div>
 
-        <!-- CULE-IN TAB -->
-        <section id="tab-cule-in" class="tab-content">
-            <h1>Cule-In Unified Search</h1>
-            <p class="subtitle">Global query engine across Mettin databases, hardware registries, and devices.</p>
-            
-            <div class="card">
-                <div class="input-group">
-                    <input type="text" id="culeQuery" value="What is the rate of Nebula M1 pro" placeholder="Enter hardware query or index lookup...">
-                    <button class="btn" style="width: auto; padding: 0 24px;" onclick="runCuleSearch()">Run Global Search</button>
-                </div>
+  <button class="btn primary" onclick="openAuth()">
+    Join Met-Xon / Sign In
+  </button>
 
-                <div id="culeResult" class="result-box">
-                    <span class="tag" id="resTag">HARDWARE REGISTRY MATCH</span>
-                    <h3 id="resTitle" style="color: var(--accent-cyan); margin-bottom: 8px;">Nebula M1 Pro</h3>
-                    <p id="resDesc">High-performance silicon processor architecture configured for Mexton hardware platforms.</p>
-                    <div class="price" id="resPrice">MSRP: ₹89,990 | Enterprise Rate: ₹78,500</div>
-                    <span style="font-size: 0.8rem; color: var(--green-active);">Status: In Stock & Available for Allocation</span>
-                </div>
-            </div>
-        </section>
+</header>
 
-        <!-- MOLECULE TAB -->
-        <section id="tab-molecule" class="tab-content">
-            <h1>Molecule Hardware Registry</h1>
-            <p class="subtitle">Structural mapping and specifications of official Mexton devices.</p>
-            
-            <div class="grid">
-                <div class="card">
-                    <span class="tag">LAPTOP LINEUP</span>
-                    <h3>Mexton Book Pro 16</h3>
-                    <p>Powered by the Nebula M1 Pro silicon. Features liquid retina display and 32GB unified memory.</p>
-                    <div class="price">₹1,24,990</div>
-                </div>
-                <div class="card">
-                    <span class="tag">TABLET LINEUP</span>
-                    <h3>Mexton Tab Ultra</h3>
-                    <p>12.9-inch AMOLED tablet with precision stylus mapping and desktop-grade hardware virtualization.</p>
-                    <div class="price">₹64,990</div>
-                </div>
-                <div class="card">
-                    <span class="tag">WEARABLE LINEUP</span>
-                    <h3>Mexton Watch eSIM</h3>
-                    <p>Independent cellular smartwatch with advanced health tracking and real-time telemetry sync.</p>
-                    <div class="price">₹22,990</div>
-                </div>
-            </div>
-        </section>
+<main class="container">
 
-        <!-- METTIN TAB -->
-        <section id="tab-mettin" class="tab-content">
-            <h1>Mettin Core Architecture</h1>
-            <p class="subtitle">Decentralized runtime environment, Systemic Mineral Entities (SMEs), and application suite.</p>
-            
-            <div class="card" style="margin-bottom: 24px;">
-                <span class="tag">SYSTEM DIAGNOSTICS</span>
-                <h3>Runtime Diagnostics</h3>
-                <p>All quantum core sub-processors are online. Met-Pay transaction bus is fully synchronized across local and remote server subnets.</p>
-            </div>
+<section id="wiki" class="view active">
 
-            <h2 style="font-size: 1.3rem; color: var(--accent-cyan); margin-bottom: 16px;">Systemic Mineral Entities (SMEs)</h2>
-            <div class="grid" style="margin-bottom: 30px;">
-                <div class="card">
-                    <span class="tag">SME-01</span>
-                    <h3>Lithium-Core SME</h3>
-                    <p>Primary energy density ledger node powering hardware telemetry and battery optimization.</p>
-                </div>
-                <div class="card">
-                    <span class="tag">SME-02</span>
-                    <h3>Silicon-Lattice SME</h3>
-                    <p>High-frequency data mapping node binding display engines and processing units.</p>
-                </div>
-            </div>
+  <div class="hero">
 
-            <h2 style="font-size: 1.3rem; color: var(--accent-cyan); margin-bottom: 16px;">Mettin Application Suite</h2>
-            <div class="grid">
-                <div class="card">
-                    <span class="tag">APPLICATION</span>
-                    <h3>Met-Pay Terminal</h3>
-                    <p>Secure financial gateway handling virtual ledger transactions and subscription renewals.</p>
-                </div>
-                <div class="card">
-                    <span class="tag">APPLICATION</span>
-                    <h3>Met-Vault</h3>
-                    <p>Encrypted data storage app for user credentials, ecosystem certificates, and device keys.</p>
-                </div>
-                <div class="card">
-                    <span class="tag">APPLICATION</span>
-                    <h3>Met-Link Telemetry</h3>
-                    <p>Real-time monitoring app for connected Mexton laptops, tablets, and eSIM smartwatches.</p>
-                </div>
-            </div>
-        </section>
+    <span class="badge">
+      METXON CORPORATE
+    </span>
 
-        <!-- METCOUNT TAB -->
-        <section id="tab-metcount" class="tab-content">
-            <h1>MetCount Financial Exchange (Simulator)</h1>
-            <p class="subtitle">Search live market assets via Financial API and simulate stock trades using virtual Met-Pay balance.</p>
-            
-            <div class="balance-card">
-                <div>
-                    <span style="color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Available Met-Pay Balance</span>
-                    <div class="balance-amount" id="metPayBalance">₹500,000.00</div>
-                </div>
-                <span style="font-size: 0.8rem; background: rgba(16, 185, 129, 0.1); color: var(--green-active); padding: 6px 12px; border-radius: 4px; border: 1px solid var(--green-active);">Simulation Engine Active</span>
-            </div>
+    <h1>Metxon Corporate</h1>
 
-            <div class="card" style="margin-bottom: 24px;">
-                <span class="tag">FINANCIAL API MARKET SEARCH</span>
-                <div class="input-group" style="margin-top: 10px; margin-bottom: 0;">
-                    <input type="text" id="stockTicker" placeholder="Enter stock symbol (e.g. GOOGL, AAPL, MSFT, NVDA)...">
-                    <button class="btn" style="width: auto; padding: 0 24px;" onclick="searchStockAPI()">Fetch Live Stock</button>
-                </div>
-            </div>
+    <p>
+      Centralized portal for the Metxon ecosystem —
+      Molecule hardware, Mettin software,
+      MetCount financial infrastructure and MetCart commerce.
+    </p>
 
-            <div id="stockResultCard" class="card" style="display: none;">
-                <span class="tag">SIMULATED ASSET MARKET DATA</span>
-                <h3 id="stockName">Alphabet Inc. (GOOGL)</h3>
-                <p id="stockDetails">Real-world market data fetched via Financial API. Purchasing simulates share ownership and deducts virtual Met-Pay funds without placing actual market orders.</p>
-                <div class="price" id="stockPrice">₹14,500.00 / share</div>
-                <button class="btn" style="max-width: 250px;" onclick="buySimulatedStock()">Buy 1 Share with Met-Pay</button>
-                <p id="txNotice" style="font-size: 0.8rem; color: var(--green-active); margin-top: 10px; display: none;"></p>
-            </div>
-        </section>
+    <button class="btn primary" onclick="openAuth()">
+      Join Met-Xon / Sign In
+    </button>
 
-        <!-- METCART TAB -->
-        <section id="tab-metcart" class="tab-content">
-            <h1>MetCart Storefront</h1>
-            <p class="subtitle">Configure and order official Mexton devices using your Met-Pay corporate account.</p>
-            
-            <div class="grid">
-                <div class="card">
-                    <span class="tag">HARDWARE ITEM</span>
-                    <h3>Mexton Book Pro 16</h3>
-                    <p>Nebula M1 Pro / 32GB RAM / 1TB SSD</p>
-                    <div class="price">₹1,24,990</div>
-                    <button class="btn" onclick="purchaseDevice('Mexton Book Pro 16', 124990)">Order via Met-Pay</button>
-                </div>
-                <div class="card">
-                    <span class="tag">HARDWARE ITEM</span>
-                    <h3>Mexton Tab Ultra</h3>
-                    <p>12.9" AMOLED / 256GB / Stylus Included</p>
-                    <div class="price">₹64,990</div>
-                    <button class="btn" onclick="purchaseDevice('Mexton Tab Ultra', 64990)">Order via Met-Pay</button>
-                </div>
-                <div class="card">
-                    <span class="tag">HARDWARE ITEM</span>
-                    <h3>Mexton Watch eSIM</h3>
-                    <p>Titanium Case / Cellular Connectivity</p>
-                    <div class="price">₹22,990</div>
-                    <button class="btn" onclick="purchaseDevice('Mexton Watch eSIM', 22990)">Order via Met-Pay</button>
-                </div>
-            </div>
-        </section>
+  </div>
 
-    </main>
+  <div class="grid">
 
-    <script>
-        let virtualBalance = 500000;
-        let currentFetchedPrice = 0;
-        let currentFetchedTicker = '';
+    <div class="card">
+      <h3>Corporate Overview</h3>
+      <p class="muted">
+        The main wiki/portal connects all four divisions
+        and the internal Cule-In search system.
+      </p>
+    </div>
 
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('nav a').forEach(nav => nav.classList.remove('active'));
+    <div class="card">
+      <h3>Molecule</h3>
+      <p class="muted">
+        Complete hardware catalog with device names
+        and prices supplied in the specification.
+      </p>
+    </div>
 
-            document.getElementById('tab-' + tabId).classList.add('active');
-            document.getElementById('nav-' + tabId).classList.add('active');
-        }
+    <div class="card">
+      <h3>Mettin</h3>
+      <p class="muted">
+        Met Develop, Met-Alk, Nebula Store,
+        Cule-In and Nebula AI.
+      </p>
+    </div>
 
-        /* Cule-In Search (No Alert Popup) */
-        function runCuleSearch() {
-            const query = document.getElementById('culeQuery').value.toLowerCase().trim();
-            const resultBox = document.getElementById('culeResult');
-            
-            resultBox.style.display = 'block';
+    <div class="card">
+      <h3>MetCount</h3>
+      <p class="muted">
+        Account, transactions, subscriptions and
+        stocks directly below subscriptions.
+      </p>
+    </div>
 
-            if (query.includes('nebula') || query.includes('m1')) {
-                document.getElementById('resTitle').innerText = 'Nebula M1 Pro Processor';
-                document.getElementById('resDesc').innerText = 'High-throughput silicon powering the Mexton flagship laptop series.';
-                document.getElementById('resPrice').innerText = 'MSRP: ₹89,990 | Corporate Rate: ₹78,500';
-            } else {
-                document.getElementById('resTitle').innerText = 'Query Match Found: ' + (query || 'General Index');
-                document.getElementById('resDesc').innerText = 'Index lookup complete across Mettin system registries.';
-                document.getElementById('resPrice').innerText = 'Status: Active Ecosystem Record';
-            }
-        }
+    <div class="card">
+      <h3>MetCart</h3>
+      <p class="muted">
+        Hardware ordering, cart and Met-Pay checkout.
+      </p>
+    </div>
 
-        /* MetCount Financial API Search Simulation */
-        async function searchStockAPI() {
-            const ticker = document.getElementById('stockTicker').value.toUpperCase().trim() || 'GOOGL';
-            const resultCard = document.getElementById('stockResultCard');
-            const txNotice = document.getElementById('txNotice');
-            
-            txNotice.style.display = 'none';
-            resultCard.style.display = 'block';
+  </div>
 
-            // Simulated Financial API Call Response with real-world stock prices mapped to INR
-            const mockApiData = {
-                'GOOGL': { name: 'Alphabet Inc. (GOOGL)', price: 14500 },
-                'AAPL': { name: 'Apple Inc. (AAPL)', price: 18200 },
-                'MSFT': { name: 'Microsoft Corp. (MSFT)', price: 34800 },
-                'NVDA': { name: 'NVIDIA Corp. (NVDA)', price: 11200 }
-            };
+</section>
 
-            const data = mockApiData[ticker] || { name: `${ticker} Corporation`, price: Math.floor(Math.random() * 15000) + 2000 };
-            
-            currentFetchedTicker = data.name;
-            currentFetchedPrice = data.price;
 
-            document.getElementById('stockName').innerText = data.name;
-            document.getElementById('stockPrice').innerText = `₹${data.price.toLocaleString('en-IN')}.00 / share`;
-        }
+<section id="home" class="view">
 
-        function buySimulatedStock() {
-            if (virtualBalance >= currentFetchedPrice) {
-                virtualBalance -= currentFetchedPrice;
-                document.getElementById('metPayBalance').innerText = `₹${virtualBalance.toLocaleString('en-IN')}.00`;
-                
-                const txNotice = document.getElementById('txNotice');
-                txNotice.style.display = 'block';
-                txNotice.innerText = `Successfully simulated purchase of 1 share of ${currentFetchedTicker} for ₹${currentFetchedPrice.toLocaleString('en-IN')}. Virtual balance deducted.`;
-            } else {
-                alert('Insufficient Met-Pay virtual funds!');
-            }
-        }
+  <div class="brand">
+    <h2>METXON COMMAND CENTER</h2>
+    <p>Secure node connected.</p>
+  </div>
 
-        /* MetCart Purchasing */
-        function purchaseDevice(deviceName, price) {
-            if (virtualBalance >= price) {
-                virtualBalance -= price;
-                document.getElementById('metPayBalance').innerText = `₹${virtualBalance.toLocaleString('en-IN')}.00`;
-                alert(`Order confirmed for ${deviceName}! Deducted ₹${price.toLocaleString('en-IN')} from your virtual Met-Pay balance.`);
-            } else {
-                alert('Insufficient virtual balance in Met-Pay.');
-            }
-        }
+  <div class="search">
 
-        /* Wiki Content Handler */
-        function setWikiDoc(type) {
-            const body = document.getElementById('wiki-body');
-            document.querySelectorAll('.wiki-nav button').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+    <input
+      id="homeQ"
+      placeholder="Search devices, stocks, subscriptions…"
+    >
 
-            const docs = {
-                'overview': `<h3>Ecosystem Overview</h3><br><p>Metxon Corporate is an advanced technology conglomerate specializing in high-performance consumer hardware, decentralized software platforms, Systemic Mineral Entities (SMEs), and simulated financial exchanges.</p>`,
-                'hardware': `<h3>Hardware Registries</h3><br><p>Official hardware entries include the Mexton Book Pro line (powered by Nebula M1 Pro), Mexton Tab Ultra, and Mexton Watch eSIM. All hardware entries synchronize with Molecule and MetCart modules.</p>`,
-                'sme': `<h3>SME Guidelines</h3><br><p>Systemic Mineral Entities (SMEs) represent core resource layers (such as Lithium-Core and Silicon-Lattice nodes) integrated into the Mettin Architecture for system optimization.</p>`,
-                'api': `<h3>API Documentation</h3><br><p>Endpoints for the MetCount stock market simulation connect to external financial APIs to stream live pricing while preserving localized virtual ledger accounting.</p>`
-            };
+    <button
+      class="btn primary"
+      onclick="culeSearch('homeQ','homeResults')">
+      Cule-In
+    </button>
 
-            body.innerHTML = docs[type];
-        }
-    </script>
-</body>
-</html>
+  </div>
+
+  <div style="text-align:center">
+
+    <button
+      class="tab"
+      id="aiToggle"
+      onclick="toggleAI()">
+      Cule AI: OFF
+    </button>
+
+  </div>
+
+  <div id="homeResults"></div>
+
+  <div class="grid">
+
+    <div
+      class="card"
+      onclick="showView('molecule')">
+
+      <h3>Molecule Database</h3>
+
+      <p>
+        Full device catalog, prices and searchable
+        hardware data.
+      </p>
+
+    </div>
+
+    <div
+      class="card"
+      onclick="showView('mettin')">
+
+      <h3>Mettin Workspace</h3>
+
+      <p>
+        Met Develop, Met-Alk, Nebula Store,
+        Cule-In and Nebula AI.
+      </p>
+
+    </div>
+
+    <div
+      class="card"
+      onclick="showView('metcount')">
+
+      <h3>MetCount & Finance</h3>
+
+      <p>
+        Account, subscriptions,
+        transactions and stock simulation.
+      </p>
+
+    </div>
+
+    <div
+      class="card"
+      onclick="showView('metcart')">
+
+      <h3>MetCart Store</h3>
+
+      <p>
+        Hardware catalog, cart and Met-Pay checkout.
+      </p>
+
+    </div>
+
+  </div>
+
+</section>
+
+
+<section id="molecule" class="view">
+
+  <div class="brand">
+    <h2>Molecule™</h2>
+    <p>Consumer Electronics / Hardware Hub</p>
+  </div>
+
+  <div class="search">
+
+    <input
+      id="molQ"
+      placeholder="Search Molecule devices by name or category">
+
+    <button
+      class="btn primary"
+      onclick="renderMolecule()">
+      Search
+    </button>
+
+  </div>
+
+  <div class="notice">
+    Complete Molecule hardware catalog from the supplied
+    Metxon specification.
+  </div>
+
+  <div
+    id="moleculeGrid"
+    class="grid">
+  </div>
+
+</section>
+
+
+<section id="mettin" class="view">
+
+  <div class="brand">
+
+    <h2>Mettin™</h2>
+
+    <p>
+      Core development suites, AI engines,
+      security and advanced SME systems.
+    </p>
+
+  </div>
+
+  <h3>Apps</h3>
+
+  <div class="appgrid">
+
+    <div
+      class="app"
+      onclick="openApp('develop')">
+
+      <h3>Met Develop</h3>
+      <p class="muted">
+        Code editor & compiler
+      </p>
+
+    </div>
+
+    <div
+      class="app"
+      onclick="openApp('alk')">
+
+      <h3>Met-Alk</h3>
+      <p class="muted">
+        Username messenger
+      </p>
+
+    </div>
+
+    <div
+      class="app"
+      onclick="openApp('store')">
+
+      <h3>Nebula Store</h3>
+      <p class="muted">
+        App marketplace & games
+      </p>
+
+    </div>
+
+    <div
+      class="app"
+      onclick="openApp('cule')">
+
+      <h3>Cule-In</h3>
+      <p class="muted">
+        Unified search & AI
+      </p>
+
+    </div>
+
+    <div
+      class="app"
+      onclick="openApp('ai')">
+
+      <h3>Nebula AI</h3>
+      <p class="muted">
+        Advanced assistant
+      </p>
+
+    </div>
+
+  </div>
+
+
+  <div
+    id="workspace"
+    class="workspace">
+
+    <div class="workspace-head">
+
+      <div>
+
+        <h2
+          id="appTitle"
+          style="margin:0">
+        </h2>
+
+        <div class="creator">
+          Created by Metxon Corporate
+        </div>
+
+      </div>
+
+      <button
+        class="btn"
+        onclick="closeApp()">
+        Close App
+      </button>
+
+    </div>
+
+    <div id="appBody"></div>
+
+  </div>
+
+
+  <div
+    class="card"
+    style="margin-top:20px">
+
+    <h3>AI Section</h3>
+
+    <p>
+      <b>Cule AI:</b>
+      searches and summarizes matching records
+      from the internal Metxon dataset.
+    </p>
+
+    <p>
+      <b>Nebula AI:</b>
+      provides the simulated advanced AI
+      assistant and stock-analysis interface.
+    </p>
+
+  </div>
+
+
+  <div class="card">
+
+    <h3>Metware X Defense Suite</h3>
+
+    <p>
+      Provides the simulated 5-minute
+      security scan/update behavior.
+    </p>
+
+    <div
+      id="metware"
+      class="notice">
+      Metware 6: Waiting for next routine scan…
+    </div>
+
+  </div>
+
+
+  <div class="card">
+
+    <h3>
+      SME's Registry
+      (Systemic Mineral Entities)
+    </h3>
+
+    <div
+      id="smeGrid"
+      class="grid">
+    </div>
+
+  </div>
+
+
+  <div class="card">
+
+    <h3>View Internal Specs</h3>
+
+    <p class="muted">
+      Mettin kernel / subnet routing /
+      air-gapped memory / quantum data-routing
+      concepts from the supplied blueprint.
+    </p>
+
+  </div>
+
+</section>
+
+
+<section id="metcount" class="view">
+
+  <div class="brand">
+
+    <h2>
+      MetCount™ Financial & Investment Hub
+    </h2>
+
+    <p>
+      Security re-authentication →
+      Account → Transactions →
+      Subscriptions → Stocks.
+    </p>
+
+  </div>
+
+
+  <div
+    id="mcLocked"
+    class="card">
+
+    <h3>
+      MetCount Security Verification
+    </h3>
+
+    <p class="muted">
+      Enter your Metxon username and password.
+      MetCount performs its own security
+      re-authentication.
+    </p>
+
+    <div class="split">
+
+      <div>
+
+        <input
+          class="input"
+          id="mcUser"
+          placeholder="Metxon Username">
+
+      </div>
+
+      <div>
+
+        <input
+          class="input"
+          id="mcPass"
+          type="password"
+          placeholder="MetCount Password">
+
+      </div>
+
+    </div>
+
+    <button
+      class="btn primary"
+      onclick="verifyMetCount()"
+      style="margin-top:10px">
+
+      Enter MetCount
+
+    </button>
+
+  </div>
+
+
+  <div
+    id="mcDashboard"
+    style="display:none">
+
+    <div class="grid">
+
+      <div class="card">
+
+        <h3>Account</h3>
+
+        <p>
+          User:
+          <b id="mcName"></b>
+        </p>
+
+        <p>
+          Available Balance:
+          <b
+            id="mcBalance"
+            class="price">
+          </b>
+        </p>
+
+        <p>
+          Active Subscription:
+          <b id="mcSub"></b>
+        </p>
+
+      </div>
+
+
+      <div class="card">
+
+        <h3>Account Controls</h3>
+
+        <button
+          class="btn"
+          onclick="showTransactions()">
+          Transaction History
+        </button>
+
+        <button
+          class="btn"
+          onclick="openTransfer()">
+          Met-Transfer
+        </button>
+
+        <button
+          class="btn danger"
+          onclick="logout()">
+          Log Out
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <h3 style="margin-top:25px">
+      Subscriptions
+    </h3>
+
+
+    <div class="grid">
+
+
+      <div class="card">
+
+        <h3>Base Tier</h3>
+
+        <div class="price">
+          ₹500 / week
+        </div>
+
+        <p>
+          Currencies: INR, USD
+        </p>
+
+        <p>
+          5-minute virus scan.
+        </p>
+
+        <button
+          class="btn primary"
+          onclick="subscribe('Base',500)">
+          Subscribe
+        </button>
+
+      </div>
+
+
+      <div class="card">
+
+        <h3>Premium Tier</h3>
+
+        <div class="price">
+          ₹2,000 / week
+        </div>
+
+        <p>
+          Currencies:
+          INR, USD, EUR, GBP, JPY
+        </p>
+
+        <p>
+          5-minute scans,
+          notification alerts,
+          detailed P&amp;L graphs.
+        </p>
+
+        <button
+          class="btn primary"
+          onclick="subscribe('Premium',2000)">
+          Subscribe
+        </button>
+
+      </div>
+
+
+      <div class="card">
+
+        <h3>Elite Tier</h3>
+
+        <div class="price">
+          ₹10,000 / week
+        </div>
+
+        <p>
+          All Premium currencies + KRW.
+        </p>
+
+        <p>
+          Met AI trade/investment chat,
+          Nebula AI stock analyzer,
+          auto-sell margin sets,
+          deep analysis &amp; graphs.
+        </p>
+
+        <button
+          class="btn primary"
+          onclick="subscribe('Elite',10000)">
+          Subscribe
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <div
+      class="card"
+      style="margin-top:20px">
+
+      <h2>Stocks</h2>
+
+      <p class="muted">
+        Stock market simulation:
+        search, buy and sell instantly.
+        This is not real-market trading.
+      </p>
+
+      <div class="search">
+
+        <input
+          id="stockQ"
+          placeholder="Search stock ticker or company">
+
+        <button
+          class="btn primary"
+          onclick="searchStocks()">
+          Search
+        </button>
+
+      </div>
+
+      <div id="stockResults"></div>
+
+      <h3>
+        Your Stocks & Values
+      </h3>
+
+      <div id="portfolio"></div>
+
+    </div>
+
+
+    <div
+      id="transactionsCard"
+      class="card"
+      style="margin-top:20px;display:none">
+
+      <h3>
+        Transaction History
+      </h3>
+
+      <div id="transactions"></div>
+
+    </div>
+
+  </div>
+
+</section>
+
+
+<section id="metcart" class="view">
+
+  <div class="brand">
+
+    <h2>MetCart™</h2>
+
+    <p>
+      E-Commerce Division —
+      complete supplied hardware catalog.
+    </p>
+
+  </div>
+
+  <div class="notice warn">
+
+    <b>Ordering rule:</b>
+    Bulk orders are not allowed.
+    Met-Pay uses normal Metxon
+    username/password authentication.
+
+  </div>
+
+
+  <div class="search">
+
+    <input
+      id="cartQ"
+      placeholder="Search hardware">
+
+    <button
+      class="btn primary"
+      onclick="renderCartCatalog()">
+      Search
+    </button>
+
+  </div>
+
+
+  <div
+    id="cartGrid"
+    class="grid">
+  </div>
+
+</section>
+
+</main>
+
+
+<footer>
+  © 2026 Metxon Corporate — browser simulation.
+</footer>
+
+
+<!-- AUTH MODAL -->
+
+<div
+  id="authModal"
+  class="modal">
+
+  <div class="modalbox">
+
+    <h2>
+      Join Met-Xon / Sign In
+    </h2>
+
+    <div class="tabs">
+
+      <button
+        id="existTab"
+        class="tab active"
+        onclick="authMode('existing')">
+
+        Existing Member
+
+      </button>
+
+      <button
+        id="newTab"
+        class="tab"
+        onclick="authMode('new')">
+
+        New Member
+
+      </button>
+
+    </div>
+
+
+    <div id="existingForm">
+
+      <label>
+        Username
+      </label>
+
+      <input
+        id="loginUser"
+        placeholder="Username">
+
+
+      <label>
+        Password
+      </label>
+
+      <input
+        id="loginPass"
+        type="password"
+        placeholder="Password">
+
+
+      <p class="small">
+        Existing members:
+        Username + Password only.
+      </p>
+
+    </div>
+
+
+    <div
+      id="newForm"
+      style="display:none">
+
+      <label>Name</label>
+
+      <input
+        id="regName"
+        placeholder="Name">
+
+
+      <label>
+        Date of Birth
+      </label>
+
+      <input
+        id="regDob"
+        type="date">
+
+
+      <label>
+        Username
+      </label>
+
+      <input
+        id="regUser"
+        placeholder="Username">
+
+
+      <label>
+        Password
+      </label>
+
+      <input
+        id="regPass"
+        type="password"
+        placeholder="Password">
+
+
+      <label>
+        Address
+      </label>
+
+      <input
+        id="regAddress"
+        placeholder="Address">
+
+
+      <label>
+        Phone Number
+      </label>
+
+      <input
+        id="regPhone"
+        placeholder="Phone Number">
+
+
+      <p class="small">
+        New members use the full
+        registration fields from the specification.
+      </p>
+
+    </div>
+
+
+    <div class="actions">
+
+      <button
+        class="btn"
+        onclick="closeAuth()">
+        Cancel
+      </button>
+
+      <button
+        class="btn primary"
+        onclick="submitAuth()">
+        Continue
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- TRANSFER MODAL -->
+
+<div
+  id="transferModal"
+  class="modal">
+
+  <div class="modalbox">
+
+    <h2>Met-Transfer</h2>
+
+    <p class="muted">
+      Transfer simulated funds between
+      registered browser accounts.
+    </p>
+
+    <label>
+      To Username
+    </label>
+
+    <input
+      id="toUser"
+      placeholder="Recipient username">
+
+
+    <label>
+      Amount
+    </label>
+
+    <input
+      id="toAmount"
+      type="number"
+      min="1"
+      placeholder="Amount in INR">
+
+
+    <div class="actions">
+
+      <button
+        class="btn"
+        onclick="closeTransfer()">
+        Cancel
+      </button>
+
+      <button
+        class="btn primary"
+        onclick="transferFunds()">
+        Transfer
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- PAYMENT MODAL -->
+
+<div
+  id="payModal"
+  class="modal">
+
+  <div class="modalbox">
+
+    <h2>Met-Pay</h2>
+
+    <p id="payInfo"></p>
+
+    <label>
+      Metxon Username
+    </label>
+
+    <input id="payUser">
+
+
+    <label>
+      Met-Pay Password
+    </label>
+
+    <input
+      id="payPass"
+      type="password">
+
+
+    <div class="actions">
+
+      <button
+        class="btn"
+        onclick="closePay()">
+        Cancel
+      </button>
+
+      <button
+        class="btn primary"
+        onclick="executePay()">
+        Pay
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
