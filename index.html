@@ -1384,3 +1384,4212 @@ footer{
   </div>
 
 </div>
+
+  <script>
+
+/* =========================================================
+   METXON CORPORATE — COMPLETE APPLICATION ENGINE
+   ========================================================= */
+
+const KEY = "metxon_corporate_v2";
+
+const DEFAULT_DATA = {
+  accounts: [],
+  currentUser: null,
+  transactions: [],
+  cart: [],
+  subscriptions: {},
+  portfolio: {},
+  messages: {},
+  settings: {
+    culeAI: false
+  }
+};
+
+
+/* =========================================================
+   STORAGE
+   ========================================================= */
+
+function loadData(){
+
+  try{
+
+    const raw = localStorage.getItem(KEY);
+
+    if(!raw){
+      return structuredClone(DEFAULT_DATA);
+    }
+
+    const data = JSON.parse(raw);
+
+    return {
+      ...structuredClone(DEFAULT_DATA),
+      ...data,
+      settings:{
+        ...DEFAULT_DATA.settings,
+        ...(data.settings || {})
+      }
+    };
+
+  }catch(e){
+
+    console.error(e);
+
+    return structuredClone(DEFAULT_DATA);
+  }
+}
+
+
+let DB = loadData();
+
+
+function saveData(){
+
+  localStorage.setItem(
+    KEY,
+    JSON.stringify(DB)
+  );
+
+}
+
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+
+function money(value){
+
+  return "₹" + Number(value || 0).toLocaleString(
+    "en-IN",
+    {
+      minimumFractionDigits:2,
+      maximumFractionDigits:2
+    }
+  );
+
+}
+
+
+function escapeHTML(value){
+
+  return String(value ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+
+}
+
+
+function uid(prefix="ID"){
+
+  return (
+    prefix +
+    "-" +
+    Date.now().toString(36) +
+    "-" +
+    Math.random()
+      .toString(36)
+      .slice(2,8)
+  ).toUpperCase();
+
+}
+
+
+function now(){
+
+  return new Date().toLocaleString(
+    "en-IN",
+    {
+      dateStyle:"medium",
+      timeStyle:"short"
+    }
+  );
+
+}
+
+
+function currentAccount(){
+
+  if(!DB.currentUser){
+    return null;
+  }
+
+  return DB.accounts.find(
+    a => a.username === DB.currentUser
+  ) || null;
+
+}
+
+
+function requireLogin(){
+
+  if(!currentAccount()){
+
+    openAuth();
+
+    return false;
+  }
+
+  return true;
+}
+
+
+function notify(message,type=""){
+
+  const box = document.createElement("div");
+
+  box.className =
+    "notice " +
+    type;
+
+  box.style.position = "fixed";
+  box.style.right = "18px";
+  box.style.bottom = "18px";
+  box.style.zIndex = "9999";
+  box.style.maxWidth = "420px";
+  box.style.boxShadow =
+    "0 15px 45px rgba(0,0,0,.45)";
+
+  box.textContent = message;
+
+  document.body.appendChild(box);
+
+  setTimeout(
+    ()=>box.remove(),
+    4000
+  );
+
+}
+
+
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
+
+function showView(id){
+
+  document.querySelectorAll(".view")
+    .forEach(v=>{
+      v.classList.remove("active");
+    });
+
+  const target =
+    document.getElementById(id);
+
+  if(target){
+    target.classList.add("active");
+  }
+
+  document.querySelectorAll(".nav")
+    .forEach(btn=>{
+      btn.classList.toggle(
+        "active",
+        btn.dataset.view === id
+      );
+    });
+
+  window.scrollTo({
+    top:0,
+    behavior:"smooth"
+  });
+
+  if(id==="molecule"){
+    renderMolecule();
+  }
+
+  if(id==="metcart"){
+    renderCartCatalog();
+  }
+
+  if(id==="metcount"){
+    refreshMetCount();
+  }
+
+}
+
+
+document.querySelectorAll(".nav")
+  .forEach(btn=>{
+
+    btn.addEventListener(
+      "click",
+      ()=>showView(btn.dataset.view)
+    );
+
+  });
+
+
+/* =========================================================
+   AUTHENTICATION
+   ========================================================= */
+
+let AUTH_MODE = "existing";
+
+
+function openAuth(){
+
+  document
+    .getElementById("authModal")
+    .classList.add("open");
+
+  authMode("existing");
+
+}
+
+
+function closeAuth(){
+
+  document
+    .getElementById("authModal")
+    .classList.remove("open");
+
+}
+
+
+function authMode(mode){
+
+  AUTH_MODE = mode;
+
+  const existing =
+    document.getElementById("existingForm");
+
+  const newer =
+    document.getElementById("newForm");
+
+  const existTab =
+    document.getElementById("existTab");
+
+  const newTab =
+    document.getElementById("newTab");
+
+  existing.style.display =
+    mode==="existing"
+      ? "block"
+      : "none";
+
+  newer.style.display =
+    mode==="new"
+      ? "block"
+      : "none";
+
+  existTab.classList.toggle(
+    "active",
+    mode==="existing"
+  );
+
+  newTab.classList.toggle(
+    "active",
+    mode==="new"
+  );
+
+}
+
+
+function submitAuth(){
+
+  if(AUTH_MODE==="existing"){
+
+    const username =
+      document
+        .getElementById("loginUser")
+        .value
+        .trim();
+
+    const password =
+      document
+        .getElementById("loginPass")
+        .value;
+
+    if(!username || !password){
+
+      notify(
+        "Username and password are required.",
+        "error"
+      );
+
+      return;
+    }
+
+    const account =
+      DB.accounts.find(
+        a => a.username === username
+      );
+
+    if(!account){
+
+      notify(
+        "Account not found. Please register first.",
+        "error"
+      );
+
+      return;
+    }
+
+    if(account.password !== password){
+
+      notify(
+        "Access denied. Username/password does not match.",
+        "error"
+      );
+
+      return;
+    }
+
+    DB.currentUser = username;
+
+    saveData();
+
+    closeAuth();
+
+    updateProfile();
+
+    refreshMetCount();
+
+    notify(
+      "Login successful. Welcome " +
+      account.name + ".",
+      "success"
+    );
+
+    return;
+  }
+
+
+  /* NEW ACCOUNT */
+
+  const name =
+    document
+      .getElementById("regName")
+      .value
+      .trim();
+
+  const dob =
+    document
+      .getElementById("regDob")
+      .value;
+
+  const username =
+    document
+      .getElementById("regUser")
+      .value
+      .trim();
+
+  const password =
+    document
+      .getElementById("regPass")
+      .value;
+
+  const address =
+    document
+      .getElementById("regAddress")
+      .value
+      .trim();
+
+  const phone =
+    document
+      .getElementById("regPhone")
+      .value
+      .trim();
+
+
+  if(
+    !name ||
+    !dob ||
+    !username ||
+    !password ||
+    !address ||
+    !phone
+  ){
+
+    notify(
+      "Please complete every registration field.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  if(username.length < 3){
+
+    notify(
+      "Username must contain at least 3 characters.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  if(
+    DB.accounts.some(
+      a => a.username.toLowerCase() ===
+           username.toLowerCase()
+    )
+  ){
+
+    notify(
+      "That username is already registered.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  const account = {
+
+    id:uid("ACC"),
+
+    name,
+
+    dob,
+
+    username,
+
+    password,
+
+    address,
+
+    phone,
+
+    balance:50000,
+
+    createdAt:now(),
+
+    subscription:"None"
+
+  };
+
+
+  DB.accounts.push(account);
+
+  DB.currentUser = username;
+
+  DB.transactions.push({
+
+    id:uid("TX"),
+
+    username,
+
+    type:"ACCOUNT",
+
+    description:
+      "Metxon account created",
+
+    amount:0,
+
+    balanceAfter:
+      account.balance,
+
+    date:now()
+
+  });
+
+
+  saveData();
+
+  closeAuth();
+
+  updateProfile();
+
+  refreshMetCount();
+
+  notify(
+    "Metxon account created successfully.",
+    "success"
+  );
+
+}
+
+
+function logout(){
+
+  DB.currentUser = null;
+
+  saveData();
+
+  updateProfile();
+
+  refreshMetCount();
+
+  notify(
+    "You have been logged out."
+  );
+
+}
+
+
+function updateProfile(){
+
+  const profile =
+    document.getElementById("profile");
+
+  const account =
+    currentAccount();
+
+  if(!account){
+
+    profile.textContent =
+      "USER: GUEST";
+
+    return;
+  }
+
+  profile.textContent =
+    "USER: " +
+    account.username;
+
+}
+
+
+updateProfile();
+
+
+/* =========================================================
+   MOLECULE DEVICE DATABASE
+   ========================================================= */
+
+const DEVICES = [
+
+  {
+    name:"Nebula M1",
+    category:"Phone",
+    price:79999,
+    description:
+      "Premium Nebula M-series smartphone."
+  },
+
+  {
+    name:"Nebula M2",
+    category:"Phone",
+    price:99999,
+    description:
+      "Advanced M-series smartphone."
+  },
+
+  {
+    name:"Nebula M3",
+    category:"Phone",
+    price:129999,
+    description:
+      "High-performance M-series smartphone."
+  },
+
+  {
+    name:"Nebula M4",
+    category:"Phone",
+    price:159999,
+    description:
+      "Flagship M-series smartphone."
+  },
+
+  {
+    name:"Nebula A1",
+    category:"Phone",
+    price:49999,
+    description:
+      "Nebula A-series smartphone."
+  },
+
+  {
+    name:"Nebula A2",
+    category:"Phone",
+    price:69999,
+    description:
+      "Advanced A-series smartphone."
+  },
+
+  {
+    name:"Nebula A3",
+    category:"Phone",
+    price:89999,
+    description:
+      "Premium A-series smartphone."
+  },
+
+  {
+    name:"Nebula A4",
+    category:"Phone",
+    price:109999,
+    description:
+      "Flagship A-series smartphone."
+  },
+
+  {
+    name:"Nebula B1",
+    category:"Phone",
+    price:29999,
+    description:
+      "Nebula B-series smartphone."
+  },
+
+  {
+    name:"Nebula B2",
+    category:"Phone",
+    price:39999,
+    description:
+      "Improved B-series smartphone."
+  },
+
+  {
+    name:"Nebula B3",
+    category:"Phone",
+    price:49999,
+    description:
+      "Premium B-series smartphone."
+  },
+
+  {
+    name:"Nebula B4",
+    category:"Phone",
+    price:59999,
+    description:
+      "Advanced B-series smartphone."
+  },
+
+  {
+    name:"Nebula Z1",
+    category:"Foldable Phone",
+    price:149999,
+    description:
+      "Nebula foldable Z-series phone."
+  },
+
+  {
+    name:"Nebula Z2",
+    category:"Foldable Phone",
+    price:179999,
+    description:
+      "Advanced foldable Z-series phone."
+  },
+
+  {
+    name:"Nebula Z3",
+    category:"Foldable Phone",
+    price:209999,
+    description:
+      "Premium foldable Z-series phone."
+  },
+
+  {
+    name:"Nebula Z4",
+    category:"Foldable Phone",
+    price:249999,
+    description:
+      "Flagship foldable Z-series phone."
+  },
+
+  {
+    name:"NebulaBook",
+    category:"Laptop",
+    price:99999,
+    description:
+      "NebulaBook productivity laptop."
+  },
+
+  {
+    name:"NebulaBook Pro",
+    category:"Laptop",
+    price:149999,
+    description:
+      "Professional NebulaBook laptop."
+  },
+
+  {
+    name:"NebulaBook Ultra",
+    category:"Laptop",
+    price:199999,
+    description:
+      "Ultra-performance NebulaBook."
+  },
+
+  {
+    name:"NebulaBook D1",
+    category:"Development Laptop",
+    price:179999,
+    description:
+      "NebulaBook D development system."
+  },
+
+  {
+    name:"NebulaBook D2",
+    category:"Development Laptop",
+    price:229999,
+    description:
+      "Advanced development laptop."
+  },
+
+  {
+    name:"NebulaBook D3",
+    category:"Development Laptop",
+    price:299999,
+    description:
+      "Professional development workstation."
+  },
+
+  {
+    name:"NebulaBook D4",
+    category:"Development Laptop",
+    price:399999,
+    description:
+      "Flagship development workstation."
+  },
+
+  {
+    name:"NebulaTab",
+    category:"Tablet",
+    price:49999,
+    description:
+      "Nebula tablet."
+  },
+
+  {
+    name:"NebulaTab Pro",
+    category:"Tablet",
+    price:74999,
+    description:
+      "Professional Nebula tablet."
+  },
+
+  {
+    name:"NebulaTab Ultra",
+    category:"Tablet",
+    price:99999,
+    description:
+      "Ultra Nebula tablet."
+  },
+
+  {
+    name:"Nebula Watch",
+    category:"Smartwatch",
+    price:29999,
+    description:
+      "Nebula smartwatch."
+  },
+
+  {
+    name:"Nebula Watch Pro",
+    category:"Smartwatch",
+    price:49999,
+    description:
+      "Professional Nebula smartwatch."
+  },
+
+  {
+    name:"Nebula Watch Ultra",
+    category:"Smartwatch",
+    price:69999,
+    description:
+      "Ultra Nebula smartwatch."
+  },
+
+  {
+    name:"Nebula APU",
+    category:"APU",
+    price:89999,
+    description:
+      "Nebula accelerated processing unit."
+  },
+
+  {
+    name:"Nebula APU Pro",
+    category:"APU",
+    price:149999,
+    description:
+      "Professional Nebula APU."
+  },
+
+  {
+    name:"Nebula APU Ultra",
+    category:"APU",
+    price:249999,
+    description:
+      "Ultra-performance Nebula APU."
+  },
+
+  {
+    name:"Tethys Protector",
+    category:"Security Device",
+    price:24999,
+    description:
+      "Tethys hardware protection device."
+  },
+
+  {
+    name:"Tethys Protector Pro",
+    category:"Security Device",
+    price:49999,
+    description:
+      "Professional Tethys protection."
+  },
+
+  {
+    name:"Tethys Protector Ultra",
+    category:"Security Device",
+    price:99999,
+    description:
+      "Advanced Tethys protection platform."
+  }
+
+];
+
+
+function renderMolecule(){
+
+  const grid =
+    document.getElementById(
+      "moleculeGrid"
+    );
+
+  if(!grid) return;
+
+  const query =
+    (
+      document.getElementById("molQ")
+        ?.value || ""
+    )
+      .toLowerCase()
+      .trim();
+
+
+  const items =
+    DEVICES.filter(
+      d =>
+        !query ||
+        d.name.toLowerCase().includes(query) ||
+        d.category.toLowerCase().includes(query) ||
+        d.description.toLowerCase().includes(query)
+    );
+
+
+  if(!items.length){
+
+    grid.innerHTML =
+      `<div class="card">
+        <h3>No devices found</h3>
+        <p class="muted">
+          Try another search term.
+        </p>
+      </div>`;
+
+    return;
+  }
+
+
+  grid.innerHTML =
+    items.map(
+      d => `
+
+      <div class="card">
+
+        <span class="badge">
+          ${escapeHTML(d.category)}
+        </span>
+
+        <h3>
+          ${escapeHTML(d.name)}
+        </h3>
+
+        <p class="muted">
+          ${escapeHTML(d.description)}
+        </p>
+
+        <div class="price">
+          ${money(d.price)}
+        </div>
+
+        <button
+          class="btn primary"
+          style="margin-top:10px"
+          onclick='addToCart(${JSON.stringify(d.name)})'>
+
+          Add to MetCart
+
+        </button>
+
+      </div>
+
+    `
+    ).join("");
+
+}
+
+
+renderMolecule();
+
+
+/* =========================================================
+   METCART
+   ========================================================= */
+
+function addToCart(deviceName){
+
+  const device =
+    DEVICES.find(
+      d => d.name === deviceName
+    );
+
+  if(!device) return;
+
+
+  const existing =
+    DB.cart.find(
+      x => x.name === device.name
+    );
+
+
+  if(existing){
+
+    notify(
+      "Bulk/multiple-device orders are not allowed.",
+      "warn"
+    );
+
+    return;
+  }
+
+
+  DB.cart.push({
+
+    ...device,
+
+    cartId:uid("CART"),
+
+    quantity:1
+
+  });
+
+
+  saveData();
+
+  renderCartCatalog();
+
+  notify(
+    device.name +
+    " added to MetCart.",
+    "success"
+  );
+
+}
+
+
+function removeFromCart(id){
+
+  DB.cart =
+    DB.cart.filter(
+      x => x.cartId !== id
+    );
+
+  saveData();
+
+  renderCartCatalog();
+
+}
+
+
+function cartTotal(){
+
+  return DB.cart.reduce(
+    (sum,item)=>
+      sum +
+      Number(item.price) *
+      Number(item.quantity || 1),
+    0
+  );
+
+}
+
+
+function renderCartCatalog(){
+
+  const grid =
+    document.getElementById(
+      "cartGrid"
+    );
+
+  if(!grid) return;
+
+
+  const query =
+    (
+      document.getElementById("cartQ")
+        ?.value || ""
+    )
+      .toLowerCase()
+      .trim();
+
+
+  const items =
+    DEVICES.filter(
+      d =>
+        !query ||
+        d.name.toLowerCase().includes(query) ||
+        d.category.toLowerCase().includes(query)
+    );
+
+
+  let html = "";
+
+
+  html += `
+
+    <div class="card"
+         style="grid-column:1/-1">
+
+      <h2>
+        Your Cart
+      </h2>
+
+      ${
+        DB.cart.length
+        ?
+        DB.cart.map(
+          item => `
+
+          <div class="notice">
+
+            <b>
+              ${escapeHTML(item.name)}
+            </b>
+
+            —
+            ${money(item.price)}
+
+            <button
+              class="btn danger"
+              style="float:right"
+              onclick="removeFromCart('${item.cartId}')">
+
+              Remove
+
+            </button>
+
+          </div>
+
+        `
+        ).join("")
+        :
+        `<p class="muted">
+          Your cart is empty.
+        </p>`
+      }
+
+      ${
+        DB.cart.length
+        ?
+        `
+
+        <h3>
+          Total:
+          ${money(cartTotal())}
+        </h3>
+
+        <button
+          class="btn primary"
+          onclick="openPayment()">
+
+          Checkout with Met-Pay
+
+        </button>
+
+        `
+        :
+        ""
+      }
+
+    </div>
+
+  `;
+
+
+  html += items.map(
+    d => `
+
+      <div class="card">
+
+        <span class="badge">
+          ${escapeHTML(d.category)}
+        </span>
+
+        <h3>
+          ${escapeHTML(d.name)}
+        </h3>
+
+        <p class="muted">
+          ${escapeHTML(d.description)}
+        </p>
+
+        <div class="price">
+          ${money(d.price)}
+        </div>
+
+        <button
+          class="btn primary"
+          style="margin-top:10px"
+          onclick='addToCart(${JSON.stringify(d.name)})'>
+
+          Add to Cart
+
+        </button>
+
+      </div>
+
+    `
+  ).join("");
+
+
+  grid.innerHTML = html;
+
+}
+
+
+function openPayment(){
+
+  if(!DB.cart.length){
+
+    notify(
+      "Your cart is empty.",
+      "warn"
+    );
+
+    return;
+  }
+
+
+  const total =
+    cartTotal();
+
+
+  document.getElementById(
+    "payInfo"
+  ).innerHTML =
+
+    `<b>
+      Met-Pay Checkout
+    </b>
+    <br><br>
+    Items:
+    ${DB.cart.length}
+    <br>
+    Total:
+    <span class="price">
+      ${money(total)}
+    </span>`;
+
+
+  document.getElementById(
+    "payUser"
+  ).value =
+    DB.currentUser || "";
+
+
+  document.getElementById(
+    "payPass"
+  ).value = "";
+
+
+  document.getElementById(
+    "payModal"
+  ).classList.add("open");
+
+}
+
+
+function closePay(){
+
+  document
+    .getElementById("payModal")
+    .classList.remove("open");
+
+}
+
+
+function executePay(){
+
+  const username =
+    document
+      .getElementById("payUser")
+      .value
+      .trim();
+
+  const password =
+    document
+      .getElementById("payPass")
+      .value;
+
+
+  const account =
+    DB.accounts.find(
+      a => a.username === username
+    );
+
+
+  if(!account){
+
+    notify(
+      "Met-Pay account not found.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  if(account.password !== password){
+
+    notify(
+      "Met-Pay authentication failed.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  const total =
+    cartTotal();
+
+
+  if(account.balance < total){
+
+    notify(
+      "Insufficient Met-Pay balance.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  account.balance -= total;
+
+
+  DB.transactions.push({
+
+    id:uid("TX"),
+
+    username,
+
+    type:"PURCHASE",
+
+    description:
+      "MetCart / Met-Pay hardware purchase",
+
+    amount:-total,
+
+    balanceAfter:
+      account.balance,
+
+    date:now()
+
+  });
+
+
+  DB.cart = [];
+
+
+  saveData();
+
+  closePay();
+
+  updateProfile();
+
+  refreshMetCount();
+
+  renderCartCatalog();
+
+
+  notify(
+    "Payment successful. Hardware order confirmed.",
+    "success"
+  );
+
+}
+
+
+/* =========================================================
+   METTIN APPS
+   ========================================================= */
+
+const SME = [
+
+  {
+    name:"SME-01",
+    title:"Quantum Memory",
+    description:
+      "Experimental high-density memory entity."
+  },
+
+  {
+    name:"SME-02",
+    title:"Photonic Routing",
+    description:
+      "Experimental optical routing entity."
+  },
+
+  {
+    name:"SME-03",
+    title:"Neural Compute",
+    description:
+      "Experimental AI compute entity."
+  },
+
+  {
+    name:"SME-04",
+    title:"Secure Core",
+    description:
+      "Experimental security entity."
+  },
+
+  {
+    name:"SME-05",
+    title:"Synthetic Logic",
+    description:
+      "Experimental logic entity."
+  },
+
+  {
+    name:"SME-06",
+    title:"Adaptive Processing",
+    description:
+      "Experimental adaptive-processing entity."
+  },
+
+  {
+    name:"SME-07",
+    title:"Quantum Interface",
+    description:
+      "Experimental interface entity."
+  },
+
+  {
+    name:"SME-08",
+    title:"Data Fabric",
+    description:
+      "Experimental data-fabric entity."
+  },
+
+  {
+    name:"SME-09",
+    title:"Nano Security",
+    description:
+      "Experimental nano-security entity."
+  },
+
+  {
+    name:"SME-10",
+    title:"AI Matrix",
+    description:
+      "Experimental AI matrix entity."
+  },
+
+  {
+    name:"SME-11",
+    title:"Thermal Core",
+    description:
+      "Experimental thermal-management entity."
+  },
+
+  {
+    name:"SME-12",
+    title:"Tethys Interface",
+    description:
+      "Experimental Tethys interface entity."
+  }
+
+];
+
+
+function renderSME(){
+
+  const grid =
+    document.getElementById(
+      "smeGrid"
+    );
+
+  if(!grid) return;
+
+
+  grid.innerHTML =
+    SME.map(
+      s => `
+
+      <div class="card">
+
+        <span class="badge">
+          ${escapeHTML(s.name)}
+        </span>
+
+        <h3>
+          ${escapeHTML(s.title)}
+        </h3>
+
+        <p class="muted">
+          ${escapeHTML(s.description)}
+        </p>
+
+      </div>
+
+    `
+    ).join("");
+
+}
+
+
+renderSME();
+
+
+function openApp(app){
+
+  const workspace =
+    document.getElementById(
+      "workspace"
+    );
+
+  const title =
+    document.getElementById(
+      "appTitle"
+    );
+
+  const body =
+    document.getElementById(
+      "appBody"
+    );
+
+
+  workspace.classList.add("open");
+
+
+  const apps = {
+
+    develop:{
+      title:"Met Develop",
+      html:metDevelopHTML()
+    },
+
+    alk:{
+      title:"Met-Alk",
+      html:metAlkHTML()
+    },
+
+    store:{
+      title:"Nebula Store",
+      html:nebulaStoreHTML()
+    },
+
+    cule:{
+      title:"Cule-In",
+      html:culeHTML()
+    },
+
+    ai:{
+      title:"Nebula AI",
+      html:nebulaAIHTML()
+    }
+
+  };
+
+
+  const selected =
+    apps[app];
+
+
+  if(!selected) return;
+
+
+  title.textContent =
+    selected.title;
+
+  body.innerHTML =
+    selected.html;
+
+
+  workspace.scrollIntoView({
+    behavior:"smooth",
+    block:"start"
+  });
+
+
+  if(app==="alk"){
+
+    renderMessages();
+
+  }
+
+}
+
+
+function closeApp(){
+
+  document
+    .getElementById("workspace")
+    .classList.remove("open");
+
+}
+
+
+/* =========================================================
+   MET DEVELOP
+   ========================================================= */
+
+function metDevelopHTML(){
+
+  return `
+
+    <div class="notice">
+
+      <b>Met Develop</b>
+
+      <br>
+
+      Created by Metxon Corporate.
+
+      <br><br>
+
+      Eight core development functions are
+      available below.
+
+    </div>
+
+
+    <div class="tabs">
+
+      <button class="tab active"
+        onclick="devTab('editor',this)">
+        Direct Coding
+      </button>
+
+      <button class="tab"
+        onclick="devTab('friends',this)">
+        Code With Friends
+      </button>
+
+      <button class="tab"
+        onclick="devTab('ai',this)">
+        Develop AI
+      </button>
+
+      <button class="tab"
+        onclick="devTab('metlang',this)">
+        MetLang / Atbash
+      </button>
+
+      <button class="tab"
+        onclick="devTab('cloud',this)">
+        Cloud Save
+      </button>
+
+      <button class="tab"
+        onclick="devTab('draft',this)">
+        Draft
+      </button>
+
+      <button class="tab"
+        onclick="devTab('buy',this)">
+        Buy SME
+      </button>
+
+      <button class="tab"
+        onclick="devTab('infuse',this)">
+        Infuse SME
+      </button>
+
+    </div>
+
+
+    <div id="devPanel">
+
+      ${devEditorHTML()}
+
+    </div>
+
+  `;
+
+}
+
+
+function devTab(type,button){
+
+  document
+    .querySelectorAll("#appBody .tab")
+    .forEach(
+      b=>b.classList.remove("active")
+    );
+
+  if(button){
+    button.classList.add("active");
+  }
+
+
+  const panel =
+    document.getElementById(
+      "devPanel"
+    );
+
+  const pages = {
+
+    editor:devEditorHTML(),
+
+    friends:`
+
+      <h3>Code With Friends</h3>
+
+      <p class="muted">
+        Create a simulated collaborative
+        development room.
+      </p>
+
+      <input
+        id="friendCode"
+        class="input"
+        placeholder="Friend username">
+
+      <button
+        class="btn primary"
+        onclick="inviteDeveloper()">
+
+        Invite Developer
+
+      </button>
+
+      <div id="friendOutput"
+           class="notice">
+      </div>
+
+    `,
+
+    ai:`
+
+      <h3>Develop AI</h3>
+
+      <textarea
+        id="devAIInput"
+        rows="6"
+        placeholder="Describe what you want the AI to build..."></textarea>
+
+      <button
+        class="btn primary"
+        onclick="developAI()">
+
+        Generate
+
+      </button>
+
+      <div
+        id="devAIOutput"
+        class="terminal">
+      </div>
+
+    `,
+
+    metlang:`
+
+      <h3>MetLang / Atbash Compiler</h3>
+
+      <textarea
+        id="metLangInput"
+        rows="6"
+        placeholder="Type source code or text..."></textarea>
+
+      <button
+        class="btn primary"
+        onclick="compileMetLang()">
+
+        Compile / Translate
+
+      </button>
+
+      <div
+        id="metLangOutput"
+        class="terminal">
+      </div>
+
+    `,
+
+    cloud:`
+
+      <h3>Cloud Save</h3>
+
+      <p class="muted">
+        Save the current editor contents
+        to the browser simulation cloud.
+      </p>
+
+      <button
+        class="btn primary"
+        onclick="cloudSave()">
+
+        Save to Cloud
+
+      </button>
+
+      <div
+        id="cloudOutput"
+        class="notice">
+      </div>
+
+    `,
+
+    draft:`
+
+      <h3>Draft</h3>
+
+      <textarea
+        id="draftText"
+        rows="10"
+        placeholder="Write a project draft..."></textarea>
+
+      <button
+        class="btn primary"
+        onclick="saveDraft()">
+
+        Save Draft
+
+      </button>
+
+      <div
+        id="draftOutput"
+        class="notice">
+      </div>
+
+    `,
+
+    buy:`
+
+      <h3>Buy SME</h3>
+
+      <p class="muted">
+        Simulated SME marketplace.
+      </p>
+
+      <div class="grid">
+
+        ${SME.map(
+          s => `
+
+          <div class="card">
+
+            <h3>
+              ${escapeHTML(s.title)}
+            </h3>
+
+            <p class="muted">
+              ${escapeHTML(s.description)}
+            </p>
+
+            <button
+              class="btn primary"
+              onclick='buySME(${JSON.stringify(s.name)})'>
+
+              Buy SME
+
+            </button>
+
+          </div>
+
+        `
+        ).join("")}
+
+      </div>
+
+      <div
+        id="smeBuyOutput"
+        class="notice">
+      </div>
+
+    `,
+
+    infuse:`
+
+      <h3>Infuse SME</h3>
+
+      <p class="muted">
+        Select an SME and simulate
+        infusing it into the project.
+      </p>
+
+      <select id="infuseSelect">
+
+        ${SME.map(
+          s => `
+
+          <option value="${s.name}">
+            ${s.name} — ${s.title}
+          </option>
+
+        `
+        ).join("")}
+
+      </select>
+
+      <button
+        class="btn primary"
+        onclick="infuseSME()">
+
+        Infuse
+
+      </button>
+
+      <div
+        id="infuseOutput"
+        class="notice">
+      </div>
+
+    `
+
+  };
+
+
+  panel.innerHTML =
+    pages[type] || pages.editor;
+
+}
+
+
+function devEditorHTML(){
+
+  return `
+
+    <h3>Direct Coding</h3>
+
+    <div class="toolbar">
+
+      <button
+        class="btn"
+        onclick="runCode()">
+        Run
+      </button>
+
+      <button
+        class="btn"
+        onclick="clearCode()">
+        Clear
+      </button>
+
+    </div>
+
+    <textarea
+      id="devCode"
+      rows="15"
+      placeholder="// Write HTML/JavaScript here..."></textarea>
+
+    <div
+      id="devTerminal"
+      class="terminal">
+      Ready.
+    </div>
+
+  `;
+
+}
+
+
+function runCode(){
+
+  const code =
+    document.getElementById(
+      "devCode"
+    )?.value || "";
+
+
+  const terminal =
+    document.getElementById(
+      "devTerminal"
+    );
+
+
+  if(!code.trim()){
+
+    terminal.textContent =
+      "No code supplied.";
+
+    return;
+  }
+
+
+  terminal.textContent =
+    "Compilation started...\n" +
+    "Syntax simulation passed.\n" +
+    "Execution completed successfully.\n\n" +
+    "Output:\n" +
+    code.slice(0,1000);
+
+}
+
+
+function clearCode(){
+
+  const editor =
+    document.getElementById(
+      "devCode"
+    );
+
+  const terminal =
+    document.getElementById(
+      "devTerminal"
+    );
+
+  if(editor) editor.value="";
+
+  if(terminal)
+    terminal.textContent="Ready.";
+
+}
+
+
+function inviteDeveloper(){
+
+  const friend =
+    document.getElementById(
+      "friendCode"
+    ).value.trim();
+
+  const out =
+    document.getElementById(
+      "friendOutput"
+    );
+
+  if(!friend){
+
+    out.textContent =
+      "Enter a friend username.";
+
+    return;
+  }
+
+  out.textContent =
+    "Collaboration invitation sent to @" +
+    friend +
+    " (simulation).";
+
+}
+
+
+function developAI(){
+
+  const input =
+    document.getElementById(
+      "devAIInput"
+    ).value.trim();
+
+  const output =
+    document.getElementById(
+      "devAIOutput"
+    );
+
+
+  if(!input){
+
+    output.textContent =
+      "Describe your project first.";
+
+    return;
+  }
+
+
+  output.textContent =
+    "NEBULA DEVELOP AI\n\n" +
+    "Requirement received:\n" +
+    input +
+    "\n\nSuggested architecture:\n" +
+    "1. Interface layer\n" +
+    "2. Application layer\n" +
+    "3. Data layer\n" +
+    "4. Security layer\n" +
+    "5. Testing layer\n\n" +
+    "This is a local simulation.";
+
+}
+
+
+function atbash(text){
+
+  return text.replace(
+    /[A-Za-z]/g,
+    c => {
+
+      const code =
+        c.charCodeAt(0);
+
+      if(code>=65 && code<=90){
+
+        return String.fromCharCode(
+          90-(code-65)
+        );
+
+      }
+
+      return String.fromCharCode(
+        122-(code-97)
+      );
+
+    }
+  );
+
+}
+
+
+function compileMetLang(){
+
+  const input =
+    document.getElementById(
+      "metLangInput"
+    ).value;
+
+  const output =
+    document.getElementById(
+      "metLangOutput"
+    );
+
+
+  output.textContent =
+    "METLANG COMPILER\n\n" +
+    "Input:\n" +
+    input +
+    "\n\n" +
+    "Atbash representation:\n" +
+    atbash(input) +
+    "\n\n" +
+    "Compilation: SUCCESS";
+
+}
+
+
+function cloudSave(){
+
+  const editor =
+    document.getElementById(
+      "devCode"
+    );
+
+  const output =
+    document.getElementById(
+      "cloudOutput"
+    );
+
+
+  const code =
+    editor?.value || "";
+
+
+  localStorage.setItem(
+    "metxon_cloud_project",
+    code
+  );
+
+
+  output.textContent =
+    "Project saved to simulated Metxon Cloud at " +
+    now() +
+    ".";
+
+}
+
+
+function saveDraft(){
+
+  const text =
+    document.getElementById(
+      "draftText"
+    ).value;
+
+  localStorage.setItem(
+    "metxon_draft",
+    text
+  );
+
+  document.getElementById(
+    "draftOutput"
+  ).textContent =
+    "Draft saved.";
+
+}
+
+
+function buySME(name){
+
+  const output =
+    document.getElementById(
+      "smeBuyOutput"
+    );
+
+  output.textContent =
+    name +
+    " has been added to your simulated SME inventory.";
+
+}
+
+
+function infuseSME(){
+
+  const name =
+    document.getElementById(
+      "infuseSelect"
+    ).value;
+
+  document.getElementById(
+    "infuseOutput"
+  ).textContent =
+    name +
+    " successfully infused into the active development project (simulation).";
+
+}
+
+
+/* =========================================================
+   MET-ALK
+   ========================================================= */
+
+function metAlkHTML(){
+
+  return `
+
+    <div class="notice">
+
+      Met-Alk is the Metxon username-based
+      messaging application.
+
+    </div>
+
+
+    <div class="split">
+
+      <div>
+
+        <h3>
+          Conversation
+        </h3>
+
+        <div
+          id="alkChat"
+          class="chat">
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:8px">
+
+          <input
+            id="alkMessage"
+            class="input"
+            placeholder="Type a message...">
+
+          <button
+            class="btn primary"
+            onclick="sendAlkMessage()">
+
+            Send
+
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <div>
+
+        <h3>
+          Message User
+        </h3>
+
+        <input
+          id="alkRecipient"
+          class="input"
+          placeholder="@username">
+
+        <p class="small">
+          Messages are stored locally
+          in this browser simulation.
+        </p>
+
+      </div>
+
+    </div>
+
+  `;
+
+}
+
+
+function getMessageKey(){
+
+  const recipient =
+    document
+      .getElementById("alkRecipient")
+      ?.value
+      .trim() || "general";
+
+
+  const user =
+    DB.currentUser || "guest";
+
+
+  return [
+    user,
+    recipient
+  ].sort().join("|");
+
+}
+
+
+function renderMessages(){
+
+  const chat =
+    document.getElementById(
+      "alkChat"
+    );
+
+  if(!chat) return;
+
+
+  const key =
+    getMessageKey();
+
+
+  const messages =
+    DB.messages[key] || [];
+
+
+  chat.innerHTML =
+    messages.length
+    ?
+    messages.map(
+      m => `
+
+      <div class="msg">
+
+        <b>
+          ${escapeHTML(m.from)}
+        </b>
+
+        <span class="small">
+          — ${escapeHTML(m.date)}
+        </span>
+
+        <br>
+
+        ${escapeHTML(m.text)}
+
+      </div>
+
+    `
+    ).join("")
+    :
+    `<p class="muted">
+      No messages yet.
+    </p>`;
+
+}
+
+
+function sendAlkMessage(){
+
+  if(!requireLogin()) return;
+
+
+  const text =
+    document
+      .getElementById("alkMessage")
+      .value
+      .trim();
+
+
+  const recipient =
+    document
+      .getElementById("alkRecipient")
+      .value
+      .trim();
+
+
+  if(!recipient || !text){
+
+    notify(
+      "Recipient and message are required.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  const account =
+    DB.accounts.find(
+      a => a.username === recipient
+    );
+
+
+  if(!account){
+
+    notify(
+      "That Met-Alk username does not exist.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  const key =
+    getMessageKey();
+
+
+  if(!DB.messages[key]){
+    DB.messages[key] = [];
+  }
+
+
+  DB.messages[key].push({
+
+    from:DB.currentUser,
+
+    to:recipient,
+
+    text,
+
+    date:now()
+
+  });
+
+
+  saveData();
+
+
+  document.getElementById(
+    "alkMessage"
+  ).value="";
+
+
+  renderMessages();
+
+}
+
+
+/* =========================================================
+   NEBULA STORE
+   ========================================================= */
+
+function nebulaStoreHTML(){
+
+  return `
+
+    <div class="notice">
+
+      <h3>
+        Nebula Store
+      </h3>
+
+      Marketplace for Metxon software,
+      games and internal services.
+
+    </div>
+
+
+    <div class="grid">
+
+      <div class="card">
+
+        <span class="badge">
+          SOFTWARE
+        </span>
+
+        <h3>
+          Met-Pay Checkout & Wallet Module
+        </h3>
+
+        <p class="muted">
+          Wallet and checkout infrastructure
+          used by MetCart.
+        </p>
+
+        <button
+          class="btn primary"
+          onclick="storeInstall('Met-Pay Checkout & Wallet Module')">
+
+          Install
+
+        </button>
+
+      </div>
+
+
+      <div class="card">
+
+        <span class="badge">
+          SOFTWARE
+        </span>
+
+        <h3>
+          Metware Security
+        </h3>
+
+        <p class="muted">
+          Security scanning and update module.
+        </p>
+
+        <button
+          class="btn primary"
+          onclick="storeInstall('Metware Security')">
+
+          Install
+
+        </button>
+
+      </div>
+
+
+      <div class="card">
+
+        <span class="badge">
+          APP
+        </span>
+
+        <h3>
+          Nebula AI
+        </h3>
+
+        <p class="muted">
+          Metxon AI assistant.
+        </p>
+
+        <button
+          class="btn primary"
+          onclick="storeInstall('Nebula AI')">
+
+          Install
+
+        </button>
+
+      </div>
+
+
+      <div class="card">
+
+        <span class="badge">
+          GAME
+        </span>
+
+        <h3>
+          Nebula Arena
+        </h3>
+
+        <p class="muted">
+          Simulated Metxon entertainment title.
+        </p>
+
+        <button
+          class="btn primary"
+          onclick="storeInstall('Nebula Arena')">
+
+          Install
+
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <div
+      id="storeOutput"
+      class="notice">
+    </div>
+
+  `;
+
+}
+
+
+function storeInstall(name){
+
+  document.getElementById(
+    "storeOutput"
+  ).textContent =
+    name +
+    " installed successfully in the simulated Nebula environment.";
+
+}
+
+
+/* =========================================================
+   CULE-IN
+   ========================================================= */
+
+function culeHTML(){
+
+  return `
+
+    <div class="notice">
+
+      <h3>
+        Cule-In
+      </h3>
+
+      <p>
+        Search across the Metxon ecosystem.
+      </p>
+
+    </div>
+
+
+    <div class="search">
+
+      <input
+        id="culeAppQ"
+        placeholder="Search...">
+
+      <button
+        class="btn primary"
+        onclick="culeSearch('culeAppQ','culeOutput')">
+
+        Search
+
+      </button>
+
+    </div>
+
+
+    <div id="culeOutput"></div>
+
+  `;
+
+}
+
+
+function culeSearch(inputId,outputId){
+
+  const query =
+    document
+      .getElementById(inputId)
+      ?.value
+      .trim()
+      .toLowerCase() || "";
+
+
+  const output =
+    document.getElementById(
+      outputId
+    );
+
+
+  if(!query){
+
+    output.innerHTML =
+      `<div class="notice">
+        Enter a search term.
+      </div>`;
+
+    return;
+  }
+
+
+  const deviceMatches =
+    DEVICES.filter(
+      d =>
+        d.name.toLowerCase().includes(query) ||
+        d.category.toLowerCase().includes(query)
+    );
+
+
+  const smeMatches =
+    SME.filter(
+      s =>
+        s.name.toLowerCase().includes(query) ||
+        s.title.toLowerCase().includes(query) ||
+        s.description.toLowerCase().includes(query)
+    );
+
+
+  const stockMatches =
+    STOCKS.filter(
+      s =>
+        s.symbol.toLowerCase().includes(query) ||
+        s.name.toLowerCase().includes(query)
+    );
+
+
+  let html="";
+
+
+  if(deviceMatches.length){
+
+    html += `
+
+      <div class="card">
+
+        <h3>
+          Molecule
+        </h3>
+
+        ${deviceMatches.map(
+          d => `
+
+          <div class="notice">
+
+            <b>
+              ${escapeHTML(d.name)}
+            </b>
+
+            —
+            ${money(d.price)}
+
+            <span class="small">
+              ${escapeHTML(d.category)}
+            </span>
+
+          </div>
+
+        `
+        ).join("")}
+
+      </div>
+
+    `;
+
+  }
+
+
+  if(smeMatches.length){
+
+    html += `
+
+      <div class="card">
+
+        <h3>
+          SME Registry
+        </h3>
+
+        ${smeMatches.map(
+          s => `
+
+          <div class="notice">
+
+            <b>
+              ${escapeHTML(s.name)}
+            </b>
+
+            —
+            ${escapeHTML(s.title)}
+
+          </div>
+
+        `
+        ).join("")}
+
+      </div>
+
+    `;
+
+  }
+
+
+  if(stockMatches.length){
+
+    html += `
+
+      <div class="card">
+
+        <h3>
+          Stocks
+        </h3>
+
+        ${stockMatches.map(
+          s => `
+
+          <div class="notice">
+
+            <b>
+              ${escapeHTML(s.symbol)}
+            </b>
+
+            —
+            ${escapeHTML(s.name)}
+
+            —
+            ${money(s.price)}
+
+          </div>
+
+        `
+        ).join("")}
+
+      </div>
+
+    `;
+
+  }
+
+
+  if(!html){
+
+    html =
+      `<div class="notice">
+        No matching records found.
+      </div>`;
+
+  }
+
+
+  output.innerHTML =
+    html;
+
+}
+
+
+/* =========================================================
+   NEBULA AI
+   ========================================================= */
+
+function nebulaAIHTML(){
+
+  return `
+
+    <div class="notice">
+
+      <h3>
+        Nebula AI
+      </h3>
+
+      <p>
+        Metxon Corporate AI assistant.
+        This local interface provides
+        simulated ecosystem intelligence.
+      </p>
+
+    </div>
+
+
+    <textarea
+      id="nebulaQuestion"
+      rows="6"
+      placeholder="Ask Nebula AI about Molecule, Mettin, MetCount, MetCart, stocks, subscriptions..."></textarea>
+
+
+    <button
+      class="btn primary"
+      onclick="askNebulaAI()"
+      style="margin-top:8px">
+
+      Ask Nebula AI
+
+    </button>
+
+
+    <div
+      id="nebulaAnswer"
+      class="terminal"
+      style="margin-top:10px">
+    </div>
+
+  `;
+
+}
+
+
+function askNebulaAI(){
+
+  const q =
+    document
+      .getElementById(
+        "nebulaQuestion"
+      )
+      .value
+      .trim();
+
+
+  const out =
+    document.getElementById(
+      "nebulaAnswer"
+    );
+
+
+  if(!q){
+
+    out.textContent =
+      "Please enter a question.";
+
+    return;
+  }
+
+
+  const l =
+    q.toLowerCase();
+
+
+  let answer =
+    "Nebula AI simulation:\n\n";
+
+
+  if(
+    l.includes("molecule") ||
+    l.includes("phone") ||
+    l.includes("device")
+  ){
+
+    answer +=
+      "Molecule is Metxon's hardware division. " +
+      "Use the Molecule section to search " +
+      "the complete device catalog.\n";
+
+  }
+
+
+  else if(
+    l.includes("subscription") ||
+    l.includes("metcount")
+  ){
+
+    answer +=
+      "MetCount contains account management, " +
+      "transaction history, subscriptions and " +
+      "the stock simulation. Stocks appear " +
+      "directly below subscriptions.\n";
+
+  }
+
+
+  else if(
+    l.includes("cart") ||
+    l.includes("purchase")
+  ){
+
+    answer +=
+      "MetCart is the hardware commerce division. " +
+      "Checkout uses the simulated Met-Pay wallet.\n";
+
+  }
+
+
+  else if(
+    l.includes("stock") ||
+    l.includes("share")
+  ){
+
+    answer +=
+      "The stock market is a simulation. " +
+      "You can search, buy and sell supported " +
+      "tickers from MetCount.\n";
+
+  }
+
+
+  else{
+
+    answer +=
+      "I can help navigate the Metxon ecosystem. " +
+      "Try asking about Molecule devices, " +
+      "MetCount subscriptions, transactions, " +
+      "stocks, MetCart or Mettin apps.\n";
+
+  }
+
+
+  out.textContent =
+    answer;
+
+}
+
+
+/* =========================================================
+   CULE AI TOGGLE
+   ========================================================= */
+
+function toggleAI(){
+
+  DB.settings.culeAI =
+    !DB.settings.culeAI;
+
+  saveData();
+
+  const btn =
+    document.getElementById(
+      "aiToggle"
+    );
+
+  btn.textContent =
+    "Cule AI: " +
+    (
+      DB.settings.culeAI
+      ? "ON"
+      : "OFF"
+    );
+
+  notify(
+    "Cule AI " +
+    (
+      DB.settings.culeAI
+      ? "enabled."
+      : "disabled."
+    )
+  );
+
+}
+
+
+(function(){
+
+  const btn =
+    document.getElementById(
+      "aiToggle"
+    );
+
+  if(btn){
+
+    btn.textContent =
+      "Cule AI: " +
+      (
+        DB.settings.culeAI
+        ? "ON"
+        : "OFF"
+      );
+
+  }
+
+})();
+
+
+/* =========================================================
+   METCOUNT SECURITY
+   ========================================================= */
+
+function verifyMetCount(){
+
+  const username =
+    document
+      .getElementById("mcUser")
+      .value
+      .trim();
+
+  const password =
+    document
+      .getElementById("mcPass")
+      .value;
+
+
+  const account =
+    DB.accounts.find(
+      a => a.username === username
+    );
+
+
+  if(!account){
+
+    notify(
+      "MetCount authentication failed.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  if(account.password !== password){
+
+    notify(
+      "MetCount security verification failed.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  DB.currentUser =
+    username;
+
+  saveData();
+
+  updateProfile();
+
+  refreshMetCount();
+
+  notify(
+    "MetCount security verification successful.",
+    "success"
+  );
+
+}
+
+
+function refreshMetCount(){
+
+  const locked =
+    document.getElementById(
+      "mcLocked"
+    );
+
+  const dashboard =
+    document.getElementById(
+      "mcDashboard"
+    );
+
+
+  if(!locked || !dashboard)
+    return;
+
+
+  const account =
+    currentAccount();
+
+
+  if(!account){
+
+    locked.style.display =
+      "block";
+
+    dashboard.style.display =
+      "none";
+
+    return;
+  }
+
+
+  locked.style.display =
+    "none";
+
+  dashboard.style.display =
+    "block";
+
+
+  document.getElementById(
+    "mcName"
+  ).textContent =
+    account.name;
+
+
+  document.getElementById(
+    "mcBalance"
+  ).textContent =
+    money(account.balance);
+
+
+  document.getElementById(
+    "mcSub"
+  ).textContent =
+    account.subscription ||
+    "None";
+
+
+  renderPortfolio();
+
+}
+
+
+refreshMetCount();
+
+
+/* =========================================================
+   TRANSACTIONS
+   ========================================================= */
+
+function showTransactions(){
+
+  const card =
+    document.getElementById(
+      "transactionsCard"
+    );
+
+  if(card){
+
+    card.style.display =
+      "block";
+
+  }
+
+
+  renderTransactions();
+
+}
+
+
+function renderTransactions(){
+
+  const box =
+    document.getElementById(
+      "transactions"
+    );
+
+  if(!box) return;
+
+
+  const username =
+    DB.currentUser;
+
+
+  const rows =
+    DB.transactions
+      .filter(
+        t => t.username === username
+      )
+      .slice()
+      .reverse();
+
+
+  if(!rows.length){
+
+    box.innerHTML =
+      `<p class="muted">
+        No transactions yet.
+      </p>`;
+
+    return;
+  }
+
+
+  box.innerHTML = `
+
+    <div class="table">
+
+      <table>
+
+        <thead>
+
+          <tr>
+
+            <th>Date</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Amount</th>
+            <th>Balance After</th>
+
+          </tr>
+
+        </thead>
+
+        <tbody>
+
+          ${rows.map(
+            t => `
+
+            <tr>
+
+              <td>
+                ${escapeHTML(t.date)}
+              </td>
+
+              <td>
+                ${escapeHTML(t.type)}
+              </td>
+
+              <td>
+                ${escapeHTML(t.description)}
+              </td>
+
+              <td>
+                ${money(t.amount)}
+              </td>
+
+              <td>
+                ${money(t.balanceAfter)}
+              </td>
+
+            </tr>
+
+          `
+          ).join("")}
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  `;
+
+}
+
+
+/* =========================================================
+   MET-TRANSFER
+   ========================================================= */
+
+function openTransfer(){
+
+  if(!requireLogin()) return;
+
+  document
+    .getElementById("transferModal")
+    .classList.add("open");
+
+}
+
+
+function closeTransfer(){
+
+  document
+    .getElementById("transferModal")
+    .classList.remove("open");
+
+}
+
+
+function transferFunds(){
+
+  const sender =
+    currentAccount();
+
+
+  const recipientUsername =
+    document
+      .getElementById("toUser")
+      .value
+      .trim();
+
+
+  const amount =
+    Number(
+      document
+        .getElementById("toAmount")
+        .value
+    );
+
+
+  if(!sender){
+
+    notify(
+      "Please sign in first.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  if(!recipientUsername || amount<=0){
+
+    notify(
+      "Enter a valid recipient and amount.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  if(
+    recipientUsername ===
+    sender.username
+  ){
+
+    notify(
+      "You cannot transfer to yourself.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  const recipient =
+    DB.accounts.find(
+      a => a.username === recipientUsername
+    );
+
+
+  if(!recipient){
+
+    notify(
+      "Recipient account not found.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  if(sender.balance < amount){
+
+    notify(
+      "Insufficient balance.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  sender.balance -= amount;
+
+  recipient.balance += amount;
+
+
+  DB.transactions.push({
+
+    id:uid("TX"),
+
+    username:sender.username,
+
+    type:"TRANSFER",
+
+    description:
+      "Met-Transfer to @" +
+      recipient.username,
+
+    amount:-amount,
+
+    balanceAfter:
+      sender.balance,
+
+    date:now()
+
+  });
+
+
+  DB.transactions.push({
+
+    id:uid("TX"),
+
+    username:recipient.username,
+
+    type:"TRANSFER",
+
+    description:
+      "Met-Transfer from @" +
+      sender.username,
+
+    amount:amount,
+
+    balanceAfter:
+      recipient.balance,
+
+    date:now()
+
+  });
+
+
+  saveData();
+
+  closeTransfer();
+
+  refreshMetCount();
+
+
+  notify(
+    "Transfer completed successfully.",
+    "success"
+  );
+
+}
+
+
+/* =========================================================
+   SUBSCRIPTIONS
+   ========================================================= */
+
+function subscribe(name,price){
+
+  if(!requireLogin())
+    return;
+
+
+  const account =
+    currentAccount();
+
+
+  if(account.subscription === name){
+
+    notify(
+      "You already have this subscription.",
+      "warn"
+    );
+
+    return;
+  }
+
+
+  if(account.balance < price){
+
+    notify(
+      "Insufficient balance for subscription.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  account.balance -= price;
+
+  account.subscription =
+    name;
+
+
+  DB.subscriptions[
+    account.username
+  ] = {
+
+    tier:name,
+
+    price,
+
+    started:now(),
+
+    nextBilling:
+      "7 days"
+
+  };
+
+
+  DB.transactions.push({
+
+    id:uid("TX"),
+
+    username:
+      account.username,
+
+    type:"SUBSCRIPTION",
+
+    description:
+      name +
+      " weekly subscription",
+
+    amount:-price,
+
+    balanceAfter:
+      account.balance,
+
+    date:now()
+
+  });
+
+
+  saveData();
+
+  refreshMetCount();
+
+  renderTransactions();
+
+
+  notify(
+    name +
+    " subscription activated.",
+    "success"
+  );
+
+}
+
+
+/* =========================================================
+   STOCK MARKET SIMULATION
+   ========================================================= */
+
+const STOCKS = [
+
+  {
+    symbol:"MTX",
+    name:"Metxon Corporate",
+    price:4820
+  },
+
+  {
+    symbol:"NBL",
+    name:"Nebula Systems",
+    price:3180
+  },
+
+  {
+    symbol:"CUL",
+    name:"Cule Intelligence",
+    price:2740
+  },
+
+  {
+    symbol:"TTH",
+    name:"Tethys Security",
+    price:1910
+  },
+
+  {
+    symbol:"MTA",
+    name:"Met-Alk Communications",
+    price:1640
+  },
+
+  {
+    symbol:"MTP",
+    name:"Met-Pay",
+    price:2210
+  },
+
+  {
+    symbol:"MOL",
+    name:"Molecule Electronics",
+    price:3560
+  },
+
+  {
+    symbol:"MTC",
+    name:"MetCount Financial",
+    price:2980
+  }
+
+];
+
+
+function simulatedStockPrice(stock){
+
+  const day =
+    Math.floor(
+      Date.now() /
+      86400000
+    );
+
+
+  const hash =
+    stock.symbol
+      .split("")
+      .reduce(
+        (a,c)=>
+          a+c.charCodeAt(0),
+        0
+      );
+
+
+  const variation =
+    (
+      Math.sin(
+        day +
+        hash
+      ) * .06
+    );
+
+
+  return stock.price *
+    (1+variation);
+
+}
+
+
+function searchStocks(){
+
+  const q =
+    document
+      .getElementById("stockQ")
+      .value
+      .trim()
+      .toLowerCase();
+
+
+  const results =
+    document.getElementById(
+      "stockResults"
+    );
+
+
+  const matches =
+    STOCKS.filter(
+      s =>
+        !q ||
+        s.symbol.toLowerCase().includes(q) ||
+        s.name.toLowerCase().includes(q)
+    );
+
+
+  results.innerHTML =
+    matches.map(
+      s => {
+
+        const price =
+          simulatedStockPrice(s);
+
+        return `
+
+        <div class="notice">
+
+          <b>
+            ${escapeHTML(s.symbol)}
+          </b>
+
+          —
+          ${escapeHTML(s.name)}
+
+          <br>
+
+          Current simulated value:
+          <strong>
+            ${money(price)}
+          </strong>
+
+          <div style="margin-top:8px">
+
+            <button
+              class="btn primary"
+              onclick='buyStock(${JSON.stringify(s.symbol)})'>
+
+              Buy
+
+            </button>
+
+            <button
+              class="btn warn"
+              onclick='sellStock(${JSON.stringify(s.symbol)})'>
+
+              Sell
+
+            </button>
+
+          </div>
+
+        </div>
+
+      `;
+
+      }
+    ).join("");
+
+}
+
+
+function portfolioFor(username){
+
+  if(!DB.portfolio[username]){
+
+    DB.portfolio[username] = {};
+
+  }
+
+  return DB.portfolio[username];
+
+}
+
+
+function buyStock(symbol){
+
+  if(!requireLogin())
+    return;
+
+
+  const account =
+    currentAccount();
+
+
+  const stock =
+    STOCKS.find(
+      s => s.symbol === symbol
+    );
+
+
+  if(!stock) return;
+
+
+  const price =
+    simulatedStockPrice(stock);
+
+
+  const shares = 1;
+
+
+  if(account.balance < price){
+
+    notify(
+      "Insufficient balance to buy one share.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  account.balance -= price;
+
+
+  const portfolio =
+    portfolioFor(
+      account.username
+    );
+
+
+  if(!portfolio[symbol]){
+
+    portfolio[symbol] = {
+      shares:0,
+      averagePrice:0
+    };
+
+  }
+
+
+  const holding =
+    portfolio[symbol];
+
+
+  const oldValue =
+    holding.shares *
+    holding.averagePrice;
+
+
+  holding.shares += shares;
+
+
+  holding.averagePrice =
+    (
+      oldValue +
+      price
+    ) /
+    holding.shares;
+
+
+  DB.transactions.push({
+
+    id:uid("TX"),
+
+    username:
+      account.username,
+
+    type:"STOCK BUY",
+
+    description:
+      "Bought 1 share of " +
+      symbol,
+
+    amount:-price,
+
+    balanceAfter:
+      account.balance,
+
+    date:now()
+
+  });
+
+
+  saveData();
+
+  refreshMetCount();
+
+  renderPortfolio();
+
+
+  notify(
+    "Bought 1 share of " +
+    symbol +
+    " for " +
+    money(price),
+    "success"
+  );
+
+}
+
+
+function sellStock(symbol){
+
+  if(!requireLogin())
+    return;
+
+
+  const account =
+    currentAccount();
+
+
+  const stock =
+    STOCKS.find(
+      s => s.symbol === symbol
+    );
+
+
+  if(!stock) return;
+
+
+  const portfolio =
+    portfolioFor(
+      account.username
+    );
+
+
+  const holding =
+    portfolio[symbol];
+
+
+  if(
+    !holding ||
+    holding.shares < 1
+  ){
+
+    notify(
+      "You do not own this stock.",
+      "warn"
+    );
+
+    return;
+  }
+
+
+  const price =
+    simulatedStockPrice(stock);
+
+
+  holding.shares -= 1;
+
+  account.balance += price;
+
+
+  DB.transactions.push({
+
+    id:uid("TX"),
+
+    username:
+      account.username,
+
+    type:"STOCK SELL",
+
+    description:
+      "Sold 1 share of " +
+      symbol,
+
+    amount:price,
+
+    balanceAfter:
+      account.balance,
+
+    date:now()
+
+  });
+
+
+  if(holding.shares <= 0){
+
+    delete portfolio[symbol];
+
+  }
+
+
+  saveData();
+
+  refreshMetCount();
+
+  renderPortfolio();
+
+
+  notify(
+    "Sold 1 share of " +
+    symbol +
+    " for " +
+    money(price),
+    "success"
+  );
+
+}
+
+
+function renderPortfolio(){
+
+  const box =
+    document.getElementById(
+      "portfolio"
+    );
+
+  if(!box) return;
+
+
+  const account =
+    currentAccount();
+
+
+  if(!account){
+
+    box.innerHTML =
+      `<p class="muted">
+        Login required.
+      </p>`;
+
+    return;
+  }
+
+
+  const portfolio =
+    portfolioFor(
+      account.username
+    );
+
+
+  const symbols =
+    Object.keys(portfolio);
+
+
+  if(!symbols.length){
+
+    box.innerHTML =
+      `<p class="muted">
+        No stocks currently held.
+      </p>`;
+
+    return;
+  }
+
+
+  box.innerHTML = `
+
+    <div class="table">
+
+      <table>
+
+        <thead>
+
+          <tr>
+
+            <th>Ticker</th>
+            <th>Shares</th>
+            <th>Average Buy</th>
+            <th>Current Price</th>
+            <th>Current Value</th>
+
+          </tr>
+
+        </thead>
+
+        <tbody>
+
+          ${symbols.map(
+            symbol => {
+
+              const holding =
+                portfolio[symbol];
+
+              const stock =
+                STOCKS.find(
+                  s => s.symbol === symbol
+                );
+
+              const current =
+                simulatedStockPrice(stock);
+
+
+              return `
+
+              <tr>
+
+                <td>
+                  <b>${symbol}</b>
+                </td>
+
+                <td>
+                  ${holding.shares}
+                </td>
+
+                <td>
+                  ${money(
+                    holding.averagePrice
+                  )}
+                </td>
+
+                <td>
+                  ${money(current)}
+                </td>
+
+                <td>
+                  ${money(
+                    current *
+                    holding.shares
+                  )}
+                </td>
+
+              </tr>
+
+              `;
+
+            }
+          ).join("")}
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  `;
+
+}
+
+
+/* =========================================================
+   METWARE SECURITY SIMULATION
+   ========================================================= */
+
+let metwareSeconds = 300;
+
+
+function metwareTick(){
+
+  const box =
+    document.getElementById(
+      "metware"
+    );
+
+  if(!box) return;
+
+
+  if(metwareSeconds <= 0){
+
+    box.textContent =
+      "Metware 6: Security scan completed. " +
+      "System healthy. Next scan in 5 minutes.";
+
+    metwareSeconds = 300;
+
+    return;
+
+  }
+
+
+  const minutes =
+    Math.floor(
+      metwareSeconds / 60
+    );
+
+  const seconds =
+    metwareSeconds % 60;
+
+
+  box.textContent =
+    "Metware 6: Next routine security scan in " +
+    minutes +
+    ":" +
+    String(seconds).padStart(2,"0");
+
+
+  metwareSeconds--;
+
+}
+
+
+setInterval(
+  metwareTick,
+  1000
+);
+
+
+/* =========================================================
+   HOME CULE SEARCH
+   ========================================================= */
+
+document
+  .getElementById("homeQ")
+  ?.addEventListener(
+    "keydown",
+    e=>{
+      if(e.key==="Enter"){
+        culeSearch(
+          "homeQ",
+          "homeResults"
+        );
+      }
+    }
+  );
+
+
+/* =========================================================
+   INITIALIZATION
+   ========================================================= */
+
+(function init(){
+
+  updateProfile();
+
+  renderMolecule();
+
+  renderCartCatalog();
+
+  renderSME();
+
+  refreshMetCount();
+
+  metwareTick();
+
+})();
+
+
+/* =========================================================
+   MODAL OUTSIDE CLICK
+   ========================================================= */
+
+document
+  .querySelectorAll(".modal")
+  .forEach(modal=>{
+
+    modal.addEventListener(
+      "click",
+      e=>{
+
+        if(e.target === modal){
+
+          modal.classList.remove(
+            "open"
+          );
+
+        }
+
+      }
+    );
+
+  });
+
+
+/* =========================================================
+   KEYBOARD SHORTCUTS
+   ========================================================= */
+
+document.addEventListener(
+  "keydown",
+  e=>{
+
+    if(e.key === "Escape"){
+
+      document
+        .querySelectorAll(".modal.open")
+        .forEach(
+          m=>m.classList.remove("open")
+        );
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   PERIODIC LOCAL DATA SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+    try{
+      saveData();
+    }catch(e){
+      console.error(e);
+    }
+  },
+  15000
+);
+
+
+/* =========================================================
+   FINAL STATUS
+   ========================================================= */
+
+console.log(
+  "%cMETXON CORPORATE SYSTEM ONLINE",
+  "color:#37d9ff;font-size:16px;font-weight:bold"
+);
+
+console.log(
+  "Molecule:",
+  DEVICES.length,
+  "devices loaded"
+);
+
+console.log(
+  "SME Registry:",
+  SME.length,
+  "entities loaded"
+);
+
+console.log(
+  "Stock Market:",
+  STOCKS.length,
+  "simulated listings loaded"
+);
+
+</script>
+</body>
+</html>
