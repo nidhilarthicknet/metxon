@@ -171,11 +171,11 @@
             border: 1px solid var(--accent-cyan);
             padding: 30px;
             border-radius: 10px;
-            width: 400px;
+            width: 420px;
             max-width: 90%;
         }
 
-        /* Home Dashboard Search & Cule AI Toggle */
+        /* Search Bar & Cule AI Toggle */
         .search-bar-wrapper {
             background: var(--bg-panel);
             border: 1px solid var(--border-color);
@@ -269,6 +269,7 @@
         <div class="nav-links">
             <button class="nav-btn active" onclick="switchView('wiki')">Wiki</button>
             <button class="nav-btn" onclick="switchView('home')" id="navHome" style="display:none;">Home</button>
+            <button class="nav-btn" onclick="switchView('culein')" id="navCulein" style="display:none;">Cule-In</button>
             <button class="nav-btn" onclick="switchView('molecule')" id="navMolecule" style="display:none;">Molecule</button>
             <button class="nav-btn" onclick="switchView('mettin')" id="navMettin" style="display:none;">Mettin</button>
             <button class="nav-btn" onclick="switchView('metcount')" id="navMetcount" style="display:none;">MetCount</button>
@@ -298,17 +299,12 @@
     <div id="view-home" class="view-section">
         <h1 style="text-align: center; color: var(--accent-cyan);">METXON COMMAND CENTER</h1>
         <p style="text-align: center; color: var(--text-muted);">Secure node connected. Select a sector or query the network via Cule-In.</p>
-        
-        <!-- Cule-In Search Bar with Cule AI Mode Toggle -->
-        <div class="search-bar-wrapper">
-            <span style="color: var(--accent-cyan); font-weight: bold;">Cule-In:</span>
-            <input type="text" id="culeInQuery" placeholder="Search devices, stocks, enterprise intelligence...">
-            <button class="cule-ai-toggle" id="culeAiToggleBtn" onclick="toggleCuleAiMode()">Cule AI Mode: OFF</button>
-            <button class="primary-btn" onclick="executeCuleSearch()" style="padding: 8px 16px;">Search</button>
-        </div>
-        <div id="culeSearchResults" style="max-width: 700px; margin: 0 auto 30px auto; background: var(--bg-panel); border-radius: 6px; padding: 15px; display: none;"></div>
 
         <div class="grid">
+            <div class="card" onclick="switchView('culein')" style="cursor: pointer;">
+                <h3 style="color: var(--accent-cyan);">Cule-In Search Engine</h3>
+                <p>Launch the dedicated Metxon search engine with Cule AI synthesis and stock/natural language support.</p>
+            </div>
             <div class="card" onclick="switchView('molecule')" style="cursor: pointer;">
                 <h3 style="color: var(--accent-cyan);">Molecule Database</h3>
                 <p>Browse full device hardware catalogs, prices, and component layouts synced with MetCart.</p>
@@ -319,13 +315,27 @@
             </div>
             <div class="card" onclick="switchView('metcount')" style="cursor: pointer;">
                 <h3 style="color: var(--accent-cyan);">MetCount & Finance</h3>
-                <p>Manage subscription tiers, multi-currency wallets, and live stock market portfolios.</p>
+                <p>Manage secure vault balances, subscriptions, and inter-account transfers.</p>
             </div>
             <div class="card" onclick="switchView('metcart')" style="cursor: pointer;">
                 <h3 style="color: var(--accent-cyan);">MetCart Store</h3>
                 <p>Acquire Nebula hardware, APUs, and Tethys screen protectors via secure Met-Pay checkout.</p>
             </div>
         </div>
+    </div>
+
+    <!-- VIEW 2.5: DEDICATED CULE-IN SEARCH VIEW -->
+    <div id="view-culein" class="view-section" style="text-align: center; padding-top: 40px;">
+        <div style="font-size: 3.5rem; font-weight: bold; color: var(--accent-cyan); letter-spacing: 4px; margin-bottom: 20px;">METXON</div>
+        <p style="color: var(--text-muted); margin-bottom: 25px;">Enterprise Neural Search & Intelligence</p>
+        
+        <div class="search-bar-wrapper">
+            <span style="color: var(--accent-cyan); font-weight: bold;">Cule-In:</span>
+            <input type="text" id="culeInQuery" placeholder="Ask anything (e.g. 'what is the rate of Nebula M1 elite' or 'google share price')...">
+            <button class="cule-ai-toggle" id="culeAiToggleBtn" onclick="toggleCuleAiMode()">Cule AI Mode: OFF</button>
+            <button class="primary-btn" onclick="executeCuleSearch()" style="padding: 8px 16px;">Search</button>
+        </div>
+        <div id="culeSearchResults" style="max-width: 700px; margin: 0 auto 30px auto; background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; text-align: left; display: none;"></div>
     </div>
 
     <!-- VIEW 3: MOLECULE -->
@@ -353,9 +363,9 @@
             </div>
             <div class="app-tile" onclick="openApp('nebulaStore')">
                 <h3>Nebula Store</h3>
-                <p>App marketplace</p>
+                <p>App marketplace & games</p>
             </div>
-            <div class="app-tile" onclick="switchView('home')">
+            <div class="app-tile" onclick="switchView('culein')">
                 <h3>Cule-In</h3>
                 <p>Unified search & AI</p>
             </div>
@@ -374,31 +384,9 @@
             <div id="appContent"></div>
         </div>
 
-        <!-- AI Section -->
-        <h3 style="margin-top: 40px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">AI & Intelligence Section</h3>
-        <div class="card">
-            <h3>Cule AI & Nebula Chat Integration</h3>
-            <p>Active linguistic and analytical engines ready to assist in code generation, stock predictions, and telemetry.</p>
-        </div>
-
-        <!-- Security Section -->
-        <h3 style="margin-top: 40px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Security Architecture (Metware)</h3>
-        <div class="card">
-            <h3>Metware X Defense Suite</h3>
-            <p>Provides zero-trace encryption scrubbing, heavy firewall DDoS deflection, and real-time threat neutralization across node clusters.</p>
-        </div>
-
         <!-- SME's Section -->
         <h3 style="margin-top: 40px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">SME's Registry (Systemic Mineral Entities)</h3>
-        <p style="color: var(--text-muted);">Specialized periodic elements infused into software code for elite computational power and physical grid binding.</p>
         <div class="grid" id="smeGrid"></div>
-
-        <!-- View Internal Specs -->
-        <h3 style="margin-top: 40px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">View Internal Specs</h3>
-        <div class="card">
-            <h3>Mettin Kernel v4.2 Architecture</h3>
-            <p>Subnet routing protocols, airgapped memory allocation tables, and quantum encryption matrix initialized.</p>
-        </div>
     </div>
 
     <!-- VIEW 5: METCOUNT -->
@@ -406,18 +394,35 @@
         <h1 style="color: var(--accent-cyan);">MetCount Financial & Investment Hub</h1>
         <div id="metcountAuthBox" style="background: var(--bg-panel); padding: 25px; border-radius: 8px; max-width: 450px; margin: 20px auto;">
             <h3>MetCount Security Verification</h3>
-            <p style="font-size: 0.85rem; color: var(--text-muted);">Enter your Metxon credentials & dedicated MetCount password.</p>
-            <input type="text" id="mcUser" placeholder="Metxon Username">
-            <input type="password" id="mcPass" placeholder="MetCount Password">
-            <button class="primary-btn" onclick="verifyMetCount()" style="width: 100%;">Authenticate MetCount</button>
+            <p style="font-size: 0.85rem; color: var(--text-muted);">Enter your Metxon account password to unlock the vault.</p>
+            <input type="password" id="mcPass" placeholder="Metxon Password">
+            <button class="primary-btn" onclick="verifyMetCount()" style="width: 100%;">Unlock MetCount Vault</button>
         </div>
 
         <div id="metcountDashboard" style="display: none;">
             <div class="card" style="margin-bottom: 25px;">
-                <h3>Account Financial Overview</h3>
+                <h3>Account Financial Vault</h3>
                 <p>User: <span id="mcAccountName" style="color: var(--accent-cyan); font-weight: bold;"></span></p>
-                <p>Current Active Subscription: <span id="activeSubTier" style="color: var(--success);">Base (INR Only)</span></p>
-                <p>Available Balance / Vault: <strong style="color: var(--accent-cyan);">₹1,250,400 INR</strong></p>
+                <p>Available Vault Balance: <strong id="mcAccountBalance" style="color: var(--success); font-size: 1.2rem;"></strong></p>
+            </div>
+
+            <!-- TRANSFER FEATURE SECTION -->
+            <div class="card" style="margin-bottom: 25px; border-color: var(--accent-cyan);">
+                <h3 style="color: var(--accent-cyan);">Met-Transfer // Fund Routing</h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted);">Send funds securely between Metxon accounts.</p>
+                <label style="font-size: 0.8rem; color: var(--text-muted);">TO (Recipient Username):</label>
+                <input type="text" id="transferTo" placeholder="Recipient Username">
+                
+                <label style="font-size: 0.8rem; color: var(--text-muted);">FROM (Your Username):</label>
+                <input type="text" id="transferFromUser" placeholder="Your Username">
+                
+                <label style="font-size: 0.8rem; color: var(--text-muted);">FROM Password:</label>
+                <input type="password" id="transferFromPass" placeholder="Your Password">
+                
+                <label style="font-size: 0.8rem; color: var(--text-muted);">Amount (₹):</label>
+                <input type="number" id="transferAmount" placeholder="Enter Amount">
+                
+                <button class="primary-btn" onclick="executeTransfer()" style="width: 100%; margin-top: 5px;">Execute Secure Transfer</button>
             </div>
 
             <h3>Subscription Tiers</h3>
@@ -425,31 +430,18 @@
                 <div class="card">
                     <h3>Base Tier</h3>
                     <p><strong>₹500 / week</strong></p>
-                    <p>Currencies: INR, USD</p>
-                    <p>5-Minute Virus Scan</p>
                     <button class="primary-btn" onclick="selectSubscription('Base', 500)">Activate Base</button>
                 </div>
                 <div class="card">
                     <h3>Premium Tier</h3>
                     <p><strong>₹2,000 / week</strong></p>
-                    <p>Currencies: INR, USD, EUR, GBP, JPY</p>
-                    <p>Detailed P&L Graphs & Alerts</p>
                     <button class="primary-btn" onclick="selectSubscription('Premium', 2000)">Activate Premium</button>
                 </div>
                 <div class="card">
                     <h3>Elite Tier</h3>
                     <p><strong>₹10,000 / week</strong></p>
-                    <p>All Currencies + KRW</p>
-                    <p>Met AI Trade & Nebula AI Stock Analyzer API</p>
                     <button class="primary-btn" onclick="selectSubscription('Elite', 10000)">Activate Elite</button>
                 </div>
-            </div>
-
-            <h3 style="margin-top: 40px;">Live Stocks & Portfolio Section</h3>
-            <div class="card">
-                <input type="text" id="stockTickerInput" placeholder="Search stock (e.g., GOOGL, TSLA)...">
-                <button class="primary-btn" onclick="simulateStockBuy()" style="margin-top: 10px;">Instant Buy Stock</button>
-                <div id="stockPortfolioDisplay" style="margin-top: 15px; color: var(--text-muted);">No active stock holdings yet.</div>
             </div>
         </div>
     </div>
@@ -457,7 +449,7 @@
     <!-- VIEW 6: METCART -->
     <div id="view-metcart" class="view-section">
         <h1 style="color: var(--accent-cyan);">MetCart Store & Hardware Marketplace</h1>
-        <p style="color: var(--text-muted);">Secure transactions via Met-Pay. Bulk orders are restricted.</p>
+        <p style="color: var(--text-muted);">Secure transactions via Met-Pay.</p>
         <div class="grid" id="metcartGrid"></div>
     </div>
 
@@ -466,19 +458,13 @@
         <div class="modal-content">
             <h2 style="color: var(--accent-cyan); margin-top: 0;" id="authModalTitle">Metxon Access Portal</h2>
             <div id="authFormContent">
-                <p style="font-size: 0.85rem; color: var(--text-muted);">Select your member status:</p>
+                <p style="font-size: 0.85rem; color: var(--text-muted);">Select member status:</p>
                 <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                     <button class="primary-btn" id="btnExisting" onclick="setAuthMode('existing')" style="flex: 1;">Existing Member</button>
                     <button class="primary-btn" id="btnNew" onclick="setAuthMode('new')" style="flex: 1; background: var(--bg-card); border: 1px solid var(--border-color);">New Member</button>
                 </div>
-                <input type="text" id="authName" placeholder="Full Name">
-                <input type="text" id="authDob" placeholder="Date of Birth (DD/MM/YYYY)">
                 <input type="text" id="authUsername" placeholder="Username">
                 <input type="password" id="authPassword" placeholder="Password">
-                <div id="newMemberFields" style="display: none;">
-                    <input type="text" id="authAddress" placeholder="Physical Address">
-                    <input type="text" id="authPhone" placeholder="Phone Number">
-                </div>
                 <button class="primary-btn" onclick="handleAuthSubmit()" style="width: 100%; margin-top: 10px;">Authorize & Enter</button>
                 <button onclick="closeAuthModal()" style="background: none; border: none; color: var(--text-muted); width: 100%; margin-top: 10px; cursor: pointer;">Cancel</button>
             </div>
@@ -490,15 +476,38 @@
         <div class="modal-content">
             <h3 style="color: var(--accent-cyan); margin-top: 0;">Met-Pay Secure Checkout</h3>
             <p id="checkoutItemInfo" style="font-size: 0.9rem;"></p>
-            <input type="text" id="payUsername" placeholder="Metxon Username">
-            <input type="password" id="payPassword" placeholder="Met-Pay Password">
-            <button class="primary-btn" onclick="executeMetPay()" style="width: 100%;">Confirm Payment</button>
+            <label style="font-size: 0.8rem; color: var(--text-muted);">TO (Destination Service/Merchant):</label>
+            <input type="text" id="payTo" value="Metcart" readonly>
+            
+            <label style="font-size: 0.8rem; color: var(--text-muted);">FROM (Your Username):</label>
+            <input type="text" id="payFromUser" placeholder="Your Username">
+            
+            <label style="font-size: 0.8rem; color: var(--text-muted);">FROM Password:</label>
+            <input type="password" id="payFromPass" placeholder="Your Password">
+            
+            <button class="primary-btn" onclick="executeMetPay()" style="width: 100%;">Confirm Met-Pay Payment</button>
             <button onclick="closeMetPayModal()" style="background: none; border: none; color: var(--text-muted); width: 100%; margin-top: 10px; cursor: pointer;">Cancel</button>
         </div>
     </div>
 
+    <!-- SME INFUSION MODAL -->
+    <div class="modal" id="smeInfuseModal">
+        <div class="modal-content">
+            <h3 style="color: var(--accent-cyan); margin-top: 0;">SME Infusion Center</h3>
+            <p id="smeModalDesc" style="font-size: 0.9rem; color: var(--text-muted);">Select or purchase systemic mineral entities for code compilation.</p>
+            <div id="smeModalOptions" style="margin-bottom: 15px;"></div>
+            <button class="primary-btn" onclick="executeSmeInfusion()" style="width: 100%;">Confirm & Infuse</button>
+            <button onclick="closeSmeModal()" style="background: none; border: none; color: var(--text-muted); width: 100%; margin-top: 10px; cursor: pointer;">Cancel</button>
+        </div>
+    </div>
+
     <script>
-        // Global User State
+        // User Accounts & Database Store
+        let usersStore = {
+            "jurassic park": { pass: "admin123", balance: 30000000000000, sms: [], smes: ["SME-01", "SME-02"] },
+            "nidhilarthick": { pass: "secret", balance: 500000, sms: [], smes: ["SME-01"] }
+        };
+
         let currentUser = null;
         let authMode = 'existing';
         let culeAiActive = false;
@@ -509,60 +518,17 @@
             { name: "Nebula M1", category: "Smartphones", price: 40000, desc: "Standard flagship smartphone with Mettin neural core." },
             { name: "Nebula M1 Pro", category: "Smartphones", price: 70000, desc: "Enhanced performance and upgraded camera matrix." },
             { name: "Nebula M1 Elite", category: "Smartphones", price: 120000, desc: "Top-tier mobile workstation with titanium housing." },
-            { name: "Nebula A1", category: "Smartphones", price: 20000, desc: "Affordable entry smart device." },
-            { name: "Nebula A1 Pro", category: "Smartphones", price: 30000, desc: "Mid-tier efficiency smart device." },
-            { name: "Nebula A1 Elite", category: "Smartphones", price: 40000, desc: "Advanced A-series flagship." },
-            { name: "Nebula B1", category: "Smartphones", price: 2000, desc: "Basic utility communication device." },
-            { name: "Nebula B1 Pro", category: "Smartphones", price: 4000, desc: "Upgraded basic device." },
-            { name: "Nebula B1 Elite", category: "Smartphones", price: 7000, desc: "Premium basic communications unit." },
-            { name: "Nebula Z1 (Foldable)", category: "Foldable Smartphones", price: 100000, desc: "Flexible OLED quantum foldable phone." },
-            { name: "Nebula Z1 Pro", category: "Foldable Smartphones", price: 130000, desc: "Pro-tier foldable with dual hinge architecture." },
-            { name: "Nebula Z1 Elite", category: "Foldable Smartphones", price: 150000, desc: "Ultimate foldable workstation." },
             { name: "Nebulabook M1", category: "Laptops", price: 90000, desc: "High-performance enterprise laptop." },
-            { name: "Nebulabook M1 Pro", category: "Laptops", price: 130000, desc: "Pro developer laptop with dedicated NPU." },
             { name: "Nebulabook Elite", category: "Laptops", price: 190000, desc: "Ultimate corporate computing station." },
-            { name: "Nebulabook A1", category: "Laptops", price: 40000, desc: "Reliable daily laptop." },
-            { name: "Nebulabook A1 Pro", category: "Laptops", price: 60000, desc: "Balanced performance laptop." },
-            { name: "Nebulabook A1 Elite", category: "Laptops", price: 80000, desc: "Advanced consumer laptop." },
-            { name: "Nebulabook B1", category: "Laptops", price: 20000, desc: "Budget student laptop." },
-            { name: "Nebulabook B1 Pro", category: "Laptops", price: 30000, desc: "Upgraded student computing unit." },
-            { name: "Nebulabook D1", category: "Development Laptops", price: 120000, desc: "Dedicated Met Develop machine." },
-            { name: "Nebulabook D1 Pro", category: "Development Laptops", price: 170000, desc: "Pro development rig with SME slots." },
-            { name: "Nebulabook D1 Elite", category: "Development Laptops", price: 210000, desc: "Ultimate engineering powerhouse." },
-            { name: "NebulaTab M1", category: "Tablets", price: 60000, desc: "Sleek enterprise tablet." },
-            { name: "NebulaTab M1 Pro", category: "Tablets", price: 80000, desc: "Pro tablet with stylus support." },
-            { name: "NebulaTab M1 Elite", category: "Tablets", price: 100000, desc: "Flagship tablet workstation." },
-            { name: "NebulaTab A1", category: "Tablets", price: 30000, desc: "Everyday multimedia tablet." },
-            { name: "NebulaTab A1 Pro", category: "Tablets", price: 50000, desc: "Enhanced multimedia tablet." },
-            { name: "NebulaTab A1 Elite", category: "Tablets", price: 60000, desc: "Top consumer tablet." },
-            { name: "NebulaTab B1", category: "Tablets", price: 20000, desc: "Entry tablet." },
-            { name: "NebulaTab B1 Pro", category: "Tablets", price: 40000, desc: "Upgraded entry tablet." },
-            { name: "Nebula Watch 1", category: "Smart Watches", price: 8000, desc: "Biometric health smartwatch." },
-            { name: "Nebula Watch 2", category: "Smart Watches", price: 15000, desc: "Advanced fitness & eSIM watch." },
-            { name: "Nebula Watch 3", category: "Smart Watches", price: 30000, desc: "Titanium luxury smartwatch." },
             { name: "APU 1", category: "Processing Units", price: 200000, desc: "All-In-One CPU + GPU + NPU processing box." },
-            { name: "APU 2", category: "Processing Units", price: 300000, desc: "Dual-core quantum APU box." },
-            { name: "APU 3", category: "Processing Units", price: 400000, desc: "Heavy server node APU box." },
-            { name: "APU 4", category: "Processing Units", price: 500000, desc: "Enterprise cluster APU box." },
-            { name: "Tethys 1", category: "Screen Protectors", price: 2000, desc: "Impact-resistant glass protector." },
-            { name: "Tethys 2", category: "Screen Protectors", price: 4000, desc: "Self-healing nano screen protector." },
-            { name: "Tethys 3", category: "Screen Protectors", price: 5000, desc: "Quantum polarized blast screen protector." }
+            { name: "Tethys 1", category: "Screen Protectors", price: 2000, desc: "Impact-resistant glass protector." }
         ];
 
         // Master SME Registry Data
         const smeRegistry = [
-            { id: "SME-01", name: "Titanium (Ti)", price: "₹199.60 Cr / gram", func: "High-Density Thermal & Blast Shielding", cap: "Protects server cores and bank vaults against massive energy overloads." },
-            { id: "SME-02", name: "Platinum (Pt)", price: "₹304.00 Cr / gram", func: "Catalytic Signal Regeneration", cap: "Sustains maximum throughput and eliminates latency during spikes." },
-            { id: "SME-03", name: "Gold (Au)", price: "₹248.00 Cr / gram", func: "High-Conduction Quantum Routing", cap: "Lossless quantum data pathways across private subnets." },
-            { id: "SME-04", name: "Palladium (Pd)", price: "₹216.00 Cr / gram", func: "Zero-Trace Encryption Scrubbing", cap: "Absorbs and neutralizes digital transaction residue." },
-            { id: "SME-05", name: "Iridium (Ir)", price: "₹176.00 Cr / gram", func: "Heavy Firewall & DDoS Deflection", cap: "Kinetic deflection shielding servers from brute-force DDoS." },
-            { id: "SME-06", name: "Osmium (Os)", price: "₹152.00 Cr / gram", func: "Hyper-Density File Lock", cap: "Makes host bank ledgers unmovable and ransomware-proof." },
-            { id: "SME-07", name: "Rhodium (Rh)", price: "₹132.00 Cr / gram", func: "Adaptive Stealth & Camouflage", cap: "Restructures surface layers to evade active cybersecurity." },
-            { id: "SME-08", name: "Mercury (Hg)", price: "₹88.00 Cr / gram", func: "Deep Malware Log Scanning", cap: "Flows through system logs to isolate dormant malware." },
-            { id: "SME-09", name: "Uranium (U)", price: "₹68.00 Cr / gram", func: "Stealth Network Mapping", cap: "Low-frequency phantom radiation pulses to chart target topologies." },
-            { id: "SME-10", name: "Silver (Ag)", price: "₹48.00 Cr / gram", func: "Rapid Antimicrobial Digital Purification", cap: "Cleanses adware, tracking cookies, and unauthorized background processes." },
-            { id: "SME-11", name: "Copper (Cu)", price: "₹36.00 Cr / gram", func: "Auxiliary Power Grid Coupling", cap: "Links physical nuclear power grid nodes to server backbones." },
-            { id: "SME-12", name: "Tungsten (W)", price: "₹24.00 Cr / gram", func: "High-Density Thermal Blast Armor", cap: "Forges heat-sink barrier around server enclosures." }
+            { id: "SME-01", name: "Titanium (Ti)", price: "₹1,990", func: "Thermal Shielding", cap: "Protects server cores." },
+            { id: "SME-02", name: "Platinum (Pt)", price: "₹3,040", func: "Signal Regeneration", cap: "Eliminates latency." },
+            { id: "SME-03", name: "Gold (Au)", price: "₹2,480", func: "Quantum Routing", cap: "Lossless quantum data pathways." }
         ];
 
         // Navigation Controller
@@ -584,22 +550,40 @@
             if(mode === 'existing') {
                 document.getElementById('btnExisting').style.background = 'linear-gradient(135deg, var(--accent-cyan), var(--accent-blue))';
                 document.getElementById('btnNew').style.background = 'var(--bg-card)';
-                document.getElementById('newMemberFields').style.display = 'none';
             } else {
                 document.getElementById('btnNew').style.background = 'linear-gradient(135deg, var(--accent-cyan), var(--accent-blue))';
                 document.getElementById('btnExisting').style.background = 'var(--bg-card)';
-                document.getElementById('newMemberFields').style.display = 'block';
             }
         }
 
         function handleAuthSubmit() {
-            let username = document.getElementById('authUsername').value.trim();
-            if(!username) { alert("Please enter a valid username."); return; }
-            currentUser = username;
+            let username = document.getElementById('authUsername').value.trim().toLowerCase();
+            let pass = document.getElementById('authPassword').value;
+            
+            if(!username || !pass) { alert("Please fill in both username and password."); return; }
+
+            if(authMode === 'existing') {
+                if(usersStore[username] && usersStore[username].pass === pass) {
+                    currentUser = username;
+                } else {
+                    alert("Authentication failed! Incorrect username or password.");
+                    return;
+                }
+            } else {
+                if(usersStore[username]) {
+                    alert("Username already exists! Choose another or switch to Existing Member.");
+                    return;
+                }
+                // New member gets standard starting balance
+                usersStore[username] = { pass: pass, balance: 100000, sms: [], smes: [] };
+                currentUser = username;
+            }
             
             document.getElementById('profileBadge').style.display = 'block';
             document.getElementById('profileBadge').innerText = "USER: " + currentUser.toUpperCase();
+            
             document.getElementById('navHome').style.display = 'inline-block';
+            document.getElementById('navCulein').style.display = 'inline-block';
             document.getElementById('navMolecule').style.display = 'inline-block';
             document.getElementById('navMettin').style.display = 'inline-block';
             document.getElementById('navMetcount').style.display = 'inline-block';
@@ -609,7 +593,6 @@
             switchView('home');
         }
 
-        // Initialize Catalogs on Load
         window.onload = function() {
             renderMolecule();
             renderMetcart();
@@ -632,9 +615,7 @@
                 grid.appendChild(card);
             });
         }
-        function filterMolecule() {
-            renderMolecule(document.getElementById('moleculeSearch').value);
-        }
+        function filterMolecule() { renderMolecule(document.getElementById('moleculeSearch').value); }
 
         function renderMetcart() {
             const grid = document.getElementById('metcartGrid');
@@ -655,6 +636,7 @@
 
         function renderSMEs() {
             const grid = document.getElementById('smeGrid');
+            if(!grid) return;
             grid.innerHTML = "";
             smeRegistry.forEach(sme => {
                 let card = document.createElement('div');
@@ -669,7 +651,7 @@
             });
         }
 
-        // Cule-In & Cule AI Mode Fixes (Enhanced Natural Language Matching)
+        // Cule-In & Stock API Search Engine
         function toggleCuleAiMode() {
             culeAiActive = !culeAiActive;
             let btn = document.getElementById('culeAiToggleBtn');
@@ -688,22 +670,31 @@
             if(!query) return;
             resBox.style.display = 'block';
             
-            // Fixed: Check both directions so natural language queries ("what is the price of nebula m1 pro") match item names ("nebula m1 pro")
-            let matchedItems = catalogItems.filter(i => query.includes(i.name.toLowerCase()) || i.name.toLowerCase().includes(query) || i.category.toLowerCase().includes(query));
+            // Stock Mock API check
+            if(query.includes("google") || query.includes("tata") || query.includes("share") || query.includes("stock")) {
+                let stockName = query.includes("tata") ? "Tata Consultancy Services (TCS)" : "Google (GOOGL)";
+                let stockPrice = query.includes("tata") ? "₹4,120.50 (+1.8%)" : "$178.40 (+2.4%)";
+                resBox.innerHTML = `<strong style="color:var(--success);">[Live Stock API Feed]:</strong><br><strong>${stockName}</strong> Current Valuation: <strong style="color:var(--accent-cyan);">${stockPrice}</strong> <br><span style="font-size:0.8rem; color:var(--text-muted);">Synced securely via Metxon Financial Node.</span>`;
+                return;
+            }
+
+            let matchedItems = catalogItems.filter(item => {
+                let itemName = item.name.toLowerCase();
+                return query.includes(itemName) || itemName.includes(query) || item.name.split(' ').every(w => query.includes(w.toLowerCase()));
+            });
 
             if(culeAiActive) {
                 if(matchedItems.length > 0) {
                     let details = matchedItems.map(m => `• <strong>${m.name}</strong> (${m.category}) — <strong style="color:var(--success);">₹${m.price.toLocaleString()}</strong>: ${m.desc}`).join('<br>');
-                    resBox.innerHTML = `<strong style="color:var(--accent-purple);">[Cule AI Synthesis]:</strong> I analyzed your query "${query}" across Metxon networks. Here are the matching hardware results:<br><br>${details}`;
+                    resBox.innerHTML = `<strong style="color:var(--accent-purple);">[Cule AI Synthesis]:</strong> Analyzed query "${query}" successfully:<br><br>${details}`;
                 } else {
-                    resBox.innerHTML = `<strong style="color:var(--accent-purple);">[Cule AI Synthesis]:</strong> Analyzing query "${query}" across Metxon networks and hardware specifications. All systems operating securely.`;
+                    resBox.innerHTML = `<strong style="color:var(--accent-purple);">[Cule AI Synthesis]:</strong> No exact matching hardware artifacts located in quantum archives for "${query}".`;
                 }
             } else {
                 if(matchedItems.length > 0) {
-                    let resultsHtml = matchedItems.map(m => `<div><strong>[Cule-In Match]:</strong> <strong>${m.name}</strong> — <span style="color:var(--success);">₹${m.price.toLocaleString()}</span> (${m.category})</div>`).join('<hr style="border-color:var(--border-color); margin:8px 0;">');
-                    resBox.innerHTML = resultsHtml;
+                    resBox.innerHTML = matchedItems.map(m => `<div><strong>[Cule-In Result]:</strong> <strong>${m.name}</strong> — <span style="color:var(--success);">₹${m.price.toLocaleString()}</span> (${m.category})<br><span style="font-size:0.85rem; color:var(--text-muted);">${m.desc}</span></div>`).join('<hr style="border-color:var(--border-color); margin:10px 0;">');
                 } else {
-                    resBox.innerHTML = `<strong>[Cule-In Result]:</strong> No matching artifacts found for "${query}".`;
+                    resBox.innerHTML = `<strong>[Cule-In Result]:</strong> No matching records found for "${query}". Try searching for specific items like "Nebula M1 Elite" or "Google share price".`;
                 }
             }
         }
@@ -720,106 +711,159 @@
                 title.innerText = "Met Develop // Code & Compile Suite";
                 content.innerHTML = `
                     <div class="dev-menu">
-                        <button onclick="devAction('friends')">1. Code with friends</button>
-                        <button onclick="devAction('ai')">2. Develop AI</button>
-                        <button onclick="devAction('compile')">3. Compile to MetLang (Atbash)</button>
-                        <button onclick="devAction('direct')">4. Code directly</button>
-                        <button onclick="devAction('save')">5. Save as (Cloud)</button>
-                        <button onclick="devAction('draft')">6. Draft</button>
-                        <button onclick="devAction('buysme')">7. Buy SME</button>
-                        <button onclick="devAction('infuse')">8. Infuse SME</button>
+                        <button onclick="devAction('compile')">Compile Code</button>
+                        <button onclick="openSmeModal()">Infuse SME</button>
                     </div>
-                    <textarea id="devCodeInput" rows="6" placeholder="Type English code or text here to compile to MetLang (Atbash: A=Z, B=Y, C=X, D=W...)"></textarea>
-                    <div id="devOutput" style="background:var(--bg-deep); padding:12px; border-radius:6px; margin-top:10px; font-family:monospace; min-height:50px;">Output terminal ready...</div>
+                    <textarea id="devCodeInput" rows="5" placeholder="Enter code or text here..."></textarea>
+                    <div id="devOutput" style="background:var(--bg-deep); padding:12px; border-radius:6px; margin-top:10px; font-family:monospace; min-height:40px;">Output terminal ready...</div>
                 `;
             } else if(appName === 'metAlk') {
-                title.innerText = "Met-Alk // Encrypted Username Messenger";
+                title.innerText = "Met-Alk // Encrypted Messenger";
                 content.innerHTML = `
-                    <p style="color:var(--text-muted);">Connected as: <strong style="color:var(--accent-cyan);">${currentUser}</strong></p>
-                    <input type="text" id="talkRecipient" placeholder="Recipient Username (e.g., jerry)">
-                    <textarea id="talkMessage" placeholder="Type encrypted message..." rows="3"></textarea>
-                    <button class="primary-btn" onclick="sendMetAlkMessage()">Transmit Message</button>
+                    <p style="color:var(--text-muted);">Connected User: <strong style="color:var(--accent-cyan);">${currentUser}</strong></p>
+                    <input type="text" id="talkRecipient" placeholder="Recipient Username (e.g., nidhilarthick)">
+                    <textarea id="talkMessage" placeholder="Type message request..." rows="3"></textarea>
+                    <button class="primary-btn" onclick="sendMetAlkMessage()">Send Request & Message</button>
                     <div id="talkLog" style="margin-top:15px; background:var(--bg-deep); padding:10px; border-radius:6px; height:150px; overflow-y:auto; border:1px solid var(--border-color);"></div>
                 `;
             } else if(appName === 'nebulaStore') {
-                title.innerText = "Nebula Store // App Marketplace";
+                title.innerText = "Nebula Store // App Marketplace & Games";
                 content.innerHTML = `
-                    <p>Marketplace verified via MET-PAY credentials.</p>
-                    <div class="card">
-                        <h3>Mexton Productivity Suite v2.0</h3>
-                        <p>Price: Free with Metxon Corporate Account</p>
-                        <button class="primary-btn" onclick="alert('App installed successfully to Mettin workspace!')">Install App</button>
+                    <p style="color:var(--text-muted);">Verified Marketplace. Ready for game development modules.</p>
+                    <div class="card" style="margin-bottom:15px;">
+                        <h3>Metxon Quantum Arcade (Game Dev SDK)</h3>
+                        <p>Build and publish retro and quantum arcade games directly to the Mettin workspace.</p>
+                        <button class="primary-btn" onclick="alert('Game SDK initialized! Ready for game deployment.')">Deploy Game Module</button>
                     </div>
                 `;
             } else if(appName === 'nebulaAi') {
                 title.innerText = "Nebula AI // Assistant Terminal";
                 content.innerHTML = `
-                    <textarea placeholder="Ask Nebula AI anything about hardware, code, or architecture..."></textarea>
-                    <button class="primary-btn" onclick="alert('Nebula AI is processing request.')">Send Prompt</button>
+                    <textarea id="nebulaAiPrompt" rows="3" placeholder="Ask Nebula AI anything about hardware, code, or architecture..."></textarea>
+                    <button class="primary-btn" onclick="executeNebulaAI()" style="margin-top:8px;">Send Prompt</button>
+                    <div id="nebulaAiOutput" style="background:var(--bg-deep); padding:12px; border-radius:6px; margin-top:12px; min-height:60px; color:var(--text-muted);">Nebula AI terminal standing by...</div>
                 `;
             }
         }
 
-        function closeApp() {
-            document.getElementById('appWorkspace').style.display = 'none';
+        function closeApp() { document.getElementById('appWorkspace').style.display = 'none'; }
+
+        // Nebula AI Terminal Logic
+        function executeNebulaAI() {
+            let prompt = document.getElementById('nebulaAiPrompt').value.trim();
+            let output = document.getElementById('nebulaAiOutput');
+            if(!prompt) { alert("Please enter a prompt."); return; }
+            output.innerHTML = `<span style="color:var(--accent-cyan);">[Nebula AI Processing...]</span> Analyzing query across core networks.`;
+            setTimeout(() => {
+                output.innerHTML = `<strong style="color:var(--success);">[Nebula AI Response]:</strong> Successfully processed query: "${prompt}". All quantum parameters verified and operating at optimal efficiency.`;
+            }, 600);
         }
 
-        // Met Develop Atbash Compiler Logic
+        // Met Develop Compiler & SME Infusion Modal
         function devAction(action) {
             let input = document.getElementById('devCodeInput').value;
             let output = document.getElementById('devOutput');
             if(action === 'compile') {
-                let compiled = input.split('').map(char => {
-                    let c = char.charCodeAt(0);
-                    if(c >= 65 && c <= 90) return String.fromCharCode(90 - (c - 65)); // Upper
-                    if(c >= 97 && c <= 122) return String.fromCharCode(122 - (c - 97)); // Lower
-                    return char;
-                }).join('');
-                output.innerHTML = `<strong style="color:var(--success);">[MetLang Engine Variation Atbash Compiled]:</strong><br>${compiled}`;
-            } else if(action === 'infuse') {
-                output.innerHTML = `<strong style="color:var(--accent-cyan);">[SME Infusion]:</strong> Code successfully infused with SME-01 (Titanium thermal shield & energy binding).`;
-            } else {
-                output.innerText = `Action [${action}] executed successfully for user ${currentUser}.`;
+                output.innerHTML = `<strong style="color:var(--success);">[Compiled Successfully]:</strong> ${input ? input.split('').reverse().join('') : 'No code provided.'}`;
             }
         }
 
-        // Met-Alk Messenger Fix
+        function openSmeModal() {
+            let modal = document.getElementById('smeInfuseModal');
+            let container = document.getElementById('smeModalOptions');
+            modal.style.display = 'flex';
+            
+            let userSmes = usersStore[currentUser].smes || [];
+            container.innerHTML = `
+                <p><strong>Your Owned SMEs:</strong> ${userSmes.length ? userSmes.join(', ') : 'None'}</p>
+                <label style="font-size:0.8rem; color:var(--text-muted);">Select SME to Infuse or Buy Instantly:</label>
+                <select id="selectedSmeToInfuse">
+                    <option value="SME-01">SME-01: Titanium (Ti) - ₹1,990</option>
+                    <option value="SME-02">SME-02: Platinum (Pt) - ₹3,040</option>
+                    <option value="SME-03">SME-03: Gold (Au) - ₹2,480</option>
+                </select>
+            `;
+        }
+        function closeSmeModal() { document.getElementById('smeInfuseModal').style.display = 'none'; }
+
+        function executeSmeInfusion() {
+            let smeId = document.getElementById('selectedSmeToInfuse').value;
+            if(!usersStore[currentUser].smes.includes(smeId)) {
+                usersStore[currentUser].smes.push(smeId);
+                alert(`SME ${smeId} purchased and infused successfully!`);
+            } else {
+                alert(`SME ${smeId} is already owned and has been successfully infused into code!`);
+            }
+            closeSmeModal();
+        }
+
+        // Met-Alk Messenger Logic
         function sendMetAlkMessage() {
-            let recipient = document.getElementById('talkRecipient').value.trim();
+            let recipient = document.getElementById('talkRecipient').value.trim().toLowerCase();
             let msg = document.getElementById('talkMessage').value.trim();
             let log = document.getElementById('talkLog');
             if(!recipient || !msg) { alert("Please specify a recipient and message."); return; }
-            log.innerHTML += `<div style="margin-bottom:8px; border-bottom:1px solid var(--border-color); padding-bottom:4px;"><strong>[${currentUser} ➔ ${recipient}]:</strong> ${msg} <br><span style="color:var(--success); font-size:0.75rem;">[Transmitted securely over Met-Alk network]</span></div>`;
+            if(!usersStore[recipient]) { alert("Recipient username not found in Metxon network."); return; }
+            
+            log.innerHTML += `<div style="margin-bottom:8px; border-bottom:1px solid var(--border-color); padding-bottom:4px;"><strong style="color:var(--accent-cyan);">[From: ${currentUser} ➔ To: ${recipient}]:</strong> ${msg} <br><span style="color:var(--success); font-size:0.75rem;">[Secure Met-Alk request transmitted]</span></div>`;
             document.getElementById('talkMessage').value = "";
             log.scrollTop = log.scrollHeight;
         }
 
-        // MetCount Verification & Subscriptions
+        // MetCount Verification & Transfers
         function verifyMetCount() {
             let pass = document.getElementById('mcPass').value;
-            if(!pass) { alert("Please provide your MetCount password."); return; }
+            if(usersStore[currentUser].pass !== pass) { alert("Incorrect password."); return; }
             document.getElementById('metcountAuthBox').style.display = 'none';
             document.getElementById('metcountDashboard').style.display = 'block';
-            document.getElementById('mcAccountName').innerText = currentUser;
+            document.getElementById('mcAccountName').innerText = currentUser.toUpperCase();
+            document.getElementById('mcAccountBalance').innerText = `₹${usersStore[currentUser].balance.toLocaleString()} INR`;
+        }
+
+        function executeTransfer() {
+            let toUser = document.getElementById('transferTo').value.trim().toLowerCase();
+            let fromUser = document.getElementById('transferFromUser').value.trim().toLowerCase();
+            let fromPass = document.getElementById('transferFromPass').value;
+            let amount = parseFloat(document.getElementById('transferAmount').value);
+
+            if(!toUser || !fromUser || !fromPass || isNaN(amount) || amount <= 0) {
+                alert("Please fill in all transfer fields correctly.");
+                return;
+            }
+
+            if(!usersStore[fromUser] || usersStore[fromUser].pass !== fromPass) {
+                alert("Authentication failed for sender account.");
+                return;
+            }
+
+            if(!usersStore[toUser]) {
+                alert("Destination username does not exist.");
+                return;
+            }
+
+            if(usersStore[fromUser].balance < amount) {
+                alert("Insufficient funds in vault.");
+                return;
+            }
+
+            usersStore[fromUser].balance -= amount;
+            usersStore[toUser].balance += amount;
+
+            alert(`Successfully transferred ₹${amount.toLocaleString()} from ${fromUser} to ${toUser}!`);
+            if(currentUser === fromUser) {
+                document.getElementById('mcAccountBalance').innerText = `₹${usersStore[currentUser].balance.toLocaleString()} INR`;
+            }
         }
 
         function selectSubscription(tier, price) {
-            document.getElementById('activeSubTier').innerText = `${tier} Tier (₹${price}/week active)`;
-            alert(`Successfully subscribed to ${tier} Tier for ₹${price} per week!`);
+            if(usersStore[currentUser].balance < price) { alert("Insufficient funds for subscription."); return; }
+            usersStore[currentUser].balance -= price;
+            alert(`Successfully subscribed to ${tier} Tier for ₹${price}!`);
         }
 
-        function simulateStockBuy() {
-            let ticker = document.getElementById('stockTickerInput').value.toUpperCase() || "GOOGL";
-            document.getElementById('stockPortfolioDisplay').innerHTML = `
-                <div style="background:var(--bg-deep); padding:10px; border-radius:6px; margin-top:8px;">
-                    <strong>Stock:</strong> ${ticker} | <strong>Shares:</strong> 2 | <strong>Current Value:</strong> Live API Synced (+3.4%) 🟢
-                </div>
-            `;
-        }
-
-        // Met-Pay Checkout
+        // Met-Pay Checkout Modal
         function openMetPayCheckout(itemName, price) {
-            if(!currentUser) { alert("Please authenticate first by joining Metxon."); openAuthModal(); return; }
+            if(!currentUser) { alert("Please authenticate first."); openAuthModal(); return; }
             currentCheckoutItem = { name: itemName, price: price };
             document.getElementById('checkoutItemInfo').innerHTML = `Purchasing <strong>${itemName}</strong> for <strong style="color:var(--success);">₹${price.toLocaleString()}</strong>`;
             document.getElementById('metPayModal').style.display = 'flex';
@@ -827,9 +871,19 @@
         function closeMetPayModal() { document.getElementById('metPayModal').style.display = 'none'; }
         
         function executeMetPay() {
-            let payPass = document.getElementById('payPassword').value;
-            if(!payPass) { alert("Enter Met-Pay password."); return; }
-            alert(`Payment of ₹${currentCheckoutItem.price.toLocaleString()} for ${currentCheckoutItem.name} successfully executed via Met-Pay! Order details routed to administrator.`);
+            let fromUser = document.getElementById('payFromUser').value.trim().toLowerCase();
+            let fromPass = document.getElementById('payFromPass').value;
+
+            if(!fromUser || !fromPass) { alert("Enter your username and password."); return; }
+            if(!usersStore[fromUser] || usersStore[fromUser].pass !== fromPass) { alert("Invalid credentials."); return; }
+
+            if(usersStore[fromUser].balance < currentCheckoutItem.price) {
+                alert("Insufficient funds for purchase.");
+                return;
+            }
+
+            usersStore[fromUser].balance -= currentCheckoutItem.price;
+            alert(`Payment of ₹${currentCheckoutItem.price.toLocaleString()} for ${currentCheckoutItem.name} executed successfully via Met-Pay to Metcart!`);
             closeMetPayModal();
         }
     </script>
