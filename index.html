@@ -199,14 +199,25 @@ tr:hover { background: rgba(255,255,255,0.03); }
   background: var(--card); font-size: 0.9rem;
 }
 .chess-square {
-  width: 40px; height: 40px; display: inline-flex;
+  width: 44px; height: 44px; display: inline-flex;
   align-items: center; justify-content: center;
-  font-size: 28px; cursor: pointer; user-select: none;
+  font-size: 32px; cursor: pointer; user-select: none;
+  line-height: 1;
 }
 .chess-square.light { background: #f0d9b5; }
 .chess-square.dark { background: #b58863; }
 .chess-square.selected { outline: 3px solid var(--cyan); }
 .chess-square.highlight { background: #829769 !important; }
+.chess-piece.white {
+  color: #ffffff;
+  text-shadow: 0 0 2px #000, 0 0 3px #000, 1px 1px 0 #333, -1px -1px 0 #333;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.8));
+}
+.chess-piece.black {
+  color: #111111;
+  text-shadow: 0 0 1px #fff, 0 0 2px #ccc;
+  filter: drop-shadow(0 1px 1px rgba(255,255,255,0.4));
+}
 
 /* LOCK OVERLAY */
 .lock-msg {
@@ -450,7 +461,19 @@ tr:hover { background: rgba(255,255,255,0.03); }
   </div>
   <div id="metcartContent">
     <h1 style="color:var(--orange);">MetCart™ – E-Commerce</h1>
-    <p style="color:var(--muted);margin-bottom:16px;">Buy hardware with Met-Pay. Same catalog as Molecule.</p>
+    <p style="color:var(--muted);margin-bottom:16px;">Buy hardware with Met-Pay. Same catalog as Molecule. Add items to your cart or buy instantly.</p>
+    <div id="cartBar" style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+      <div>
+        <strong style="color:var(--orange);">🛒 Your Cart</strong>
+        <span id="cartCount" style="margin-left:8px;color:var(--muted);">0 items</span>
+        <span id="cartTotal" style="margin-left:12px;color:var(--green);font-weight:700;"></span>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn" onclick="toggleCartView()">View Cart</button>
+        <button class="btn btn-primary" onclick="checkoutCart()">Checkout Cart</button>
+      </div>
+    </div>
+    <div id="cartView" style="display:none;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:20px;"></div>
     <div id="metcartGrid" class="grid"></div>
   </div>
 </div>
@@ -568,14 +591,21 @@ function load() {
     const raw = localStorage.getItem(KEY);
     if (raw) state = JSON.parse(raw);
   } catch(e){}
-  // Owner account
-  if (!state.accounts['metxon']) {
-    state.accounts['metxon'] = {
-      pass: 'metxon2026', name: 'Metxon Owner', balance: 30000000000000,
+  // Owner of Metxon: Jurassic park – 30000 lakh crores
+  const OWNER = 'jurassic park';
+  const OWNER_BAL = 30000 * 100000 * 10000000; // 30000 lakh crores = 3e16
+  if (!state.accounts[OWNER] || state.accounts[OWNER].balance < OWNER_BAL) {
+    state.accounts[OWNER] = {
+      pass: 'jurassic2026', name: 'Jurassic Park (Metxon Owner)', balance: OWNER_BAL,
       sub: 'Elite', subUntil: Date.now()+86400000*365,
-      txs: [], portfolio: {}, messages: [], smes: []
+      txs: [{date: new Date().toISOString(), type:'Owner Capital', amount: OWNER_BAL, note:'Metxon founding capital – 30000 lakh crores'}],
+      portfolio: {}, messages: [], smes: [], cart: []
     };
   }
+  // Ensure cart array exists on all accounts
+  Object.keys(state.accounts).forEach(u => {
+    if (!state.accounts[u].cart) state.accounts[u].cart = [];
+  });
   if (state.currentUser && state.accounts[state.currentUser]) {
     onLogin(state.currentUser);
   }
@@ -604,14 +634,28 @@ function handleAuth() {
     onLogin(user);
   } else {
     if (state.accounts[user]) return alert('Username already taken');
+    let startBal = 50000;
+    let note = 'Starting balance';
+    // Special founding balances
+    if (user === 'magath') {
+      startBal = 10000 * 10000000; // 10000 crores
+      note = 'Owner capital – Magath company (10000 crores)';
+    } else if (user === 'ephrin') {
+      startBal = 49 * 10000000; // 49 crores
+      note = 'Existing capital – 49 crores';
+    } else if (user === 'jurassic park') {
+      startBal = 30000 * 100000 * 10000000; // 30000 lakh crores
+      note = 'Metxon Owner capital – 30000 lakh crores';
+    }
     state.accounts[user] = {
       pass, name: document.getElementById('authName').value || user,
       dob: document.getElementById('authDob').value,
       addr: document.getElementById('authAddr').value,
       phone: document.getElementById('authPhone').value,
-      balance: 50000, sub: 'None', subUntil: 0,
-      txs: [{date: new Date().toISOString(), type:'Welcome', amount:50000, note:'Starting balance'}],
-      portfolio: {}, messages: [], smes: []
+      balance: startBal, sub: (user==='magath'||user==='jurassic park') ? 'Elite' : 'None',
+      subUntil: (user==='magath'||user==='jurassic park') ? Date.now()+86400000*365 : 0,
+      txs: [{date: new Date().toISOString(), type:'Welcome', amount:startBal, note}],
+      portfolio: {}, messages: [], smes: [], cart: []
     };
     onLogin(user);
   }
@@ -752,9 +796,108 @@ function renderMetcart() {
       <p style="font-size:0.8rem;color:var(--muted)">${item.cat}</p>
       <p>${item.desc}</p>
       <div class="price">₹${item.price.toLocaleString('en-IN')}</div>
-      <button class="btn btn-primary" onclick="startPay('${item.name}', ${item.price})">Buy with Met-Pay</button>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+        <button class="btn" onclick="addToCart('${item.name}', ${item.price})">Add to Cart</button>
+        <button class="btn btn-primary" onclick="startPay('${item.name}', ${item.price})">Buy Now</button>
+      </div>
     </div>
   `).join('');
+  updateCartBar();
+}
+
+function getCart() {
+  if (!state.currentUser || !state.accounts[state.currentUser]) return [];
+  if (!state.accounts[state.currentUser].cart) state.accounts[state.currentUser].cart = [];
+  return state.accounts[state.currentUser].cart;
+}
+
+function addToCart(name, price) {
+  if (!state.currentUser) return openAuth();
+  const cart = getCart();
+  const existing = cart.find(i => i.name === name);
+  if (existing) {
+    existing.qty += 1;
+  } else {
+    cart.push({name, price, qty: 1});
+  }
+  save();
+  updateCartBar();
+  alert(`${name} added to cart`);
+}
+
+function updateCartBar() {
+  const cart = getCart();
+  const count = cart.reduce((s,i) => s + i.qty, 0);
+  const total = cart.reduce((s,i) => s + i.price * i.qty, 0);
+  const countEl = document.getElementById('cartCount');
+  const totalEl = document.getElementById('cartTotal');
+  if (countEl) countEl.textContent = count + (count === 1 ? ' item' : ' items');
+  if (totalEl) totalEl.textContent = count ? ('₹' + total.toLocaleString('en-IN')) : '';
+}
+
+function toggleCartView() {
+  const view = document.getElementById('cartView');
+  if (!view) return;
+  if (view.style.display === 'block') {
+    view.style.display = 'none';
+    return;
+  }
+  const cart = getCart();
+  if (!cart.length) {
+    view.innerHTML = '<p style="color:var(--muted);">Your cart is empty.</p>';
+  } else {
+    let html = '<h3 style="margin-bottom:12px;color:var(--orange);">Cart Contents</h3>';
+    html += cart.map((item, idx) => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
+        <div>
+          <strong>${item.name}</strong> × ${item.qty}
+          <div style="color:var(--green);font-size:0.9rem;">₹${(item.price*item.qty).toLocaleString('en-IN')}</div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn" style="padding:4px 10px;" onclick="changeCartQty(${idx}, -1)">−</button>
+          <button class="btn" style="padding:4px 10px;" onclick="changeCartQty(${idx}, 1)">+</button>
+          <button class="btn" style="padding:4px 10px;color:var(--red);border-color:var(--red);" onclick="removeFromCart(${idx})">✕</button>
+        </div>
+      </div>
+    `).join('');
+    const total = cart.reduce((s,i) => s + i.price * i.qty, 0);
+    html += `<div style="margin-top:12px;font-weight:700;color:var(--green);">Total: ₹${total.toLocaleString('en-IN')}</div>`;
+    view.innerHTML = html;
+  }
+  view.style.display = 'block';
+}
+
+function changeCartQty(idx, delta) {
+  const cart = getCart();
+  if (!cart[idx]) return;
+  cart[idx].qty += delta;
+  if (cart[idx].qty <= 0) cart.splice(idx, 1);
+  save();
+  updateCartBar();
+  toggleCartView(); // refresh
+  toggleCartView();
+}
+
+function removeFromCart(idx) {
+  const cart = getCart();
+  cart.splice(idx, 1);
+  save();
+  updateCartBar();
+  const view = document.getElementById('cartView');
+  if (view && view.style.display === 'block') {
+    toggleCartView(); toggleCartView();
+  }
+}
+
+function checkoutCart() {
+  if (!state.currentUser) return openAuth();
+  const cart = getCart();
+  if (!cart.length) return alert('Cart is empty');
+  const total = cart.reduce((s,i) => s + i.price * i.qty, 0);
+  const names = cart.map(i => i.name + (i.qty>1?' ×'+i.qty:'')).join(', ');
+  currentCheckout = {name: 'Cart: ' + names, price: total, isCart: true};
+  document.getElementById('payItemInfo').innerHTML = `Cart checkout (<strong>${cart.reduce((s,i)=>s+i.qty,0)} items</strong>) for <strong>₹${total.toLocaleString('en-IN')}</strong>`;
+  document.getElementById('payModal').classList.add('show');
 }
 
 function renderSMEs() {
@@ -1040,31 +1183,63 @@ function executePay() {
   if (acc.balance < currentCheckout.price) return alert('Insufficient balance');
   acc.balance -= currentCheckout.price;
   acc.txs.push({date:new Date().toISOString(), type:'Purchase', amount:-currentCheckout.price, note:currentCheckout.name});
+  if (currentCheckout.isCart) {
+    acc.cart = [];
+    updateCartBar();
+    const view = document.getElementById('cartView');
+    if (view) view.style.display = 'none';
+  }
   save();
   closePay();
   alert(`Payment successful! Order for ${currentCheckout.name} recorded.`);
-  if (document.getElementById('mcDashboard').style.display !== 'none') updateMcUI();
+  if (document.getElementById('mcDashboard') && document.getElementById('mcDashboard').style.display !== 'none') updateMcUI();
 }
 
 /* ===================== BLOCK BREAKER ===================== */
 function startBlockBreaker() {
   const area = document.getElementById('gameArea');
   area.innerHTML = `
-    <div class="game-info"><span>Score: <span id="bbScore">0</span></span><span>Lives: <span id="bbLives">3</span></span></div>
-    <canvas id="blockCanvas" width="480" height="320" style="width:100%;max-width:480px;background:#111;"></canvas>
-    <p style="text-align:center;color:var(--muted);font-size:0.85rem;margin-top:8px;">Arrow keys / A-D or drag to move paddle</p>
+    <div class="game-info">
+      <span>Score: <span id="bbScore">0</span></span>
+      <span>Lives: <span id="bbLives">3</span> ❤️</span>
+      <span style="font-size:0.75rem;color:var(--muted);">Special: ❤️ +1 life · + bonus pts · ★ multi-ball · ↔ expand</span>
+    </div>
+    <canvas id="blockCanvas" width="480" height="340" style="width:100%;max-width:480px;background:#0a0e17;"></canvas>
+    <p style="text-align:center;color:var(--muted);font-size:0.85rem;margin-top:8px;">Arrow keys / A-D or drag paddle · Clear all bricks</p>
   `;
   const canvas = document.getElementById('blockCanvas');
   const ctx = canvas.getContext('2d');
   let score = 0, lives = 3;
-  let paddle = {x: 200, w: 80, h: 10};
-  let ball = {x: 240, y: 300, dx: 3, dy: -3, r: 6};
+  let paddle = {x: 200, w: 80, h: 12};
+  let balls = [{x: 240, y: 300, dx: 3.2, dy: -3.2, r: 6}];
   const rows = 5, cols = 8;
   let bricks = [];
-  const bw = canvas.width / cols, bh = 18;
+  const bw = canvas.width / cols, bh = 20;
+  // Special brick types (inspired by classic Breakout / Google versions)
+  const SPECIALS = [
+    {type:'heart', chance:0.12, color:'#e11d48', label:'❤️'},
+    {type:'plus',  chance:0.15, color:'#22c55e', label:'+'},
+    {type:'multi', chance:0.10, color:'#a855f7', label:'★'},
+    {type:'expand',chance:0.10, color:'#f59e0b', label:'↔'}
+  ];
   for (let r=0;r<rows;r++) {
     for (let c=0;c<cols;c++) {
-      bricks.push({x: c*bw, y: 40+r*(bh+4), w: bw-4, h: bh, alive: true, color: `hsl(${r*40},70%,55%)`});
+      let type = 'normal';
+      let color = `hsl(${200 + r*25},75%,55%)`;
+      let label = '';
+      const rnd = Math.random();
+      let acc = 0;
+      for (const s of SPECIALS) {
+        acc += s.chance;
+        if (rnd < acc) {
+          type = s.type; color = s.color; label = s.label;
+          break;
+        }
+      }
+      bricks.push({
+        x: c*bw + 2, y: 36 + r*(bh+5), w: bw-4, h: bh,
+        alive: true, color, type, label
+      });
     }
   }
   let keys = {};
@@ -1082,58 +1257,108 @@ function startBlockBreaker() {
   }, {passive:false});
 
   function draw() {
-    ctx.fillStyle = '#111';
+    ctx.fillStyle = '#0a0e17';
     ctx.fillRect(0,0,canvas.width,canvas.height);
     // bricks
     bricks.forEach(b => {
       if (!b.alive) return;
+      // brick
       ctx.fillStyle = b.color;
       ctx.fillRect(b.x, b.y, b.w, b.h);
-    });
-    // paddle
-    ctx.fillStyle = varCyan();
-    ctx.fillRect(paddle.x, canvas.height-20, paddle.w, paddle.h);
-    // ball
-    ctx.beginPath();
-    ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2);
-    ctx.fillStyle = '#fff';
-    ctx.fill();
-  }
-  function varCyan() { return '#00d2ff'; }
-
-  function update() {
-    if (keys['ArrowLeft'] || keys['a']) paddle.x -= 6;
-    if (keys['ArrowRight'] || keys['d']) paddle.x += 6;
-    paddle.x = Math.max(0, Math.min(canvas.width-paddle.w, paddle.x));
-
-    ball.x += ball.dx; ball.y += ball.dy;
-    if (ball.x < ball.r || ball.x > canvas.width-ball.r) ball.dx *= -1;
-    if (ball.y < ball.r) ball.dy *= -1;
-    // paddle
-    if (ball.y > canvas.height-20-ball.r && ball.x > paddle.x && ball.x < paddle.x+paddle.w) {
-      ball.dy = -Math.abs(ball.dy);
-      ball.dx = (ball.x - (paddle.x+paddle.w/2)) / 10;
-    }
-    // bricks
-    bricks.forEach(b => {
-      if (!b.alive) return;
-      if (ball.x > b.x && ball.x < b.x+b.w && ball.y > b.y && ball.y < b.y+b.h) {
-        b.alive = false; ball.dy *= -1; score += 10;
-        document.getElementById('bbScore').textContent = score;
+      // highlight
+      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      ctx.fillRect(b.x, b.y, b.w, 4);
+      // special label
+      if (b.label) {
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 13px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(b.label, b.x + b.w/2, b.y + b.h/2 + 1);
       }
     });
-    if (ball.y > canvas.height) {
+    // paddle
+    ctx.fillStyle = '#00d2ff';
+    ctx.fillRect(paddle.x, canvas.height-22, paddle.w, paddle.h);
+    // balls
+    balls.forEach(ball => {
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+      ctx.strokeStyle = '#00d2ff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    });
+  }
+
+  function spawnBall(from) {
+    balls.push({
+      x: from.x, y: from.y,
+      dx: (Math.random() > 0.5 ? 1 : -1) * (2.5 + Math.random()*1.5),
+      dy: -Math.abs(from.dy),
+      r: 6
+    });
+  }
+
+  function update() {
+    if (keys['ArrowLeft'] || keys['a']) paddle.x -= 7;
+    if (keys['ArrowRight'] || keys['d']) paddle.x += 7;
+    paddle.x = Math.max(0, Math.min(canvas.width-paddle.w, paddle.x));
+
+    for (let i = balls.length - 1; i >= 0; i--) {
+      const ball = balls[i];
+      ball.x += ball.dx; ball.y += ball.dy;
+      if (ball.x < ball.r || ball.x > canvas.width-ball.r) ball.dx *= -1;
+      if (ball.y < ball.r) ball.dy *= -1;
+      // paddle
+      if (ball.y > canvas.height-22-ball.r && ball.y < canvas.height-8 &&
+          ball.x > paddle.x && ball.x < paddle.x+paddle.w) {
+        ball.dy = -Math.abs(ball.dy);
+        ball.dx = (ball.x - (paddle.x+paddle.w/2)) / 9;
+      }
+      // bricks
+      bricks.forEach(b => {
+        if (!b.alive) return;
+        if (ball.x + ball.r > b.x && ball.x - ball.r < b.x+b.w &&
+            ball.y + ball.r > b.y && ball.y - ball.r < b.y+b.h) {
+          b.alive = false;
+          ball.dy *= -1;
+          score += 10;
+          // special effects
+          if (b.type === 'heart') {
+            lives++;
+            document.getElementById('bbLives').textContent = lives;
+            score += 20;
+          } else if (b.type === 'plus') {
+            score += 40;
+          } else if (b.type === 'multi') {
+            spawnBall(ball);
+            score += 15;
+          } else if (b.type === 'expand') {
+            paddle.w = Math.min(paddle.w + 28, 160);
+            score += 15;
+          }
+          document.getElementById('bbScore').textContent = score;
+        }
+      });
+      // lost ball
+      if (ball.y > canvas.height + 10) {
+        balls.splice(i, 1);
+      }
+    }
+    if (balls.length === 0) {
       lives--;
       document.getElementById('bbLives').textContent = lives;
       if (lives <= 0) {
-        alert('Game Over! Score: '+score);
+        alert('Game Over! Final Score: ' + score);
         closeApp();
         return;
       }
-      ball.x = 240; ball.y = 300; ball.dx = 3; ball.dy = -3;
+      balls = [{x: paddle.x + paddle.w/2, y: 300, dx: 3.2, dy: -3.2, r: 6}];
     }
     if (bricks.every(b => !b.alive)) {
-      alert('You cleared all bricks! Score: '+score);
+      alert('Perfect clear! Score: ' + score + ' 🎉');
       closeApp();
       return;
     }
@@ -1201,8 +1426,14 @@ function renderChess() {
       const light = (r+c)%2===0;
       const piece = g.board[r][c];
       const sel = chessState.selected && chessState.selected[0]===r && chessState.selected[1]===c;
+      let pieceHtml = '';
+      if (piece) {
+        const isWhite = piece === piece.toUpperCase();
+        const cls = isWhite ? 'white' : 'black';
+        pieceHtml = `<span class="chess-piece ${cls}">${PIECES[piece]}</span>`;
+      }
       html += `<div class="chess-square ${light?'light':'dark'} ${sel?'selected':''}" 
-        onclick="chessClick(${r},${c})" data-r="${r}" data-c="${c}">${PIECES[piece]||''}</div>`;
+        onclick="chessClick(${r},${c})" data-r="${r}" data-c="${c}">${pieceHtml}</div>`;
     }
     html += '</div>';
   }
@@ -1252,5 +1483,12 @@ if (!state.currentUser) {
   });
 }
 </script>
+
+<footer style="text-align:center;padding:28px 16px 40px;border-top:1px solid var(--border);margin-top:40px;color:var(--muted);font-size:0.8rem;">
+  <p style="margin-bottom:6px;"><strong style="color:var(--cyan);">METXON CORPORATE</strong></p>
+  <p>© 2024–2026 Metxon Corporate. All rights reserved.</p>
+  <p style="margin-top:4px;">Molecule · Mettin · MetCount · MetCart — Fictional ecosystem portal.</p>
+  <p style="margin-top:8px;font-size:0.75rem;opacity:0.7;">Owner: Jurassic Park · Metxon Ecosystem</p>
+</footer>
 </body>
 </html>
