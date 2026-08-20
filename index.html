@@ -25,9 +25,9 @@ main{max-width:1400px;margin:auto;padding:24px 18px 70px}.page{display:none}.pag
 <section id="page-mettin" class="page"><div class="hero"><div class="tag">METTIN SOFTWARE & AI DIVISION</div><h1>Mettin</h1><p>Mettin serves as the digital engine of Metxon, with Nebula OS & AI, CULE-IN, communications, M-IN cloud, Metware, SME systems and internal specifications.</p></div>
 <h2 class="sectionTitle">Pre-installed Apps</h2><div class="appgrid" id="appGrid"></div><div id="appWorkspace" class="workspace hidden"></div>
 <h2 class="sectionTitle">AI Section</h2><div class="grid2"><div class="card"><span class="tag">CULE AI</span><h3>Cule AI Search Summarizer</h3><p class="muted">Cule AI is designed to summarize and answer from the Metxon ecosystem records rather than simply claiming that all systems are working.</p><textarea id="culeAiInput" class="textarea" placeholder="Ask: What is the price of Nebula M1 Pro? What is SME-05? What does M-IN cost?"></textarea><button class="btn" style="margin-top:9px" onclick="culeAiAnswer()">Ask Cule AI</button><div id="culeAiOutput" class="terminal" style="margin-top:10px"></div></div><div class="card"><span class="tag">NEBULA AI</span><h3>Nebula AI Assistant</h3><p class="muted">Interactive terminal for hardware, SME, MetCount and developer questions using the embedded ecosystem dataset.</p><textarea id="nebulaInput" class="textarea" placeholder="Ask Nebula AI..."></textarea><button class="btn purple" style="margin-top:9px" onclick="nebulaAnswer()">Send Prompt</button><div id="nebulaOutput" class="terminal" style="margin-top:10px"></div></div></div>
-<h2 class="sectionTitle">M-IN Cloud Infrastructure</h2><div class="card"><h3>Storage Tiers & Pricing</h3><p><b>Free Storage:</b> 20 GB for standard users | 50 GB tier is also specified in the supplied Mettin data.</p><p><b>Lifetime / One-Time:</b> 500 GB for ₹10,000 | 1 TB option is specified in the source data.</p><p><b>Monthly:</b> 500 GB for ₹500/month (1-year contract) | 1 TB option is specified in the source data.</p></div>
+<h2 class="sectionTitle">M-IN Cloud Infrastructure</h2><div class="card"><h3>Storage Tiers & Pricing</h3><p><b>Free Storage:</b> 20 GB for standard users | <b>50 GB:</b> specified in the supplied Mettin data.</p><p><b>Lifetime / One-Time:</b> 500 GB for ₹10,000 | 1 TB option is specified in the source data.</p><p><b>Monthly:</b> 500 GB for ₹500/month (1-year contract) | 1 TB option is specified in the source data.</p></div>
 <h2 class="sectionTitle">Metware Cybersecurity Suite</h2><div class="scroll"><table><thead><tr><th>Version</th><th>Details</th><th>Pricing / Status</th></tr></thead><tbody><tr><td>Metware 6 (Current)</td><td>Current commercial flagship; digital download or physical distribution.</td><td>₹2,00,000/month digital OR ₹2,00,00,000 one-time physical.</td></tr><tr><td>Metware 7</td><td>Next-generation security lineup.</td><td>Projected launch: October 15, 2026.</td></tr><tr><td>Metware X (Ghost Tier)</td><td>Strictly private, classified internal-only defense system; air-gapped.</td><td class="danger">Unavailable for purchase.</td></tr></tbody></table></div>
-<h2 class="sectionTitle">SME Registry</h2><div id="smeGrid" class="grid"></div><div class="card" style="margin-top:16px"><h3>Mettin Architecture Specifications & Details</h3><p class="muted">Mettin serves as the underlying quantum-decentralized runtime environment in the supplied ecosystem design, with software, cloud, security and SME layers.</p></div></section>
+<h2 class="sectionTitle">SME Registry</h2><div id="smeGrid" class="grid"></div><div class="card" style="margin-top:16px"><h3>Mettin Architecture Specifications & Details</h3><p class="muted">Mettin serves as the underlying quantum-decentralized runtime environment in the supplied ecosystem design, with software, cloud, security and SME layers. The PDF also specifies decentralized runtime diagnostics, quantum data routing and SME security layers.</p></div></section>
 
 <section id="page-metcount" class="page"><div class="hero"><div class="tag">METCOUNT FINANCIAL INFRASTRUCTURE</div><h1>MetCount</h1><p>Security re-authentication, account ledger, subscriptions, transactions, Met-Transfer and stocks. Stocks stay inside MetCount below subscriptions.</p></div><div id="mcGate" class="card"><h3>MetCount Security Re-authentication</h3><p class="muted">New members set a strong MetCount password; existing members use their MetCount password.</p><div class="row"><input id="mcUser" class="input" placeholder="Username"><input id="mcPass" type="password" class="input" placeholder="MetCount password"><button class="btn" onclick="unlockMetCount()">Enter MetCount</button></div></div><div id="mcBody" class="hidden"><div class="grid2"><div class="card"><span class="tag">ACCOUNT</span><h3 id="mcAccountName">Account</h3><div class="price" id="mcBalance">₹0</div><p class="muted">Available simulated balance</p><div id="mcCurrencies" class="small"></div></div><div class="card"><span class="tag">TRANSACTIONS</span><div id="txList"></div></div></div>
 <h2 class="sectionTitle">Subscriptions</h2><div class="subgrid"><div class="card"><h3>Base</h3><div class="price">₹500 / week</div><p>INR + USD. 5-minute virus scan.</p><button class="btn" onclick="subscribe('Base',500)">Subscribe</button></div><div class="card"><h3>Premium</h3><div class="price">₹2,000 / week</div><p>INR, USD, EUR, GBP, JPY. 5-minute scans, notification alerts, detailed P&amp;L graphs.</p><button class="btn" onclick="subscribe('Premium',2000)">Subscribe</button></div><div class="card"><h3>Elite</h3><div class="price">₹10,000 / week</div><p>Premium currencies + KRW; Met AI trade/investment chat; Nebula AI stock analyzer API; margin auto-sell; deep analysis and graphs.</p><button class="btn purple" onclick="subscribe('Elite',10000)">Subscribe</button></div></div><div class="card" style="margin-top:15px"><b>Active subscription:</b> <span id="activeSub">None</span><div class="small muted" id="subExpiry"></div></div>
@@ -40,59 +40,352 @@ main{max-width:1400px;margin:auto;padding:24px 18px 70px}.page{display:none}.pag
 
 <div class="modal" id="authModal"><div class="modalbox"><button class="close" onclick="closeAuth()">×</button><h2>Join Metxon</h2><div class="row"><button class="btn" onclick="setAuth('existing')">Existing Member</button><button class="btn secondary" onclick="setAuth('new')">New Member</button></div><div id="newFields" class="hidden" style="margin-top:12px"><input id="regName" class="input" placeholder="Name"><input id="regDob" class="input" placeholder="DOB (DD/MM/YYYY)" style="margin-top:8px"><input id="regAddress" class="input" placeholder="Address" style="margin-top:8px"><input id="regPhone" class="input" placeholder="Phone Number" style="margin-top:8px"></div><input id="authUsername" class="input" placeholder="Username" style="margin-top:8px"><input id="authPassword" type="password" class="input" placeholder="Password" style="margin-top:8px"><button class="btn green" style="width:100%;margin-top:10px" onclick="submitAuth()">Continue</button><p id="authMsg" class="small muted"></p></div></div>
 <script>
-const catalog=[
-['Nebula M1','Smartphones',40000,'Nebula M1 smartphone'],['Nebula M1 Pro','Smartphones',70000,'Nebula M1 Pro smartphone'],['Nebula M1 Elite','Smartphones',120000,'Nebula M1 Elite smartphone'],['Nebula A1','Smartphones',20000,'Nebula A1 smartphone'],['Nebula A1 Pro','Smartphones',30000,'Nebula A1 Pro smartphone'],['Nebula A1 Elite','Smartphones',40000,'Nebula A1 Elite smartphone'],['Nebula B1','Smartphones',2000,'Nebula B1 smartphone'],['Nebula B1 Pro','Smartphones',4000,'Nebula B1 Pro smartphone'],['Nebula B1 Elite','Smartphones',7000,'Nebula B1 Elite smartphone'],['Nebula Z1','Foldable Smartphones',100000,'Nebula Z1 foldable smartphone'],['Nebula Z1 Pro','Foldable Smartphones',130000,'Nebula Z1 Pro foldable smartphone'],['Nebula Z1 Elite','Foldable Smartphones',150000,'Nebula Z1 Elite foldable smartphone'],
-['Nebulabook M1','Laptops',90000,'Nebulabook M1 laptop'],['Nebulabook M1 Pro','Laptops',130000,'Nebulabook M1 Pro laptop'],['Nebulabook M1 Elite','Laptops',190000,'Nebulabook M1 Elite laptop'],['Nebulabook A1','Laptops',40000,'Nebulabook A1 laptop'],['Nebulabook A1 Pro','Laptops',60000,'Nebulabook A1 Pro laptop'],['Nebulabook A1 Elite','Laptops',80000,'Nebulabook A1 Elite laptop'],['Nebulabook B1','Laptops',20000,'Nebulabook B1 laptop'],['Nebulabook B1 Pro','Laptops',30000,'Nebulabook B1 Pro laptop'],['Nebulabook D1','Development Laptops',120000,'Nebulabook D1 development laptop'],['Nebulabook D1 Pro','Development Laptops',170000,'Nebulabook D1 Pro development laptop'],['Nebulabook D1 Elite','Development Laptops',210000,'Nebulabook D1 Elite development laptop'],
-['NebulaTab M1','Tabs',60000,'NebulaTab M1 tablet'],['NebulaTab M1 Pro','Tabs',80000,'NebulaTab M1 Pro tablet'],['NebulaTab M1 Elite','Tabs',100000,'NebulaTab M1 Elite tablet'],['NebulaTab A1','Tabs',30000,'NebulaTab A1 tablet'],['NebulaTab A1 Pro','Tabs',50000,'NebulaTab A1 Pro tablet'],['NebulaTab A1 Elite','Tabs',60000,'NebulaTab A1 Elite tablet'],['NebulaTab B1','Tabs',20000,'NebulaTab B1 tablet'],['NebulaTab B1 Pro','Tabs',40000,'NebulaTab B1 Pro tablet'],
-['Nebula Watch 1','Smart Watches',8000,'Nebula Watch 1 smartwatch'],['Nebula Watch 2','Smart Watches',15000,'Nebula Watch 2 smartwatch'],['Nebula Watch 3','Smart Watches',30000,'Nebula Watch 3 smartwatch'],['APU 1','All-in-One Processing Units',200000,'Mix of CPU, GPU, NPU and other processing units in a small box'],['APU 2','All-in-One Processing Units',300000,'Mix of CPU, GPU, NPU and other processing units in a small box'],['APU 3','All-in-One Processing Units',400000,'Mix of CPU, GPU, NPU and other processing units in a small box'],['APU 4','All-in-One Processing Units',500000,'Mix of CPU, GPU, NPU and other processing units in a small box'],['Tethys 1','Screen Protectors',2000,'Tethys screen protector; can be included with a device or purchased alone'],['Tethys 2','Screen Protectors',4000,'Tethys screen protector; can be included with a device or purchased alone'],['Tethys 3','Screen Protectors',5000,'Tethys screen protector; can be included with a device or purchased alone']
-].map(x=>({name:x[0],cat:x[1],price:x[2],desc:x[3]}));
-const smes=[
-['SME-01','Titanium (Ti)','₹199.60 Cr / gram','High-Density Thermal & Blast Shielding','Protects server cores and bank vaults against massive energy overloads.'],['SME-02','Platinum (Pt)','₹304.00 Cr / gram','Catalytic Signal Regeneration','Sustains maximum throughput and eliminates latency during spikes.'],['SME-03','Gold (Au)','₹248.00 Cr / gram','High-Conduction Quantum Routing','Lossless quantum data pathways across private subnets.'],['SME-04','Palladium (Pd)','₹216.00 Cr / gram','Zero-Trace Encryption Scrubbing','Absorbs and neutralizes digital transaction residue.'],['SME-05','Iridium (Ir)','₹176.00 Cr / gram','Heavy Firewall & DDoS Deflection','Kinetic deflection shielding servers from brute-force DDoS.'],['SME-06','Osmium (Os)','₹152.00 Cr / gram','Hyper-Density File Lock','Makes host bank ledgers unmovable and resistant to tampering.'],['SME-07','Rhodium (Rh)','₹132.00 Cr / gram','Adaptive Stealth & Camouflage','Restructures surface layers to evade detection.'],['SME-08','Mercury (Hg)','₹88.00 Cr / gram','Deep Malware Log Scanning','Flows through system logs to isolate malicious activity.'],['SME-09','Uranium (U)','₹68.00 Cr / gram','Stealth Network Mapping','Low-frequency phantom radiation pulse mapping.'],['SME-10','Silver (Ag)','₹48.00 Cr / gram','Rapid Antimicrobial Digital Purging','Cleanses adware, tracking cookies and related residue.'],['SME-11','Copper (Cu)','₹36.00 Cr / gram','Auxiliary Power Grid Coupling','Links physical nuclear power grid nodes to the system.'],['SME-12','Tungsten (W)','₹24.00 Cr / gram','High-Density Thermal Blast Armor','Forges a heat-sink barrier around sensitive servers.']
-].map(x=>({id:x[0],name:x[1],price:x[2],func:x[3],cap:x[4]}));
-const apps=[['Met Develop','Code & Compile Suite','Simulated MetLanguage development environment.'],['Met-Alk','Encrypted Username Messenger','Username-based messaging between Metxon accounts.'],['Nebula Store','App Marketplace','Marketplace workspace with Met-Pay Checkout & Digital Wallet.'],['Cule-In','Unified Search','Search across Mettin, Molecule, SME and ecosystem data.'],['Nebula AI','Assistant Terminal','Interactive AI terminal for ecosystem analysis.']];
-let authMode='existing',currentUser=null,currentCheckout=null,metcountUnlocked=false;
-let users=JSON.parse(localStorage.getItem('metxon_users')||'null')||{Metxon:{name:'Metxon',dob:'',username:'Metxon',password:'NA',balance:30000000000000,role:'Owner',transactions:[],portfolio:{},subscription:null}};
-function save(){localStorage.setItem('metxon_users',JSON.stringify(users))}
-function money(n){return '₹'+Number(n||0).toLocaleString('en-IN')}
-function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
-function show(p){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById('page-'+p).classList.add('active');document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===p));window.scrollTo({top:0,behavior:'smooth'});if(p==='molecule')renderCatalog();if(p==='mettin'){renderApps();renderSME()}if(p==='metcart')renderCartCatalog();if(p==='metcount')renderMetCount()}
-function setProfile(){document.getElementById('profileName').textContent=currentUser||'Guest';document.getElementById('avatar').textContent=currentUser?currentUser[0].toUpperCase():'?'}
-function openAuth(){document.getElementById('authModal').classList.add('show');setAuth('existing')};function closeAuth(){document.getElementById('authModal').classList.remove('show')}
-function setAuth(mode){authMode=mode;document.getElementById('newFields').classList.toggle('hidden',mode!=='new');document.getElementById('authMsg').textContent=mode==='new'?'Create a new member account.':'Existing members use Username + Password.'}
-function submitAuth(){const u=document.getElementById('authUsername').value.trim(),p=document.getElementById('authPassword').value;if(!u||!p){return msg('Enter username and password.')}if(authMode==='new'){if(users[u])return msg('Username already exists.');users[u]={name:document.getElementById('regName').value.trim(),dob:document.getElementById('regDob').value.trim(),username:u,password:p,address:document.getElementById('regAddress').value.trim(),phone:document.getElementById('regPhone').value.trim(),balance:100000,role:'Member',transactions:[],portfolio:{},subscription:null};save();currentUser=u;closeAuth();setProfile();alert('New Metxon member created. Default simulated balance: ₹1,00,000.');show('home')}else{if(!users[u]||users[u].password!==p)return msg('Username or password does not match.');currentUser=u;closeAuth();setProfile();show('home')}}
-function msg(t){document.getElementById('authMsg').textContent=t}
-function norm(s){return String(s).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}
-function findMatches(q){const n=norm(q);if(!n)return[];const terms=n.split(' ').filter(Boolean);return catalog.filter(x=>terms.every(t=>norm(x.name+' '+x.cat+' '+x.desc).includes(t))).sort((a,b)=>a.name.length-b.name.length)}
-function renderCatalog(){const q=document.getElementById('molSearch').value;const items=q?findMatches(q):catalog;document.getElementById('catalogGrid').innerHTML=items.map(x=>cardProduct(x,true)).join('')||'<div class="empty">No matching Molecule records.</div>'}
-function cardProduct(x,buy){return `<div class="card"><span class="tag">${esc(x.cat)}</span><h3>${esc(x.name)}</h3><div class="price">${money(x.price)}</div><p class="muted">${esc(x.desc)}</p>${buy?`<div class="row"><button class="btn" onclick="addCart('${esc(x.name).replace(/'/g,"\\'")}')">Add to cart</button><button class="btn secondary" onclick="buyProduct('${esc(x.name).replace(/'/g,"\\'")}')">Buy</button></div>`:''}</div>`}
-function runMoleculeSearch(){const q=document.getElementById('molSearch').value;document.getElementById('molResult').innerHTML=searchHTML(q,false)}
-function searchHTML(q,ai){const m=findMatches(q);if(!q)return'';if(m.length)return `<div class="card"><h3>${ai?'Cule AI summary':'Cule-In results'}</h3>${m.slice(0,8).map(x=>`<div class="cartline"><span><b>${esc(x.name)}</b><br><span class="muted">${esc(x.cat)} — ${esc(x.desc)}</span></span><b>${money(x.price)}</b></div>`).join('')}</div>`;return `<div class="empty">No exact ecosystem record found for “${esc(q)}”. Try a product name, SME ID/name, app name, Metware, M-IN, subscription or stock ticker.</div>`}
-function toggleAi(which){const el=document.getElementById(which==='home'?'homeAi':which==='mol'?'molAi':which);const on=el.classList.toggle('on');el.querySelector('span').textContent=on?'ON':'OFF'}
-function runCule(where){const input=document.getElementById(where==='home'?'homeSearch':'molSearch'),out=document.getElementById(where==='home'?'homeResult':'molResult');const q=input.value.trim();const ai=document.getElementById(where==='home'?'homeAi':'molAi').classList.contains('on');if(ai){out.innerHTML=culeSummaryHTML(q)}else out.innerHTML=searchHTML(q,false)}
-function culeSummaryHTML(q){if(!q)return'';const low=norm(q);const m=findMatches(q);const sme=smes.filter(x=>norm(x.id+' '+x.name+' '+x.func+' '+x.cap).split(' ').some(()=>false));let hits=[];if(m.length)hits.push(...m.slice(0,5).map(x=>`<b>${esc(x.name)}</b> is listed in ${esc(x.cat)} at <b>${money(x.price)}</b>. ${esc(x.desc)}.`));const sm=smes.filter(x=>{const hay=norm(x.id+' '+x.name+' '+x.func+' '+x.cap); return hay.includes(low)||low.split(' ').some(t=>t.length>2&&norm(x.name+' '+x.id).includes(t));});if(sm.length)hits.push(...sm.slice(0,4).map(x=>`<b>${esc(x.id)} — ${esc(x.name)}</b>: ${esc(x.price)}. Function: ${esc(x.func)}. Capability: ${esc(x.cap)}`));if(low.includes('base')||low.includes('premium')||low.includes('elite')){hits.push('MetCount subscriptions: Base ₹500/week; Premium ₹2,000/week; Elite ₹10,000/week.');}if(low.includes('m in')||low.includes('cloud'))hits.push('M-IN cloud: 20 GB free standard storage; lifetime/one-time and monthly tiers are listed in Mettin.');if(low.includes('metware'))hits.push('Metware 6 is the current commercial flagship; Metware 7 has a projected October 15, 2026 launch; Metware X is classified and unavailable for purchase.');return `<div class="card"><h3>Cule AI Summary</h3><p>${hits.length?hits.join('<br><br>'):'I could not find a matching record in the embedded Metxon dataset. Try a specific product, SME, app, subscription or M-IN/Metware term.'}</p></div>`}
-function culeAiAnswer(){const q=document.getElementById('culeAiInput').value;document.getElementById('culeAiOutput').innerHTML=strip(culeSummaryHTML(q))}
-function strip(html){const d=document.createElement('div');d.innerHTML=html;return d.innerText}
-function renderApps(){document.getElementById('appGrid').innerHTML=apps.map((a,i)=>`<div class="card app"><div><span class="tag">APP ${i+1}</span><h3>${a[0]}</h3><div class="creator">Created by Metxon Corporate</div><p class="muted">${a[2]}</p></div><button class="btn" onclick="openApp(${i})">Open App</button></div>`).join('')}
-function openApp(i){const [name,sub,desc]=apps[i];const w=document.getElementById('appWorkspace');w.classList.remove('hidden');let body='';if(i===0)body=`<div class="workspace"><h2>${name}</h2><div class="creator">Created by Metxon Corporate</div><p class="muted">${sub}</p><div class="toolbar"><button class="btn" onclick="devAction('friends')">1. Code with friends</button><button class="btn" onclick="devAction('ai')">2. Develop AI</button><button class="btn" onclick="devAction('compile')">3. Compile to MetLang (Atbash)</button><button class="btn" onclick="devAction('direct')">4. Code directly</button><button class="btn" onclick="devAction('save')">5. Save as (Cloud)</button><button class="btn" onclick="devAction('draft')">6. Draft</button><button class="btn" onclick="devAction('buysme')">7. Buy SME</button><button class="btn green" onclick="devAction('infuse')">8. Infuse SME</button></div><textarea id="devCode" class="textarea" placeholder="Type English code or text..."></textarea><div id="devOut" class="terminal" style="margin-top:10px">Output terminal ready.</div></div>`;
-else if(i===1)body=`<div class="workspace"><h2>${name}</h2><div class="creator">Created by Metxon Corporate</div><p>${desc}</p><input id="alkTo" class="input" placeholder="Recipient Username"><textarea id="alkMsg" class="textarea" style="margin-top:8px" placeholder="Type encrypted message..."></textarea><button class="btn" style="margin-top:8px" onclick="sendAlk()">Transmit Message</button><div id="alkLog" class="chat" style="margin-top:10px"></div></div>`;
-else if(i===2)body=`<div class="workspace"><h2>${name}</h2><div class="creator">Created by Metxon Corporate</div><p>Marketplace verified via MET-PAY credentials.</p><div class="card"><h3>Metxon Quantum Arcade (Game Dev SDK)</h3><p>Build and publish retro and quantum arcade games directly to the workspace.</p><button class="btn" onclick="alert('Module deployed to your simulated Nebula Store workspace.')">Deploy Module</button></div><div class="card" style="margin-top:10px"><h3>Met-Pay Checkout Engine & Digital Wallet</h3><p>Official Metxon payment gateway engine. Enables instant transactions using normal Metxon username and password credentials. Bulk orders are not allowed.</p><button class="btn green" onclick="show('metcart')">Open MetCart / Met-Pay</button></div></div>`;
-else if(i===3)body=`<div class="workspace"><h2>${name}</h2><div class="creator">Created by Metxon Corporate</div><p>${desc}</p><div class="row"><input id="appCule" class="input" placeholder="Search Mettin ecosystem..."><button class="btn" onclick="appCuleSearch()">Search</button></div><div id="appCuleOut" class="terminal" style="margin-top:10px"></div></div>`;
-else body=`<div class="workspace"><h2>${name}</h2><div class="creator">Created by Metxon Corporate</div><p>${desc}</p><textarea id="appNebula" class="textarea" placeholder="Ask Nebula AI about hardware, SME, MetCount, code or the ecosystem..."></textarea><button class="btn purple" style="margin-top:8px" onclick="appNebulaAnswer()">Send Prompt</button><div id="appNebulaOut" class="terminal" style="margin-top:10px"></div></div>`;w.innerHTML=body}
-function devAction(a){const out=document.getElementById('devOut'),input=document.getElementById('devCode')?.value||'';if(a==='compile'){const c=input.split('').map(ch=>{let n=ch.charCodeAt(0);if(n>=65&&n<=90)return String.fromCharCode(90-(n-65));if(n>=97&&n<=122)return String.fromCharCode(122-(n-97));return ch}).join('');out.textContent='[MetLang Engine / Atbash A=Z B=Y]\n'+c}else if(a==='ai')out.textContent='[Develop AI]\nSimulated MetLanguage generator ready. Describe the program you want to create.';else if(a==='buysme')out.textContent='[SME Purchase]\nChoose an SME from the registry. The purchase/infusion workflow is simulated in this frontend.';else if(a==='infuse')out.textContent='[SME Infusion]\nSimulated infusion request accepted. Select an owned or purchasable SME in a future backend implementation.';else out.textContent='[Met Develop]\nAction '+a+' executed successfully for '+(currentUser||'Guest')+'.'}
-function sendAlk(){const to=document.getElementById('alkTo').value.trim(),msg=document.getElementById('alkMsg').value.trim();if(!to||!msg)return alert('Specify recipient and message.');const log=document.getElementById('alkLog');log.innerHTML+=`<div class="msg"><b>${esc(currentUser||'Guest')} → ${esc(to)}</b><br>${esc(msg)}<div class="small muted">encrypted simulation</div></div>`;document.getElementById('alkMsg').value=''}
-function appCuleSearch(){const q=document.getElementById('appCule').value;document.getElementById('appCuleOut').textContent=strip(culeSummaryHTML(q))||'No query.'}
-function nebulaAnswer(){const q=document.getElementById('nebulaInput').value;document.getElementById('nebulaOutput').textContent=nebulaText(q)}function appNebulaAnswer(){const q=document.getElementById('appNebula').value;document.getElementById('appNebulaOut').textContent=nebulaText(q)}function nebulaText(q){const n=norm(q);if(!q)return'Nebula AI: Enter a prompt.';const m=findMatches(q);if(m.length)return 'Nebula AI analysis:\n'+m.slice(0,5).map(x=>`• ${x.name}: ${money(x.price)} — ${x.cat}. ${x.desc}`).join('\n');const sm=smes.find(x=>norm(x.id+' '+x.name).includes(n)||n.includes(norm(x.id))||n.includes(norm(x.name)));if(sm)return `Nebula AI analysis:\n${sm.id} ${sm.name}\nPrice: ${sm.price}\nFunction: ${sm.func}\nCapability: ${sm.cap}`;if(n.includes('metdevelop')||n.includes('code'))return 'Nebula AI: Met Develop includes Code with friends, Develop AI, Compile to MetLang (Atbash), Code directly, Save as (Cloud), Draft, Buy SME and Infuse SME.';if(n.includes('stock'))return 'Nebula AI: MetCount contains the Stocks section below Subscriptions. Search any ticker to generate a deterministic simulated quote and manage a simulated portfolio.';return 'Nebula AI: I can analyze the embedded Metxon hardware catalog, SME registry, Mettin apps, Metware/M-IN information, MetCount subscriptions and the simulated stock engine.'}
-function renderSME(){document.getElementById('smeGrid').innerHTML=smes.map(x=>`<div class="card"><span class="tag">${x.id}</span><h3>${esc(x.name)}</h3><div class="price">${x.price}</div><p><b>Primary Function:</b> ${esc(x.func)}</p><p class="muted"><b>Capability:</b> ${esc(x.cap)}</p><button class="btn secondary" onclick="buySME('${x.id}')">Buy / Infuse</button></div>`).join('')}
-function buySME(id){const x=smes.find(s=>s.id===id);if(!currentUser)return openAuth();alert(`${x.id} ${x.name}: simulated SME purchase/infusion workflow opened. Price: ${x.price}`)}
-function renderMetCount(){if(!currentUser){document.getElementById('mcGate').classList.remove('hidden');document.getElementById('mcBody').classList.add('hidden');return}if(metcountUnlocked)renderMCBody()}
-function unlockMetCount(){const u=document.getElementById('mcUser').value.trim()||currentUser,p=document.getElementById('mcPass').value;if(!users[u]||users[u].password!==p)return alert('MetCount username/password verification failed.');currentUser=u;metcountUnlocked=true;setProfile();renderMCBody()}
-function renderMCBody(){document.getElementById('mcGate').classList.add('hidden');document.getElementById('mcBody').classList.remove('hidden');const u=users[currentUser];document.getElementById('mcAccountName').textContent=currentUser;document.getElementById('mcBalance').textContent=money(u.balance);const sub=u.subscription;document.getElementById('activeSub').textContent=sub?`${sub.tier} — ${money(sub.price)}/week`:'None (INR only)';document.getElementById('subExpiry').textContent=sub?'Expires: '+new Date(sub.expires).toLocaleString():'No subscription; premium currencies/features are stopped.';document.getElementById('mcCurrencies').textContent='Available currency display: '+(sub?sub.currencies.join(', '):'INR');document.getElementById('txList').innerHTML=(u.transactions||[]).slice(-8).reverse().map(t=>`<div class="msg"><b>${esc(t.type)}</b> — ${esc(t.note)}<br><span class="small muted">${esc(t.date)} | ${money(t.amount)}</span></div>`).join('')||'<div class="muted">No transactions yet.</div>';renderPortfolio()}
-function subscribe(tier,price){if(!currentUser)return openAuth();const u=users[currentUser];if(u.balance<price)return alert('Insufficient balance.');u.balance-=price;const currencies=tier==='Base'?['INR','USD']:tier==='Premium'?['INR','USD','EUR','GBP','JPY']:['INR','USD','EUR','GBP','JPY','KRW'];u.subscription={tier,price,expires:Date.now()+7*24*60*60*1000,currencies};u.transactions.push({type:'Subscription',note:tier+' weekly subscription',amount:-price,date:new Date().toLocaleString()});save();renderMCBody();alert(tier+' subscription activated for 7 days in the simulation.');}
-function transferMoney(){if(!currentUser)return openAuth();const to=document.getElementById('transferTo').value.trim(),amt=Number(document.getElementById('transferAmount').value),pass=document.getElementById('transferPass').value;if(!users[to])return alert('Recipient username not found.');if(users[currentUser].password!==pass)return alert('Password verification failed.');if(!amt||amt<=0||users[currentUser].balance<amt)return alert('Invalid amount or insufficient funds.');users[currentUser].balance-=amt;users[to].balance+=amt;users[currentUser].transactions.push({type:'Transfer',note:'To '+to,amount:-amt,date:new Date().toLocaleString()});users[to].transactions.push({type:'Transfer',note:'From '+currentUser,amount:amt,date:new Date().toLocaleString()});save();renderMCBody();alert('Met-Transfer completed.');}
-function stockPrice(t){let h=0;for(const c of t)h=(h*31+c.charCodeAt(0))%100000;return 100+(h%30000)/10}
-let lastTicker='';function searchStock(){let t=document.getElementById('stockSearch').value.trim().toUpperCase();if(!t)return;lastTicker=t;const p=stockPrice(t),owned=(users[currentUser]?.portfolio||{})[t]||{shares:0,cost:0};document.getElementById('stockQuote').innerHTML=`<div class="card"><div class="stockquote"><div><span class="tag">SIMULATED STOCK</span><h3>${esc(t)}</h3><p class="muted">Searchable simulated asset quote. Any ticker can be entered; no hard-coded finite stock list.</p></div><div><div class="price">$${p.toFixed(2)}</div><div class="small muted">Reference quote</div></div></div><div class="row" style="margin-top:10px"><input id="sharesInput" class="input" type="number" min="1" value="1" placeholder="Shares"><button class="btn green" onclick="tradeStock('buy')">Buy</button><button class="btn red" onclick="tradeStock('sell')">Sell</button></div><div class="small muted" style="margin-top:8px">Owned: ${owned.shares||0} shares</div></div>`}
-function tradeStock(side){if(!currentUser)return openAuth();const t=lastTicker,p=stockPrice(t),shares=Math.max(1,Number(document.getElementById('sharesInput').value)||1),u=users[currentUser];u.portfolio=u.portfolio||{};const pos=u.portfolio[t]||{shares:0,cost:0};if(side==='buy'){const cost=p*shares;if(u.balance<cost)return alert('Insufficient simulated INR balance.');u.balance-=cost;pos.shares+=shares;pos.cost+=cost}else{if(pos.shares<shares)return alert('Not enough shares.');u.balance+=p*shares;pos.shares-=shares;pos.cost=Math.max(0,pos.cost-p*shares)}u.portfolio[t]=pos;u.transactions.push({type:'Stock '+side,note:`${t} × ${shares} @ $${p.toFixed(2)}`,amount:side==='buy'?-p*shares:p*shares,date:new Date().toLocaleString()});save();renderMCBody();searchStock()}
-function renderPortfolio(){const p=users[currentUser]?.portfolio||{};const rows=Object.entries(p).filter(([,v])=>v.shares>0);document.getElementById('portfolio').innerHTML=rows.length?rows.map(([t,v])=>{const cur=stockPrice(t),val=cur*v.shares,pl=val-v.cost;return `<div class="cartline"><span><b>${esc(t)}</b><br><span class="muted">${v.shares} shares | Avg cost $${(v.cost/v.shares).toFixed(2)}</span></span><span><b>$${val.toFixed(2)}</b><br><span class="${pl>=0?'positive':'negative'}">${pl>=0?'+':''}$${pl.toFixed(2)}</span></span></div>`}).join(''):'<div class="muted">No stock holdings yet.</div>'}
-let cart=JSON.parse(localStorage.getItem('metxon_cart')||'[]');function saveCart(){localStorage.setItem('metxon_cart',JSON.stringify(cart))}function addCart(name){cart.push(name);saveCart();alert(name+' added to MetCart.')}function buyProduct(name){if(!currentUser)return openAuth();const x=catalog.find(c=>c.name===name);if(!x)return;if(users[currentUser].balance<x.price)return alert('Insufficient simulated balance.');users[currentUser].balance-=x.price;users[currentUser].transactions.push({type:'Met-Pay Order',note:x.name,amount:-x.price,date:new Date().toLocaleString()});save();renderMetCount();alert('Met-Pay order placed: '+x.name+' for '+money(x.price)+'. Order details are stored locally in this browser simulation.')}function renderCartCatalog(){const q=norm(document.getElementById('cartSearch').value);const items=q?catalog.filter(x=>norm(x.name+' '+x.cat+' '+x.desc).includes(q)):catalog;document.getElementById('cartGrid').innerHTML=items.map(x=>cardProduct(x,true)).join('')||'<div class="empty">No MetCart products found.</div>'}function showCart(){const p=document.getElementById('cartPanel');p.classList.remove('hidden');if(!cart.length){p.innerHTML='<h3>Cart</h3><div class="muted">Cart is empty.</div>';return}let total=0;p.innerHTML='<h3>Cart</h3>'+cart.map((n,i)=>{const x=catalog.find(c=>c.name===n);total+=x?.price||0;return `<div class="cartline"><span>${esc(n)}</span><span>${money(x.price)} <button class="btn secondary small" onclick="cart.splice(${i},1);saveCart();showCart()">Remove</button></span></div>`}).join('')+`<div class="price">Total: ${money(total)}</div><button class="btn green" onclick="checkoutCart()">Met-Pay Checkout</button>`}function checkoutCart(){if(!currentUser)return openAuth();const items=cart.map(n=>catalog.find(c=>c.name===n)).filter(Boolean),total=items.reduce((a,x)=>a+x.price,0);if(items.length>1)return alert('Bulk order is not allowed. Please order one device/item at a time.');buyProduct(items[0].name);cart=[];saveCart();showCart()}
-window.addEventListener('load',()=>{setProfile();renderCatalog();renderApps();renderSME();renderCartCatalog();if(currentUser)renderMetCount()});
-</script></body></html>
+/* ========================= METXON CORPORATE ENGINE ========================= */
+
+const CATALOG = [
+  {name:'Nebula M1',cat:'Smartphones',price:40000,desc:'Standard flagship smartphone with Mettin neural core.'},
+  {name:'Nebula M1 Pro',cat:'Smartphones',price:70000,desc:'Enhanced performance and upgraded camera matrix.'},
+  {name:'Nebula M1 Elite',cat:'Smartphones',price:120000,desc:'Top-tier mobile workstation with titanium housing.'},
+  {name:'Nebula A1',cat:'Smartphones',price:20000,desc:'Accessible high-efficiency daily driver phone.'},
+  {name:'Nebula A1 Pro',cat:'Smartphones',price:30000,desc:'Upgraded optics and performance tier A-series.'},
+  {name:'Nebula A1 Elite',cat:'Smartphones',price:40000,desc:'Top configuration for the Nebula A series lineup.'},
+  {name:'Nebula B1',cat:'Smartphones',price:2000,desc:'Entry-level budget smartphone device.'},
+  {name:'Nebula B1 Pro',cat:'Smartphones',price:4000,desc:'Enhanced budget configuration phone.'},
+  {name:'Nebula B1 Elite',cat:'Smartphones',price:7000,desc:'Premium finish budget smartphone option.'},
+  {name:'Nebula Z1 (Foldable)',cat:'Foldable Smartphones',price:100000,desc:'Next-gen flexible folding screen technology.'},
+  {name:'Nebula Z1 Pro',cat:'Foldable Smartphones',price:130000,desc:'Enhanced hinges and multi-fold workspace.'},
+  {name:'Nebula Z1 Elite',cat:'Foldable Smartphones',price:150000,desc:'Ultimate flagship foldable device with SME shielding.'},
+  {name:'Nebulabook M1',cat:'Laptops',price:90000,desc:'High-performance enterprise laptop.'},
+  {name:'Nebulabook M1 Pro',cat:'Laptops',price:130000,desc:'Upgraded processor cores and extended battery architecture.'},
+  {name:'Nebulabook Elite',cat:'Laptops',price:190000,desc:'Ultimate corporate computing station.'},
+  {name:'Nebulabook A1',cat:'Laptops',price:40000,desc:'Efficient everyday productivity laptop.'},
+  {name:'Nebulabook A1 Pro',cat:'Laptops',price:60000,desc:'Advanced display and processing specs for A-series.'},
+  {name:'Nebulabook A1 Elite',cat:'Laptops',price:80000,desc:'Top-tier portable A-series workstation.'},
+  {name:'Nebulabook B1',cat:'Laptops',price:20000,desc:'Affordable entry laptop for students and basic tasks.'},
+  {name:'Nebulabook B1 Pro',cat:'Laptops',price:30000,desc:'Upgraded budget laptop configuration.'},
+  {name:'Nebulabook D1',cat:'Development Laptops',price:120000,desc:'Specialized developer laptop with pre-loaded Mettin SDK.'},
+  {name:'Nebulabook D1 Pro',cat:'Development Laptops',price:170000,desc:'Advanced developer laptop with heavy compilation cores.'},
+  {name:'Nebulabook D1 Elite',cat:'Development Laptops',price:210000,desc:'Ultimate software engineering machine with full SME suite.'},
+  {name:'NebulaTab M1',cat:'Tabs',price:60000,desc:'Flagship multimedia and productivity tablet.'},
+  {name:'NebulaTab M1 Pro',cat:'Tabs',price:80000,desc:'Pro-grade screen clarity and pen-input latency reduction.'},
+  {name:'NebulaTab M1 Elite',cat:'Tabs',price:100000,desc:'Ultimate tablet workstation experience.'},
+  {name:'NebulaTab A1',cat:'Tabs',price:30000,desc:'Everyday consumer tablet for media consumption.'},
+  {name:'NebulaTab A1 Pro',cat:'Tabs',price:50000,desc:'Enhanced specs for mid-range tablet users.'},
+  {name:'NebulaTab A1 Elite',cat:'Tabs',price:60000,desc:'Top configuration of the A-series tablet line.'},
+  {name:'NebulaTab B1',cat:'Tabs',price:20000,desc:'Budget-friendly tablet for basic reading and tasks.'},
+  {name:'NebulaTab B1 Pro',cat:'Tabs',price:40000,desc:'Enhanced budget tablet layout.'},
+  {name:'Nebula Watch 1',cat:'Smart Watches',price:8000,desc:'Essential health tracker and notification watch.'},
+  {name:'Nebula Watch 2',cat:'Smart Watches',price:15000,desc:'Advanced biometric sensors and cellular integration.'},
+  {name:'Nebula Watch 3',cat:'Smart Watches',price:30000,desc:'Elite neural-link cellular smartwatch.'},
+  {name:'APU 1',cat:'Processing Units',price:200000,desc:'Compact mixed-architecture unit (CPU + GPU + NPU).'},
+  {name:'APU 2',cat:'Processing Units',price:300000,desc:'Intermediate multi-core processing box.'},
+  {name:'APU 3',cat:'Processing Units',price:400000,desc:'High-density neural processing box.'},
+  {name:'APU 4',cat:'Processing Units',price:500000,desc:'Ultimate quantum-grade processing box.'},
+  {name:'Tethys 1',cat:'Screen Protectors',price:2000,desc:'Impact-resistant standard glass protector.'},
+  {name:'Tethys 2',cat:'Screen Protectors',price:4000,desc:'Advanced anti-glare sapphire-infused protector.'},
+  {name:'Tethys 3',cat:'Screen Protectors',price:5000,desc:'Self-healing quantum armored screen protector.'}
+];
+
+const SMEs = [
+  {id:'SME-01',name:'Titanium (Ti)',price:'₹199.60 Cr / gram',func:'High-Density Thermal & Blast Shielding',cap:'Protects server cores and bank vaults against massive energy overloads.'},
+  {id:'SME-02',name:'Platinum (Pt)',price:'₹304.00 Cr / gram',func:'Catalytic Signal Regeneration',cap:'Sustains maximum throughput and eliminates latency during spikes.'},
+  {id:'SME-03',name:'Gold (Au)',price:'₹248.00 Cr / gram',func:'High-Conduction Quantum Routing',cap:'Lossless quantum data pathways across private subnets.'},
+  {id:'SME-04',name:'Palladium (Pd)',price:'₹216.00 Cr / gram',func:'Zero-Trace Encryption Scrubbing',cap:'Absorbs and neutralizes digital transaction residue.'},
+  {id:'SME-05',name:'Iridium (Ir)',price:'₹176.00 Cr / gram',func:'Heavy Firewall & DDoS Deflection',cap:'Kinetic deflection shielding servers from brute-force DDoS.'},
+  {id:'SME-06',name:'Osmium (Os)',price:'₹152.00 Cr / gram',func:'Hyper-Density File Lock',cap:'Makes host bank ledgers unmovable and ransomware-proof.'},
+  {id:'SME-07',name:'Rhodium (Rh)',price:'₹132.00 Cr / gram',func:'Adaptive Stealth & Camouflage',cap:'Restructures surface layers to evade active cybersecurity.'},
+  {id:'SME-08',name:'Mercury (Hg)',price:'₹88.00 Cr / gram',func:'Deep Malware Log Scanning',cap:'Flows through system logs to isolate dormant malware.'},
+  {id:'SME-09',name:'Uranium (U)',price:'₹68.00 Cr / gram',func:'Stealth Network Mapping',cap:'Low-frequency phantom radiation pulses to chart target topologies.'},
+  {id:'SME-10',name:'Silver (Ag)',price:'₹48.00 Cr / gram',func:'Rapid Antimicrobial Digital Purification',cap:'Cleanses adware, tracking cookies, and unauthorized background processes.'},
+  {id:'SME-11',name:'Copper (Cu)',price:'₹36.00 Cr / gram',func:'Auxiliary Power Grid Coupling',cap:'Links physical nuclear power grid nodes to server backbones.'},
+  {id:'SME-12',name:'Tungsten (W)',price:'₹24.00 Cr / gram',func:'High-Density Thermal Blast Armor',cap:'Forges heat-sink barrier around server enclosures.'}
+];
+
+const APPS = [
+  ['Met Develop','Code & Compile Suite'],
+  ['Met-Alk','Encrypted Username Messenger'],
+  ['Nebula Store','App Marketplace & Games'],
+  ['Cule-In','Unified Search & AI'],
+  ['Nebula AI','Assistant Terminal']
+];
+
+const DB_KEY = 'metxon_master_db_v7';
+const OWNER = 'Metxon';
+const OWNER_BALANCE = 30000000000000;
+let DB = loadDB();
+let authMode = 'existing';
+let culeAIHome = false;
+let culeAIMolecule = false;
+let activeStock = null;
+let metcountUnlocked = false;
+
+function loadDB(){
+  try{
+    const old = JSON.parse(localStorage.getItem(DB_KEY) || 'null');
+    if(old) return old;
+  }catch(e){}
+  const oldUsers = JSON.parse(localStorage.getItem('metxon_users') || '{}');
+  const accounts = Object.keys(oldUsers).length ? oldUsers : {};
+  if(!accounts[OWNER]) accounts[OWNER] = {name:OWNER,dob:'—',username:OWNER,password:'NA',address:'Metxon Corporate',phone:'—',balance:OWNER_BALANCE,role:'Owner',metcountPassword:'NA',transactions:[],portfolio:{},subscription:null};
+  for(const a of Object.values(accounts)) normalizeAccount(a);
+  return {accounts,currentUser:null,transactions:[],orders:[],carts:{},messages:{},subscriptions:{},ai:false};
+}
+function normalizeAccount(a){
+  a.transactions = Array.isArray(a.transactions) ? a.transactions : [];
+  a.portfolio = a.portfolio || {};
+  a.subscription = a.subscription || null;
+  a.balance = Number(a.balance ?? 100000);
+  if(!('metcountPassword' in a)) a.metcountPassword = a.password || null;
+}
+function saveDB(){localStorage.setItem(DB_KEY,JSON.stringify(DB));}
+function money(n){return '₹'+Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function esc(s){return String(s ?? '').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function norm(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();}
+function now(){return new Date().toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});}
+function currentAccount(){return DB.currentUser ? DB.accounts[DB.currentUser] || null : null;}
+function addTransaction(username,type,note,amount){
+  const a=DB.accounts[username]; if(!a) return;
+  normalizeAccount(a);
+  DB.transactions.push({id:crypto.randomUUID(),username,type,note,amount,balanceAfter:a.balance,date:now()});
+  a.transactions.push({type,note,amount,date:now()});
+}
+function notify(text,kind=''){const d=document.createElement('div');d.className='notice '+kind;d.textContent=text;d.style.position='fixed';d.style.right='18px';d.style.bottom='18px';d.style.zIndex='99999';d.style.maxWidth='440px';d.style.boxShadow='0 15px 45px #0008';document.body.appendChild(d);setTimeout(()=>d.remove(),3500);}
+
+/* ---------- navigation ---------- */
+function show(page){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(page==='molecule') renderCatalog();
+  if(page==='mettin'){renderApps();renderSMEs();}
+  if(page==='metcount') renderMetCount();
+  if(page==='metcart'){renderCartCatalog();renderCart();}
+}
+function updateProfile(){
+  const a=currentAccount();
+  document.getElementById('profileName').textContent = a ? a.username : 'Guest';
+  document.getElementById('avatar').textContent = a ? a.username.charAt(0).toUpperCase() : '?';
+  const authBtn=document.querySelector('.profile .btn');
+  if(authBtn){authBtn.textContent=a?'Sign Out':'Join Metxon';authBtn.onclick=a?logout:openAuth;}
+}
+
+/* ---------- authentication ---------- */
+function openAuth(){document.getElementById('authModal').classList.add('show');setAuth('existing');}
+function closeAuth(){document.getElementById('authModal').classList.remove('show');}
+function setAuth(mode){
+  authMode=mode;
+  document.getElementById('newFields').classList.toggle('hidden',mode!=='new');
+  document.getElementById('authMsg').textContent = mode==='new' ? 'New members: Name, DOB, Username, Password, Address and Phone Number.' : 'Existing members: Username + Password only.';
+}
+function submitAuth(){
+  const u=document.getElementById('authUsername').value.trim();
+  const p=document.getElementById('authPassword').value;
+  if(!u || !p){document.getElementById('authMsg').textContent='Enter username and password.';return;}
+  if(authMode==='existing'){
+    const a=DB.accounts[u];
+    if(!a || a.password!==p){document.getElementById('authMsg').textContent='Username or password does not match. Access denied.';return;}
+    DB.currentUser=u;normalizeAccount(a);saveDB();closeAuth();updateProfile();show('home');notify('Login successful.','success');return;
+  }
+  if(DB.accounts[u]){document.getElementById('authMsg').textContent='Username already exists.';return;}
+  const name=document.getElementById('regName').value.trim(),dob=document.getElementById('regDob').value.trim(),address=document.getElementById('regAddress').value.trim(),phone=document.getElementById('regPhone').value.trim();
+  if(!name||!dob||!address||!phone){document.getElementById('authMsg').textContent='Complete all New Member fields.';return;}
+  DB.accounts[u]={name,dob,username:u,password:p,address,phone,balance:100000,role:'Member',metcountPassword:null,transactions:[],portfolio:{},subscription:null};
+  addTransaction(u,'ACCOUNT','New Metxon account created',0);
+  DB.currentUser=u;saveDB();closeAuth();updateProfile();show('home');notify('New Metxon member created with simulated ₹1,00,000 opening balance.','success');
+}
+function logout(){DB.currentUser=null;metcountUnlocked=false;saveDB();updateProfile();show('home');notify('Signed out.');}
+
+/* ---------- catalog / Molecule / Cule-In ---------- */
+function findMatches(q){
+  const n=norm(q); if(!n) return [];
+  const terms=n.split(' ').filter(Boolean);
+  return CATALOG.filter(x=>terms.every(t=>norm(x.name+' '+x.cat+' '+x.desc).includes(t)));
+}
+function productCard(x,actions=true){
+  return `<div class="card"><span class="tag">${esc(x.cat)}</span><h3>${esc(x.name)}</h3><div class="price">${money(x.price)}</div><p class="muted">${esc(x.desc)}</p>${actions?`<div class="row"><button class="btn" onclick="addCart(${JSON.stringify(x.name)})">Add to cart</button><button class="btn secondary" onclick="buyDirect(${JSON.stringify(x.name)})">Buy</button></div>`:''}</div>`;
+}
+function renderCatalog(){
+  const q=document.getElementById('molSearch').value.trim();
+  const items=q?findMatches(q):CATALOG;
+  document.getElementById('catalogGrid').innerHTML=items.map(x=>productCard(x,true)).join('') || '<div class="empty">No matching Molecule records.</div>';
+}
+function runMoleculeSearch(){runCule('molecule');}
+function toggleAi(which){
+  if(which==='home'){culeAIHome=!culeAIHome;const b=document.getElementById('homeAi');b.classList.toggle('on',culeAIHome);b.querySelector('span').textContent=culeAIHome?'ON':'OFF';}
+  if(which==='mol'){culeAIMolecule=!culeAIMolecule;const b=document.getElementById('molAi');b.classList.toggle('on',culeAIMolecule);b.querySelector('span').textContent=culeAIMolecule?'ON':'OFF';}
+}
+function runCule(where){
+  const input=where==='home'?document.getElementById('homeSearch'):document.getElementById('molSearch');
+  const out=where==='home'?document.getElementById('homeResult'):document.getElementById('molResult');
+  const q=input.value.trim(); if(!q){out.innerHTML='';return;}
+  const ai=where==='home'?culeAIHome:culeAIMolecule;
+  out.innerHTML=ai ? culeSummaryHTML(q) : searchHTML(q);
+}
+function searchHTML(q){
+  const m=findMatches(q), n=norm(q);
+  const sme=SMEs.filter(x=>norm(x.id+' '+x.name+' '+x.func+' '+x.cap).includes(n) || n.split(' ').some(t=>t.length>2&&norm(x.name+' '+x.id).includes(t)));
+  let html='';
+  if(m.length) html+=`<div class="card"><h3>Cule-In Results</h3>${m.slice(0,10).map(x=>`<div class="cartline"><span><b>${esc(x.name)}</b><br><span class="muted">${esc(x.cat)} — ${esc(x.desc)}</span></span><b>${money(x.price)}</b></div>`).join('')}</div>`;
+  if(sme.length) html+=`<div class="card"><h3>SME Results</h3>${sme.slice(0,8).map(x=>`<div class="cartline"><span><b>${esc(x.id)} // ${esc(x.name)}</b><br><span class="muted">${esc(x.func)}</span></span><b>${esc(x.price)}</b></div>`).join('')}</div>`;
+  const lower=n.toLowerCase();
+  if(lower.includes('met develop')||lower.includes('metalk')||lower.includes('nebula store')||lower.includes('nebula ai')||lower.includes('cule in')) html+=`<div class="card"><h3>Mettin Apps</h3><p>Met Develop, Met-Alk, Nebula Store, Cule-In and Nebula AI are pre-installed.</p></div>`;
+  return html||`<div class="empty">No direct ecosystem record found for “${esc(q)}”. Try <b>Nebula M1 Pro</b>, an SME ID/name, Metware, M-IN, a subscription, or a stock symbol.</div>`;
+}
+function culeSummaryHTML(q){
+  const n=norm(q), matches=findMatches(q), smes=SMEs.filter(x=>norm(x.id+' '+x.name+' '+x.func+' '+x.cap).includes(n)||n.split(' ').some(t=>t.length>2&&norm(x.id+' '+x.name).includes(t))); let hits=[];
+  if(matches.length) hits.push(...matches.slice(0,5).map(x=>`According to Molecule & MetCart records, <b>${esc(x.name)}</b> is priced at <b>${money(x.price)}</b>. ${esc(x.desc)}`));
+  if(smes.length) hits.push(...smes.slice(0,4).map(x=>`<b>${esc(x.id)} — ${esc(x.name)}</b>: ${esc(x.price)}. Function: ${esc(x.func)}. Capability: ${esc(x.cap)}`));
+  const l=n.toLowerCase();
+  if(l.includes('base')) hits.push('MetCount Base: ₹500/week — INR + USD — 5-minute virus scan.');
+  if(l.includes('premium')) hits.push('MetCount Premium: ₹2,000/week — INR, USD, EUR, GBP, JPY — 5-minute scans, notification alerts, detailed P&L graphs.');
+  if(l.includes('elite')) hits.push('MetCount Elite: ₹10,000/week — Premium currencies + KRW — Met AI trade/investment chat, Nebula AI stock analyzer API, auto-sell margin sets, deep analysis & graphs.');
+  if(l.includes('metware')) hits.push('Metware 6 is current commercial flagship; Metware 7 projected launch October 15, 2026; Metware X is classified/internal-only and unavailable for purchase.');
+  if(l.includes('m-in')||l.includes('cloud')) hits.push('M-IN: 20 GB free standard storage; 50 GB tier specified; 500 GB ₹10,000 one-time; 500 GB ₹500/month on a 1-year contract; larger options are described in the blueprint.');
+  if(l.includes('stock')) hits.push('Stocks live inside MetCount directly below Subscriptions. Search, buy and sell are available in the simulated market.');
+  if(!hits.length) hits.push('I could not find a matching record in the embedded Metxon dataset. Try a specific product such as “What is the price of Nebula M1 Pro?”');
+  return `<div class="card"><h3>Cule AI Summary</h3><p>${hits.join('<br><br>')}</p></div>`;
+}
+function culeAiAnswer(){document.getElementById('culeAiOutput').innerHTML=culeSummaryHTML(document.getElementById('culeAiInput').value);}
+
+/* ---------- Mettin apps ---------- */
+function renderApps(){
+  const grid=document.getElementById('appGrid');
+  grid.innerHTML=APPS.map((a,i)=>`<div class="card app"><div><span class="tag">APP ${i+1}</span><h3>${esc(a[0])}</h3><div class="creator">Created by Metxon Corporate</div><p class="muted">${esc(a[1])}</p></div><button class="btn" onclick="openApp(${i})">Open App</button></div>`).join('');
+}
+function openApp(i){
+  const [name,desc]=APPS[i],w=document.getElementById('appWorkspace'); w.classList.remove('hidden'); let body='';
+  if(i===0) body=`<div class="workspace"><h2>${name}</h2><div class="creator">Created by Metxon Corporate</div><p class="muted">${desc}</p><div class="toolbar"><button class="btn" onclick="devAction('friends')">1. Code with friends</button><button class="btn" onclick="devAction('ai')">2. Develop AI</button><button class="btn" onclick="devAction('compile')">3. Compile to MetLang (Atbash)</button><button class="btn" onclick="devAction('direct')">4. Code directly</button><button class="btn" onclick="devAction('save')">5. Save as (Cloud)</button><button class="btn" onclick="devAction('draft')">6. Draft</button><button class="btn" onclick="devAction('buysme')">7. Buy SME</button><button class="btn green" onclick="devAction('infuse')">8. Infuse SME</button></div><textarea id="devCode" class="textarea" placeholder="Type English code or project instructions..."></textarea><div id="devOut" class="terminal">Output terminal ready.</div></div>`;
+  if(i===1) body=`<div class="workspace"><h2>${name}</h2><div class="creator">Created by Metxon Corporate</div><p>${desc}</p><div class="formgrid"><input id="alkTo" class="input" placeholder="Recipient Username"><input id="alkMessage" class="input" placeholder="Message"></div><button class="btn" onclick="sendAlkMessage()">Transmit Message</button><div id="alkLog" class="chat"></div></div>`;
+  if(i===2) body=`<div class="workspace"><h2>${name}</h2><div class="creator">Created by Metxon Corporate</div><p>${desc}. Verified via Met-Pay credentials.</p><div class="card"><h3>Metxon Quantum Arcade (Game Dev SDK)</h3><p>Build and publish retro and quantum arcade games directly to the workspace.</p><button class="btn" onclick="notify('Module deployed to the simulated Nebula Store workspace.','success')">Deploy Module</button></div><div class="card" style="margin-top:10px"><h3>Met-Pay Checkout Engine & Digital Wallet</h3><p>Official Metxon payment gateway. Normal Metxon username/password credentials are used for payment; bulk orders are not allowed.</p><button class="btn green" onclick="show('metcart')">Open MetCart / Met-Pay</button></div></div>`;
+  if(i===3) body=`<div class="workspace"><h2>${name}</h2><div class="creator">Created by Metxon Corporate</div><p>${desc}</p><div class="searchbar"><input id="appCule" placeholder="Search Mettin, Molecule, SME, MetCount..." onkeydown="if(event.key==='Enter')appCuleSearch()"><button class="btn" onclick="appCuleSearch()">Search</button></div><div id="appCuleOut"></div></div>`;
+  if(i===4) body=`<div class="workspace"><h2>${name}</h2><div class="creator">Created by Metxon Corporate</div><p>${desc}</p><textarea id="appNebula" class="textarea" placeholder="Ask Nebula AI about hardware, code, stocks, MetCount or Mettin..."></textarea><button class="btn purple" onclick="appNebulaAnswer()">Send Prompt</button><div id="appNebulaOut" class="terminal"></div></div>`;
+  w.innerHTML=`<div class="workspace-header"><div><h2 id="activeAppName">${esc(name)}</h2><div class="creator">Created by Metxon Corporate</div></div><button class="btn secondary" onclick="closeApp()">Close App</button></div>${body}`;
+  if(i===1) renderAlk();
+}
+function closeApp(){document.getElementById('appWorkspace').classList.add('hidden');}
+function atbash(t){return t.replace(/[A-Za-z]/g,c=>{const n=c.charCodeAt(0);return n<=90?String.fromCharCode(90-(n-65)):String.fromCharCode(122-(n-97));});}
+function devAction(a){
+  const out=document.getElementById('devOut'), input=document.getElementById('devCode')?.value||''; if(!out)return;
+  if(a==='compile')out.textContent=`[MetLang Engine]\nAtbash A=Z, B=Y, C=X...\n\n${atbash(input)}`;
+  else if(a==='ai')out.textContent=`[Develop AI]\nSimulated MetLanguage generation:\n${input||'Describe the program you want to build.'}\n\nGenerated scaffold ready.`;
+  else if(a==='friends')out.textContent=`[Code With Friends]\nSimulated collaboration room prepared for ${DB.currentUser||'Guest'}.`;
+  else if(a==='save'){localStorage.setItem('metxon_cloud_project',input);out.textContent='[Save as (Cloud)]\\nSaved to simulated M-IN Cloud.';}
+  else if(a==='draft'){localStorage.setItem('metxon_draft',input);out.textContent='[Draft]\\nDraft saved locally.';}
+  else if(a==='buysme')out.textContent='[Buy SME]\\nOpen the Mettin SME Registry below to select a Systemic Mineral Entity.';
+  else if(a==='infuse')out.textContent='[Infuse SME]\\nSimulated infusion workflow accepted.';
+  else out.textContent=`[Met Develop]\nCode execution completed in the simulation.\n\n${input}`;
+}
+function messageKey(a,b){return [a,b].sort().join('|');}
+function sendAlkMessage(){
+  if(!DB.currentUser){openAuth();return;} const to=document.getElementById('alkTo').value.trim(),msg=document.getElementById('alkMessage').value.trim();
+  if(!to||!msg){notify('Recipient and message are required.','error');return;} if(!DB.accounts[to]){notify('Recipient username not found.','error');return;}
+  const key=messageKey(DB.currentUser,to); DB.messages[key]=DB.messages[key]||[]; DB.messages[key].push({from:DB.currentUser,to,msg,date:now()}); saveDB(); document.getElementById('alkMessage').value=''; renderAlk();
+}
+function renderAlk(){
+  const box=document.getElementById('alkLog'); if(!box)return; const to=document.getElementById('alkTo')?.value.trim(); if(!to){box.innerHTML='<div class="muted">Enter recipient username to view the conversation.</div>';return;}
+  const rows=DB.messages[messageKey(DB.currentUser,to)]||[]; box.innerHTML=rows.map(m=>`<div class="msg"><b>${esc(m.from)}</b> → <b>${esc(m.to)}</b><br>${esc(m.msg)}<div class="small muted">${esc(m.date)}</div></div>`).join('')||'<div class="muted">No messages yet.</div>';
+}
+function appCuleSearch(){document.getElementById('appCuleOut').innerHTML=culeSummaryHTML(document.getElementById('appCule').value);}
+function nebulaText(q){
+  const n=norm(q);
+  if(!n)return 'Nebula AI: Enter a prompt.';
+  const m=findMatches(q);
+  if(m.length)return `Nebula AI analysis:\n${m.slice(0,6).map(x=>`• ${x.name}: ${money(x.price)} — ${x.cat}. ${x.desc}`).join('\n')}`;
+  const s=SMEs.find(x=>n.includes(norm(x.id))||n.includes(norm(x.name)));
+  if(s)return `Nebula AI analysis:\n${s.id} ${s.name}\nPrice: ${s.price}\nFunction: ${s.func}\nCapability: ${s.cap}`;
+  if(n.includes('met develop')||n.includes('code'))return 'Nebula AI: Met Develop has 8 functions: Code with friends, Develop AI, Compile to MetLang (Atbash), Code directly, Save as (Cloud), Draft, Buy SME and Infuse SME.';
+  if(n.includes('stock'))return 'Nebula AI: MetCount stocks are below subscriptions. Search any ticker to run the market simulation and manage a portfolio.';
+  return 'Nebula AI: I can analyze the embedded Metxon hardware catalog, SME registry, Mettin apps, M-IN, Metware, MetCount subscriptions and simulated stock engine.';
+}
+function nebulaAnswer(){document.getElementById('nebulaOutput').textContent=nebulaText(document.getElementById('nebulaInput').value);}
+function appNebulaAnswer(){document.getElementById('appNebulaOut').textContent=nebulaText(document.getElementById('appNebula').value);}
+
+/* ---------- SME ---------- */
+function renderSME(){
+  document.getElementById('smeGrid').innerHTML=SMEs.map(s=>`<div class="card"><span class="tag">${esc(s.id)}</span><h3>${esc(s.name)}</h3><div class="price">${esc(s.price)}</div><p><b>Primary Function:</b> ${esc(s.func)}</p><p class="muted"><b>Capability:</b> ${esc(s.cap)}</p><button class="btn secondary" onclick="smeWorkflow('${s.id}')">Purchase / Infuse</button></div>`).join('');
+}
+function smeWorkflow(id){const s=SMEs.find(x=>x.id===id);if(!s)return;notify(`${s.id} // ${s.name}: purchase/infusion workflow opened. ${s.price}`,'success');}
+
+/* ---------- MetCount security / subscriptions ---------- */
+function renderMetCount(){
+  const a=currentAccount();
+  if(!a){document.getElementById('mcGate').classList.remove('hidden');document.getElementById('mcBody').classList.add('hidden');return;}
+  if(!metcountUnlocked){document.getElementById('mcGate').classList.remove('hidden');document.getElementById('mcBody').classList.add('hidden');return;}
+  document.getElementById('mcGate').classList.add('hidden');document.getElementById('mcBody').classList.remove('hidden');renderMCBody();
+}
+function unlockMetCount(){
+  const u=document.getElementById('mcUser').value.trim()||DB.currentUser, pass=document.getElementById('mcPass').value, a=DB.accounts[u];
+  if(!a){notify('MetCount account not found.','error');return}
+  if(a.metcountPassword===null){if(pass!==a.password){notify('Existing Metxon password is incorrect.','error');return} document.getElementById('mcPass').value='';document.getElementById('mcPass').focus(); const p=prompt('New member first MetCount access: set a strong MetCount password (8+ characters).'); if(!p||p.length<8){notify('Strong MetCount password required.','error');return} a.metcountPassword=p;DB.currentUser=u;saveDB();}
+  else if(a.metcountPassword!==pass){notify('MetCount security password is incorrect.','error');return}
+  DB.currentUser=u;metcountUnlocked=true;saveDB();updateProfile();renderMetCount();notify('MetCount security verification successful.','success');
+}
+function refreshSubscription(a){
+  if(a.subscription && Date.now()>a.subscription.expires){a.subscription=null;DB.subscriptions[a.username]=null;saveDB();}
+}
+function renderMCBody(){
+  const a=currentAccount();if(!a)return;refreshSubscription(a);
+  document.getElementById('mcAccountName').textContent=a.username+' ('+a.role+')';document.getElementById('mcBalance').textContent=money(a.balance);
+  const sub=a.subscription;document.getElementById('activeSub').textContent=sub?`${sub.tier} — ${money(sub.price)}/week`:'None (INR only)';document.getElementById('subExpiry').textContent=sub?'Expires: '+new Date(sub.expires).toLocaleString():'No subscription: premium currencies/features are stopped.';document.getElementById('mcCurrencies').textContent='Available currency display: '+(sub?sub.currencies.join(', '):'INR');
+  const tx=DB.transactions.filter(t=>t.username===a.username).slice(-8).reverse();document.getElementById('txList').innerHTML=tx.length?tx.map(t=>`<div class="msg"><b>${esc(t.type)}</b> — ${esc(t.note)}<br><span class="small muted">${esc(t.date)} • ${money(t.amount)}</span></div>`).join(''):'<div class="muted">No transactions yet.</div>';renderPortfolio();
+}
+function subscribe(tier,price){
+  const a=currentAccount();if(!a){openAuth();return}refreshSubscription(a);if(a.balance<price){notify('Insufficient balance.','error');return}
+  const currencies=tier==='Base'?['INR','USD']:tier==='Premium'?['INR','USD','EUR','GBP','JPY']:['INR','USD','EUR','GBP','JPY','KRW'];a.balance-=price;a.subscription={tier,price,currencies,started:Date.now(),expires:Date.now()+7*86400000};addTransaction(a.username,'SUBSCRIPTION',tier+' weekly subscription',-price);saveDB();renderMCBody();notify(tier+' activated for 7 simulated days.','success');
+}
+function transferMoney(){
+  const a=currentAccount();if(!a){openAuth();return}const to=document.getElementById('transferTo').value.trim(),pass=document.getElementById('transferPass').value,amt=Number(document.getElementById('transferAmount').value),r=DB.accounts[to];if(!r){notify('Recipient username not found.','error');return}if(a.password!==pass){notify('Password verification failed.','error');return}if(!amt||amt<=0||a.balance<amt){notify('Invalid amount or insufficient funds.','error');return}a.balance-=amt;r.balance+=amt;addTransaction(a.username,'TRANSFER','To '+to,-amt);addTransaction(to,'TRANSFER','From '+a.username,amt);saveDB();renderMCBody();notify('Met-Transfer completed.','success');
+}
+
+/* ---------- stock engine: arbitrary searchable simulated market ---------- */
+const STOCK_NAMES={AAPL:'Apple Inc.',GOOGL:'Alphabet Inc.',GOOG:'Alphabet Inc. Class C',MSFT:'Microsoft Corporation',NVDA:'NVIDIA Corporation',AMZN:'Amazon.com Inc.',TSLA:'Tesla Inc.',META:'Meta Platforms Inc.',NFLX:'Netflix Inc.',TCS:'Tata Consultancy Services',RELIANCE:'Reliance Industries',INFY:'Infosys'};
+const STOCK_BASE={AAPL:223.5,GOOGL:196.1,GOOG:197.2,MSFT:507,NVDA:181.3,AMZN:231.4,TSLA:339,META:767,NFLX:1230,TCS:4050,RELIANCE:1350,INFY:1525};
+function stockQuote(symbol){
+  const s=symbol.toUpperCase().replace(/[^A-Z0-9.]/g,'').slice(0,12)||'GOOGL';let base=STOCK_BASE[s]||100+(s.length*37);let seed=[...s].reduce((a,c)=>a+c.charCodeAt(0),0);let daily=Math.sin(Math.floor(Date.now()/86400000)+seed)*.035;return {symbol:s,name:STOCK_NAMES[s]||('Simulated Market Listing for '+s),price:base*(1+daily)};
+}
+function searchStock(){
+  const raw=document.getElementById('stockSearch').value.trim();if(!raw){document.getElementById('stockQuote').innerHTML='<div class="notice">Enter a ticker or company name.</div>';return}
+  let s=null;const n=norm(raw);for(const [sym,name] of Object.entries(STOCK_NAMES)){if(sym.toLowerCase()===n||norm(name)===n||sym.toLowerCase().includes(n)||norm(name).includes(n)){s=stockQuote(sym);break}}if(!s)s=stockQuote(raw);activeStock=s;const a=currentAccount(),held=(a?.portfolio?.[s.symbol]?.shares)||0;document.getElementById('stockQuote').innerHTML=`<div class="card"><span class="tag">SIMULATED ASSET MARKET DATA</span><div class="stockquote"><div><h3>${esc(s.name)} (${esc(s.symbol)})</h3><p class="muted">Search result from MetCount simulation.</p></div><div><div class="price">$${s.price.toFixed(2)} / share</div><div class="small muted">Daily P&amp;L simulation</div></div></div><div class="row" style="margin-top:10px"><input id="stockShares" class="input" type="number" min="1" value="1"><button class="btn green" onclick="tradeStock('buy')">Buy</button><button class="btn red" onclick="tradeStock('sell')">Sell</button></div><div class="small muted">Current holding: ${held} share(s)</div></div>`;
+}
+function tradeStock(side){
+  const a=currentAccount();if(!a){openAuth();return}if(!activeStock){notify('Search for a stock first.','error');return}const qty=Math.max(1,Number(document.getElementById('stockShares').value)||1),p=activeStock.price,sym=activeStock.symbol;a.portfolio=a.portfolio||{};const h=a.portfolio[sym]||{shares:0,cost:0};
+  if(side==='buy'){const total=p*qty;if(a.balance<total){notify('Insufficient simulated INR balance.','error');return}h.cost+=total;h.shares+=qty;a.balance-=total;addTransaction(a.username,'STOCK BUY',`${sym} × ${qty} @ $${p.toFixed(2)}`,-total);}
+  else{if(h.shares<qty){notify('Not enough shares.','error');return}const proceeds=p*qty;const avg=h.cost/h.shares;h.cost=Math.max(0,h.cost-avg*qty);h.shares-=qty;a.balance+=proceeds;addTransaction(a.username,'STOCK SELL',`${sym} × ${qty} @ $${p.toFixed(2)}`,proceeds);}
+  if(h.shares>0)a.portfolio[sym]=h;else delete a.portfolio[sym];saveDB();renderMCBody();searchStock();
+}
+function renderPortfolio(){
+  const box=document.getElementById('portfolio'),a=currentAccount();if(!box||!a)return;const rows=Object.entries(a.portfolio||{}).filter(([,v])=>v.shares>0);if(!rows.length){box.innerHTML='<div class="muted">No stock holdings yet.</div>';return}
+  let total=0;box.innerHTML=rows.map(([sym,h])=>{const s=stockQuote(sym),value=s.price*h.shares,pl=value-h.cost;total+=value;return `<div class="cartline"><span><b>${esc(sym)}</b><br><span class="muted">${h.shares} shares • Avg cost $${(h.cost/h.shares).toFixed(2)}</span></span><span><b>$${value.toFixed(2)}</b><br><span class="${pl>=0?'positive':'negative'}">${pl>=0?'+':''}$${pl.toFixed(2)}</span></span></div>`}).join('')+`<div class="notice"><b>Total Portfolio Value:</b> $${total.toFixed(2)}</div>`;
+}
+
+/* ---------- MetCart + Met-Pay ---------- */
+function cartFor(){const a=currentAccount();if(!a)return[];DB.carts[a.username]=DB.carts[a.username]||[];return DB.carts[a.username];}
+function addCart(name){const a=currentAccount();if(!a){openAuth();return}const cart=cartFor();if(cart.some(x=>x.name===name)){notify('Bulk order is not allowed. One unit per product per order.','warn');return}const p=CATALOG.find(x=>x.name===name);if(!p)return;cart.push({...p,quantity:1});saveDB();renderCart();notify(name+' added to MetCart.','success');}
+function buyDirect(name){const a=currentAccount();if(!a){openAuth();return}openPaymentFor([CATALOG.find(x=>x.name===name)]);}
+function renderCartCatalog(){const q=norm(document.getElementById('cartSearch').value);const list=CATALOG.filter(x=>!q||norm(x.name+' '+x.cat+' '+x.desc).includes(q));document.getElementById('cartGrid').innerHTML=list.map(x=>productCard(x,true)).join('')||'<div class="empty">No MetCart products found.</div>';}
+function renderCart(){const a=currentAccount(),panel=document.getElementById('cartPanel');if(!a){panel.classList.remove('hidden');panel.innerHTML='<h3>Cart</h3><div class="muted">Sign in to use MetCart.</div>';return}const cart=cartFor();panel.classList.remove('hidden');if(!cart.length){panel.innerHTML='<h3>Cart</h3><div class="muted">Cart is empty.</div>';return}const total=cart.reduce((s,x)=>s+x.price,0);panel.innerHTML='<h3>Cart</h3>'+cart.map((x,i)=>`<div class="cartline"><span><b>${esc(x.name)}</b></span><span>${money(x.price)} <button class="btn secondary small" onclick="removeCart(${i})">Remove</button></span></div>`).join('')+`<div class="price">Total: ${money(total)}</div><button class="btn green" onclick="openPay()">Met-Pay Checkout</button>`;}
+function removeCart(i){const cart=cartFor();cart.splice(i,1);saveDB();renderCart();}
+function showCart(){renderCart();document.getElementById('cartPanel').scrollIntoView({behavior:'smooth',block:'center'});}
+function openPaymentFor(items){if(!items||!items.length||!items[0])return;checkout={items,total:items[0].price};document.getElementById('paymentSummary').innerHTML=`<b>${esc(items[0].name)}</b><br>Total: <span class="price">${money(items[0].price)}</span>`;document.getElementById('payUsername').value=DB.currentUser||'';document.getElementById('payPassword').value='';document.getElementById('payModal').classList.add('show');}
+function openPay(){const cart=cartFor();if(!cart.length){notify('Cart is empty.','warn');return}if(cart.length>1){notify('Bulk order is not allowed. Please checkout one item at a time.','warn');return}openPaymentFor(cart);}
+function executeMetPay(){
+  if(!checkout){return}const u=document.getElementById('payUsername').value.trim(),p=document.getElementById('payPassword').value,a=DB.accounts[u];if(!a||a.password!==p){notify('Met-Pay username/password verification failed.','error');return}const item=checkout.items[0];if(a.balance<item.price){notify('Insufficient funds.','error');return}a.balance-=item.price;const id='MCO-'+Date.now().toString(36).toUpperCase();DB.orders.push({id,username:u,item:item.name,price:item.price,status:'ORDERED',date:now()});addTransaction(u,'MET-PAY ORDER',id+' — '+item.name,-item.price);DB.carts[u]=[];saveDB();closeModal('payModal');refreshMetCount();renderCart();notify('Payment successful. Order '+id+' recorded in the simulation.','success');}
+
+/* ---------- misc ---------- */
+function closeModal(id){document.getElementById(id).classList.remove('show');}
+function renderOrdersOwner(){return;}
+setInterval(()=>{for(const a of Object.values(DB.accounts)){if(a.subscription&&Date.now()>a.subscription.expires){a.subscription=null;}}saveDB();if(document.getElementById('page-metcount').classList.contains('active'))renderMetCount();},60000);
+setInterval(()=>{const m=document.querySelector('#page-mettin #metwareStatus');if(m)m.textContent='Metware 6: Routine security scan complete. 0 simulated vulnerabilities detected. Next routine scan in 5 minutes.';},300000);
+
+document.getElementById('authButton').addEventListener('click',()=>currentAccount()?logout():openAuth());
+document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show');}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal.show').forEach(m=>m.classList.remove('show'));});
+
+/* startup */
+if(!DB.accounts[OWNER]){DB.accounts[OWNER]={name:OWNER,dob:'—',username:OWNER,password:'NA',address:'Metxon Corporate',phone:'—',balance:OWNER_BALANCE,role:'Owner',metcountPassword:'NA',transactions:[],portfolio:{},subscription:null};saveDB();}
+for(const a of Object.values(DB.accounts))normalizeAccount(a);
+renderCatalog();renderApps();renderSME();renderCartCatalog();renderCart();updateProfile();
+setTimeout(()=>document.getElementById('splash').classList.add('hidden'),1700);
+</script>
+</body></html>
