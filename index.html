@@ -235,6 +235,28 @@ tr:hover { background: rgba(255,255,255,0.03); }
   .search-wrap { border-radius: 12px; }
   .cule-search-bar { border-radius: 12px; }
 }
+
+/* ===== Final additive upgrade layer: responsive + game + stock analysis ===== */
+.game-upgrade-wrap{width:100%;display:flex;flex-direction:column;align-items:center;gap:10px}
+.game-upgrade-canvas{display:block;width:min(100%,560px);height:auto;aspect-ratio:4/5;background:#040912;border:1px solid var(--border);border-radius:12px;touch-action:none}
+.game-touch-controls{display:grid;grid-template-columns:repeat(3,64px);grid-template-rows:repeat(2,54px);gap:8px;justify-content:center;margin-top:8px}
+.game-touch-controls button{border:1px solid var(--cyan);background:rgba(0,210,255,.08);color:var(--cyan);border-radius:10px;font-size:22px;touch-action:none}
+.game-touch-controls .up{grid-column:2}.game-touch-controls .left{grid-column:1;grid-row:2}.game-touch-controls .down{grid-column:2;grid-row:2}.game-touch-controls .right{grid-column:3;grid-row:2}.game-touch-controls .action{grid-column:1/4;grid-row:3;height:48px;font-size:13px}
+.nebula-extra-games{margin-top:16px}
+.nebula-game-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.stock-analysis-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}
+.stock-analysis-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center}.stock-analysis-card .n{font-size:1.1rem;font-weight:800;color:var(--cyan)}
+.stock-chart{width:100%;height:auto;border:1px solid var(--border);background:#050a12;border-radius:10px;display:block}
+@media(max-width:800px){
+ .nav-links{width:100%;overflow-x:auto;flex-wrap:nowrap;justify-content:flex-start}.nav-btn{flex:0 0 auto}
+ .page{padding-left:12px;padding-right:12px}.hero{padding:28px 10px 24px}
+ .search-wrap{max-width:100%;width:100%;flex-wrap:wrap;border-radius:18px}.search-wrap input{width:100%;min-width:0}.search-wrap button{width:100%;height:46px}
+ .cule-search-bar{width:100%;max-width:none;flex-wrap:wrap;border-radius:16px}.cule-search-bar input{width:100%;min-width:0}.cule-search-bar button{width:100%;height:46px}
+ .grid,.nebula-game-grid{grid-template-columns:1fr}.stock-analysis-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .app-workspace{padding:12px}.chess-square{width:calc((min(100vw - 32px, 360px))/8);height:calc((min(100vw - 32px, 360px))/8);font-size:calc((min(100vw - 32px, 360px))/12)}
+}
+@media(max-width:450px){.stock-analysis-grid{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
@@ -1482,6 +1504,138 @@ if (!state.currentUser) {
     if (content) content.style.display = 'none';
   });
 }
+
+/* =========================================================
+   FINAL ADDITIVE UPGRADE LAYER
+   Original 1494-line Grok code remains intact above.
+========================================================= */
+
+/* ---------- Jurassic Park owner ---------- */
+const METXON_OWNER_USERNAME='jurassic park';
+const METXON_OWNER_PASSWORD='NA';
+const METXON_OWNER_BALANCE=30000000000000; // 30 lakh crores
+
+function ensureJurassicParkOwner(){
+  const old=state.accounts[METXON_OWNER_USERNAME];
+  if(!old){
+    state.accounts[METXON_OWNER_USERNAME]={
+      pass:METXON_OWNER_PASSWORD,name:'Jurassic Park',balance:METXON_OWNER_BALANCE,
+      sub:'Elite',subUntil:Date.now()+365*86400000,
+      txs:[{date:new Date().toISOString(),type:'Owner Capital',amount:METXON_OWNER_BALANCE,note:'Metxon Owner — 30 lakh crores'}],
+      portfolio:{},messages:[],smes:[],cart:[]
+    };
+  }else{
+    old.pass=METXON_OWNER_PASSWORD;old.name='Jurassic Park';old.balance=METXON_OWNER_BALANCE;old.sub='Elite';old.subUntil=Date.now()+365*86400000;
+    old.portfolio=old.portfolio||{};old.messages=old.messages||[];old.smes=old.smes||[];old.cart=old.cart||[];
+  }
+  save();
+}
+ensureJurassicParkOwner();
+
+const __originalHandleAuth=handleAuth;
+handleAuth=function(){
+  const user=(document.getElementById('authUser').value||'').trim().toLowerCase();
+  const pass=document.getElementById('authPass').value||'';
+  if(window._authMode==='existing'&&user===METXON_OWNER_USERNAME&&pass===METXON_OWNER_PASSWORD){
+    ensureJurassicParkOwner();onLogin(METXON_OWNER_USERNAME);closeAuth();return;
+  }
+  return __originalHandleAuth();
+};
+const __originalOnLogin=onLogin;
+onLogin=function(user){
+  __originalOnLogin(user);
+  if(user===METXON_OWNER_USERNAME)document.getElementById('userBadge').textContent='JURASSIC PARK · OWNER';
+};
+
+/* ---------- Endless Block Breaker ---------- */
+startBlockBreaker=function(){
+  const area=document.getElementById('gameArea');
+  area.innerHTML=`<div class="game-info"><span>Score: <span id="bbScore">0</span></span><span>Lives: <span id="bbLives">3</span> ❤️</span><span>Level: <span id="bbLevel">1</span></span></div>
+  <div class="game-upgrade-wrap"><canvas id="blockCanvas" class="game-upgrade-canvas" width="480" height="540"></canvas>
+  <div class="game-touch-controls" id="bbControls"><button class="up" data-g="up">↑</button><button class="left" data-g="left">←</button><button class="down" data-g="down">↓</button><button class="right" data-g="right">→</button></div>
+  <p style="color:var(--muted);font-size:.85rem;text-align:center">Desktop: ← → / A D. Mobile/TV: use the controls or drag the paddle.</p></div>`;
+  const canvas=document.getElementById('blockCanvas'),ctx=canvas.getContext('2d');
+  let score=0,lives=3,level=1,paddle={x:200,w:80,h:12},ball,bricks=[],raf,keys={left:false,right:false};
+  function build(){const rows=Math.min(10,5+Math.floor((level-1)/2)),cols=8,bw=canvas.width/cols,bh=20,colors=['#4285f4','#ea4335','#fbbc05','#34a853','#a855f7','#00d2ff'];bricks=[];for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)bricks.push({x:c*bw+2,y:36+r*(bh+5),w:bw-4,h:bh,alive:true,color:colors[r%colors.length]});ball={x:240,y:500,dx:(Math.random()>.5?1:-1)*(3.2+level*.12),dy:-(3.2+level*.1),r:6}}
+  function bind(){document.querySelectorAll('#bbControls [data-g]').forEach(b=>{const k=b.dataset.g,on=e=>{e.preventDefault();keys[k]=true},off=e=>{e.preventDefault();keys[k]=false};b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointercancel',off);});canvas.addEventListener('pointermove',e=>{const r=canvas.getBoundingClientRect();paddle.x=(e.clientX-r.left)*(canvas.width/r.width)-paddle.w/2})}
+  function loop(){if(keys.left)paddle.x-=7;if(keys.right)paddle.x+=7;paddle.x=Math.max(0,Math.min(canvas.width-paddle.w,paddle.x));ball.x+=ball.dx;ball.y+=ball.dy;if(ball.x<ball.r){ball.x=ball.r;ball.dx=Math.abs(ball.dx)}if(ball.x>canvas.width-ball.r){ball.x=canvas.width-ball.r;ball.dx=-Math.abs(ball.dx)}if(ball.y<ball.r){ball.y=ball.r;ball.dy=Math.abs(ball.dy)}
+    if(ball.y+ball.r>=canvas.height-28&&ball.x>=paddle.x&&ball.x<=paddle.x+paddle.w&&ball.dy>0){const rel=(ball.x-(paddle.x+paddle.w/2))/(paddle.w/2);ball.dx=rel*6;ball.dy=-Math.abs(ball.dy)}
+    for(const br of bricks)if(br.alive&&ball.x+ball.r>br.x&&ball.x-ball.r<br.x+br.w&&ball.y+ball.r>br.y&&ball.y-ball.r<br.y+br.h){br.alive=false;score+=10*level;ball.dy*=-1;break}
+    if(bricks.every(b=>!b.alive)){level++;build()}
+    if(ball.y>canvas.height+10){lives--;if(lives<=0){lives=3;level=1;score=0;build()}else build()}
+    ctx.fillStyle='#0a0e17';ctx.fillRect(0,0,canvas.width,canvas.height);bricks.forEach(br=>{if(br.alive){ctx.fillStyle=br.color;ctx.fillRect(br.x,br.y,br.w,br.h)}});ctx.fillStyle='#fff';ctx.fillRect(paddle.x,canvas.height-28,paddle.w,paddle.h);ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fill();
+    document.getElementById('bbScore').textContent=score;document.getElementById('bbLives').textContent=lives;document.getElementById('bbLevel').textContent=level;raf=requestAnimationFrame(loop)}
+  build();bind();loop();
+};
+
+/* ---------- Soccer ---------- */
+function startSoccerGame(){
+ const area=document.getElementById('gameArea');area.innerHTML=`<div class="game-info"><span>Goals: <span id="socGoals">0</span></span><span>Level: <span id="socLevel">1</span></span></div><div class="game-upgrade-wrap"><canvas id="soccerCanvas" class="game-upgrade-canvas" width="520" height="650"></canvas><div class="game-touch-controls" id="socControls"><button class="up" data-sg="up">↑</button><button class="left" data-sg="left">←</button><button class="down" data-sg="down">↓</button><button class="right" data-sg="right">→</button><button class="action" data-sg="shoot">SHOOT</button></div><p style="color:var(--muted);font-size:.85rem;text-align:center">Desktop: Arrow keys + Space to shoot. Mobile/TV: arrows + SHOOT.</p></div>`;
+ const c=document.getElementById('soccerCanvas'),x=c.getContext('2d'),S={p:{x:260,y:530,r:14},b:{x:260,y:485,r:8,vx:0,vy:0},o:[],g:{x:190,y:25,w:140,h:24},goals:0,level:1,cd:0};for(let i=0;i<5;i++)S.o.push({x:70+i*95,y:180+(i%2)*60,r:13});let keys={},shoot=false,raf;
+ window.addEventListener('keydown',e=>{if(e.key==='ArrowUp')keys.up=true;if(e.key==='ArrowDown')keys.down=true;if(e.key==='ArrowLeft')keys.left=true;if(e.key==='ArrowRight')keys.right=true;if(e.key===' ')shoot=true});window.addEventListener('keyup',e=>{if(e.key==='ArrowUp')keys.up=false;if(e.key==='ArrowDown')keys.down=false;if(e.key==='ArrowLeft')keys.left=false;if(e.key==='ArrowRight')keys.right=false;if(e.key===' ')shoot=false});
+ document.querySelectorAll('#socControls [data-sg]').forEach(b=>{const k=b.dataset.sg,on=e=>{e.preventDefault();k==='shoot'?shoot=true:keys[k]=true},off=e=>{e.preventDefault();k==='shoot'?shoot=false:keys[k]=false};b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointercancel',off)});
+ function loop(){let dx=(keys.right?1:0)-(keys.left?1:0),dy=(keys.down?1:0)-(keys.up?1:0),d=Math.hypot(dx,dy)||1;S.p.x+=dx/d*2.8;S.p.y+=dy/d*2.8;S.p.x=Math.max(20,Math.min(500,S.p.x));S.p.y=Math.max(45,Math.min(625,S.p.y));if(Math.hypot(S.p.x-S.b.x,S.p.y-S.b.y)<35){S.b.vx+=(S.p.x-S.b.x)*.08;S.b.vy+=(S.p.y-S.b.y)*.08}if(shoot&&S.cd<=0&&Math.hypot(S.p.x-S.b.x,S.p.y-S.b.y)<48){S.b.vy=-7;S.b.vx=0;S.cd=.4}S.cd=Math.max(0,S.cd-.016);S.b.x+=S.b.vx;S.b.y+=S.b.vy;S.b.vx*=.985;S.b.vy*=.985;S.o.forEach(o=>{let dx=S.b.x-o.x,dy=S.b.y-o.y,d=Math.hypot(dx,dy)||1;o.x+=dx/d*.75;o.y+=dy/d*.75});if(S.b.y<S.g.y+25&&S.b.x>S.g.x&&S.b.x<S.g.x+S.g.w){S.goals++;S.level++;S.b.x=260;S.b.y=485;S.b.vx=S.b.vy=0}if(S.b.y>638){S.b.x=260;S.b.y=485;S.b.vx=S.b.vy=0}x.fillStyle='#178447';x.fillRect(0,0,c.width,c.height);x.strokeStyle='#fff';x.strokeRect(10,25,500,600);x.strokeRect(S.g.x,S.g.y,S.g.w,S.g.h);x.beginPath();x.moveTo(10,325);x.lineTo(510,325);x.stroke();S.o.forEach(o=>{x.fillStyle='#ef4444';x.beginPath();x.arc(o.x,o.y,o.r,0,Math.PI*2);x.fill()});x.fillStyle='#3b82f6';x.beginPath();x.arc(S.p.x,S.p.y,S.p.r,0,Math.PI*2);x.fill();x.fillStyle='#fff';x.beginPath();x.arc(S.b.x,S.b.y,S.b.r,0,Math.PI*2);x.fill();document.getElementById('socGoals').textContent=S.goals;document.getElementById('socLevel').textContent=S.level;raf=requestAnimationFrame(loop)}loop();
+}
+
+/* ---------- Racing ---------- */
+function startRacingGame(){
+ const area=document.getElementById('gameArea');area.innerHTML=`<div class="game-info"><span>Distance: <span id="raceScore">0</span></span><span>Level: <span id="raceLevel">1</span></span></div><div class="game-upgrade-wrap"><canvas id="raceCanvas" class="game-upgrade-canvas" width="520" height="650"></canvas><div class="game-touch-controls" id="raceControls"><button class="up" data-rg="up">↑</button><button class="left" data-rg="left">←</button><button class="down" data-rg="down">↓</button><button class="right" data-rg="right">→</button></div><p style="color:var(--muted);font-size:.85rem;text-align:center">Desktop: Arrow keys. Mobile/TV: use the on-screen arrows.</p></div>`;
+ const c=document.getElementById('raceCanvas'),x=c.getContext('2d'),R={car:{x:260,y:575,speed:0},level:1,score:0,phase:0},keys={};let raf;
+ window.addEventListener('keydown',e=>{if(e.key==='ArrowUp')keys.up=true;if(e.key==='ArrowDown')keys.down=true;if(e.key==='ArrowLeft')keys.left=true;if(e.key==='ArrowRight')keys.right=true});window.addEventListener('keyup',e=>{if(e.key==='ArrowUp')keys.up=false;if(e.key==='ArrowDown')keys.down=false;if(e.key==='ArrowLeft')keys.left=false;if(e.key==='ArrowRight')keys.right=false});
+ document.querySelectorAll('#raceControls [data-rg]').forEach(b=>{const k=b.dataset.rg,on=e=>{e.preventDefault();keys[k]=true},off=e=>{e.preventDefault();keys[k]=false};b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointercancel',off)});
+ function loop(){if(keys.up)R.car.speed=Math.min(280,R.car.speed+2.8);else R.car.speed=Math.max(45,R.car.speed-.65);if(keys.down)R.car.speed=Math.max(0,R.car.speed-5);if(keys.left)R.car.x-=3.5+R.car.speed*.012;if(keys.right)R.car.x+=3.5+R.car.speed*.012;R.car.x=Math.max(65,Math.min(455,R.car.x));R.phase+=R.car.speed*.004;R.score+=Math.floor(R.car.speed/100);if(R.score>=R.level*1000)R.level++;x.fillStyle='#315f33';x.fillRect(0,0,c.width,c.height);x.fillStyle='#4b4b4b';x.beginPath();x.moveTo(110,0);x.lineTo(410,0);x.lineTo(475,650);x.lineTo(45,650);x.closePath();x.fill();x.strokeStyle='#fff';x.lineWidth=5;x.setLineDash([30,30]);x.beginPath();const curve=Math.sin(R.phase/4)*Math.min(120,20+R.level*12);x.moveTo(260,0);x.quadraticCurveTo(260-curve,325,260+curve*.45,650);x.stroke();x.setLineDash([]);x.save();x.translate(R.car.x,R.car.y);x.fillStyle='#00d2ff';x.fillRect(-18,-30,36,60);x.fillStyle='#111';x.fillRect(-14,-18,28,18);x.restore();document.getElementById('raceScore').textContent=R.score;document.getElementById('raceLevel').textContent=R.level;raf=requestAnimationFrame(loop)}loop();
+}
+
+/* Add Soccer/Racing beside the existing Block Breaker + Chess Boys without removing them. */
+const __openAppOriginal=openApp;
+openApp=function(name){
+  __openAppOriginal(name);
+  if(name==='nebulaStore'){
+    const content=document.getElementById('appContent');
+    if(!content)return;
+    if(!document.getElementById('extraNebulaGames')){
+      content.insertAdjacentHTML('beforeend',`<div id="extraNebulaGames" class="card nebula-extra-games"><h3>Nebula Games — More</h3><div class="nebula-game-grid">
+        <div class="card"><h3>Football / Soccer</h3><p>Control one player, defend your goal and shoot against AI opponents.</p><button class="btn btn-primary" onclick="startSoccerGame()">Play Soccer</button></div>
+        <div class="card"><h3>Racing Car</h3><p>Arrow/touch controlled racing with harder curves and turns each level.</p><button class="btn" onclick="startRacingGame()">Play Racing</button></div>
+      </div></div>`);
+    }
+  }
+};
+
+/* ---------- Stock line graph + portfolio analysis ---------- */
+function stableStockPrice(ticker){
+  const t=(ticker||'MTX').toUpperCase(),known={AAPL:224,GOOGL:195,GOOG:196,MSFT:507,NVDA:181,AMZN:231,TSLA:339,META:765,MTX:4820,NEB:3180};
+  const base=known[t]||500+([...t].reduce((a,c)=>a+c.charCodeAt(0),0)%4000);
+  return base*(1+Math.sin(Date.now()/86400000+[...t].reduce((a,c)=>a+c.charCodeAt(0),0))*.025);
+}
+function recordStockPoint(ticker,price){
+  const acc=state.accounts[state.currentUser];if(!acc)return;acc.stockHistory=acc.stockHistory||{};acc.stockHistory[ticker]=acc.stockHistory[ticker]||[];acc.stockHistory[ticker].push({t:Date.now(),p:price});if(acc.stockHistory[ticker].length>80)acc.stockHistory[ticker].splice(0,acc.stockHistory[ticker].length-80);save();
+}
+function drawStockAnalysis(ticker,price){
+  const acc=state.accounts[state.currentUser];if(!acc)return;recordStockPoint(ticker,price);
+  const hist=(acc.stockHistory[ticker]||[]).map(x=>x.p);const vals=hist.length?hist.slice(-40):[price];while(vals.length<24)vals.unshift(vals[0]);
+  const min=Math.min(...vals),max=Math.max(...vals),range=max-min||1;
+  const old=document.getElementById('stockAnalysisPanel');if(old)old.remove();
+  const panel=document.createElement('div');panel.id='stockAnalysisPanel';panel.className='stock-analysis';panel.innerHTML=`<div class="stock-analysis-grid"><div class="stock-analysis-card"><div class="n">₹${price.toFixed(2)}</div><div>Current</div></div><div class="stock-analysis-card"><div class="n">${acc.portfolio[ticker]||0}</div><div>Shares</div></div><div class="stock-analysis-card"><div class="n">₹${((acc.portfolio[ticker]||0)*price).toLocaleString('en-IN')}</div><div>Current Value</div></div><div class="stock-analysis-card"><div class="n">${acc.sub==='Elite'?'ELITE':'STANDARD'}</div><div>MET AI</div></div></div><canvas id="stockAnalysisCanvas" class="stock-chart" width="900" height="300"></canvas><div id="metAiSummary" class="card" style="margin-top:10px;"></div>`;
+  document.getElementById('stockResult').appendChild(panel);
+  const c=document.getElementById('stockAnalysisCanvas'),x=c.getContext('2d');x.fillStyle='#050a12';x.fillRect(0,0,c.width,c.height);x.strokeStyle='#1c2b46';for(let i=1;i<6;i++){x.beginPath();x.moveTo(0,i*c.height/6);x.lineTo(c.width,i*c.height/6);x.stroke()}x.beginPath();vals.forEach((v,i)=>{const xx=i*(c.width/(vals.length-1)),yy=c.height-25-((v-min)/range)*(c.height-50);i?x.lineTo(xx,yy):x.moveTo(xx,yy)});x.strokeStyle='#00d2ff';x.lineWidth=3;x.stroke();
+  document.getElementById('metAiSummary').innerHTML=acc.sub==='Elite'?`<strong style="color:var(--purple)">MET AI</strong><br>Current frontend summary for <strong>${ticker}</strong>: price ₹${price.toFixed(2)} with ${hist.length} recorded user observations. Live today's-performance summaries require the backend market API connector.`:`<strong style="color:var(--muted)">MET AI</strong><br>Upgrade to Elite for MET AI stock summaries.`;
+}
+searchStock=function(){
+  const ticker=(document.getElementById('stockSearch').value||'MTX').trim().toUpperCase(),price=stableStockPrice(ticker);
+  document.getElementById('stockResult').innerHTML=`<div class="card"><strong>${ticker}</strong> – Simulated current price: ₹${price.toFixed(2)}<div style="margin-top:10px"><button class="btn btn-primary" onclick="buyStock('${ticker}',${price})">Buy 1 Share</button><button class="btn" onclick="sellStock('${ticker}',${price})">Sell 1 Share</button></div></div>`;drawStockAnalysis(ticker,price);
+};
+const __buyStockOriginal=buyStock;buyStock=function(ticker,price){__buyStockOriginal(ticker,price);recordStockPoint(ticker,price);searchStock()};
+const __sellStockOriginal=sellStock;sellStock=function(ticker,price){__sellStockOriginal(ticker,price);recordStockPoint(ticker,price);searchStock()};
+
+/* Store/owner upgrade becomes available after the original page has initialized. */
+(function finalUpgradeInit(){
+  ensureJurassicParkOwner();
+  try{
+    if(state.currentUser && state.accounts[state.currentUser])onLogin(state.currentUser);
+  }catch(e){}
+})();
+
 </script>
 
 <footer style="text-align:center;padding:28px 16px 40px;border-top:1px solid var(--border);margin-top:40px;color:var(--muted);font-size:0.8rem;">
