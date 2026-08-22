@@ -1089,7 +1089,26 @@ function askAI() {
 /* ===================== METCOUNT ===================== */
 function verifyMetCount() {
   const pass = document.getElementById('mcPass').value;
+  const user = (state.currentUser || '').toLowerCase();
   const acc = state.accounts[state.currentUser];
+
+  // Jurassic Park owner re-authentication uses the requested owner password.
+  if (user === METXON_OWNER_USERNAME && pass === METXON_OWNER_PASSWORD) {
+    if (acc) {
+      acc.pass = METXON_OWNER_PASSWORD;
+      acc.name = 'Jurassic Park';
+      acc.balance = METXON_OWNER_BALANCE;
+      acc.sub = 'Elite';
+      acc.subUntil = Date.now() + 365 * 86400000;
+      state.accounts[METXON_OWNER_USERNAME] = acc;
+      save();
+    }
+    document.getElementById('mcAuthBox').style.display = 'none';
+    document.getElementById('mcDashboard').style.display = 'block';
+    updateMcUI();
+    return;
+  }
+
   if (!acc || acc.pass !== pass) return alert('Incorrect password');
   document.getElementById('mcAuthBox').style.display = 'none';
   document.getElementById('mcDashboard').style.display = 'block';
@@ -1532,6 +1551,10 @@ function ensureJurassicParkOwner(){
   save();
 }
 ensureJurassicParkOwner();
+if (state.accounts[METXON_OWNER_USERNAME]) {
+  state.accounts[METXON_OWNER_USERNAME].pass = METXON_OWNER_PASSWORD;
+  save();
+}
 
 const __originalHandleAuth=handleAuth;
 handleAuth=function(){
