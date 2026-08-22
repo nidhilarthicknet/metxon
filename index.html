@@ -1886,15 +1886,58 @@ buySub=async function(tier,price){
 
 /* MetCount password re-authentication uses the already authenticated Supabase session. */
 verifyMetCount=async function(){
-  const pass=document.getElementById('mcPass').value||'';
+  const pass=(document.getElementById('mcPass').value||'').trim();
   if(!state.currentUser)return openAuth();
-  try{
-    const result=await metxonAuthRequest('login',{username:state.currentUser,password:pass});
-    if(result.session)await metxonSupabase.auth.setSession({access_token:result.session.access_token,refresh_token:result.session.refresh_token});
+
+  // FINAL OWNER RULE:
+  // The Jurassic Park owner re-authentication password is exactly "NA".
+  // This runs before the generic Supabase password check so an older
+  // local password cannot block the requested owner account.
+  if((state.currentUser||'').toLowerCase() === METXON_OWNER_USERNAME && pass === METXON_OWNER_PASSWORD){
+    ensureJurassicParkOwner();
+    const acc=state.accounts[METXON_OWNER_USERNAME];
+    acc.pass=METXON_OWNER_PASSWORD;
+    acc.name='Jurassic Park';
+    acc.balance=METXON_OWNER_BALANCE;
+    acc.sub='Elite';
+    acc.subUntil=Date.now()+365*86400000;
+    state.currentUser=METXON_OWNER_USERNAME;
+    save();
+
+    // Keep the cloud session when it already exists. The owner is already
+    // authenticated by the main Metxon login; do not re-reject it here.
     document.getElementById('mcAuthBox').style.display='none';
     document.getElementById('mcDashboard').style.display='block';
-    await refreshCloudAccount();await cloudLoadTransactions();await cloudLoadHoldings();updateMcUI();
-  }catch(e){alert('Incorrect password');}
+    updateMcUI();
+    try{
+      await refreshCloudAccount();
+      await cloudLoadTransactions();
+      await cloudLoadHoldings();
+      updateMcUI();
+    }catch(e){
+      console.warn('Owner cloud refresh skipped:',e);
+    }
+    return;
+  }
+
+  // All other users must authenticate with their own password.
+  try{
+    const result=await metxonAuthRequest('login',{username:state.currentUser,password:pass});
+    if(result.session){
+      await metxonSupabase.auth.setSession({
+        access_token:result.session.access_token,
+        refresh_token:result.session.refresh_token
+      });
+    }
+    document.getElementById('mcAuthBox').style.display='none';
+    document.getElementById('mcDashboard').style.display='block';
+    await refreshCloudAccount();
+    await cloudLoadTransactions();
+    await cloudLoadHoldings();
+    updateMcUI();
+  }catch(e){
+    alert('Incorrect password');
+  }
 };
 
 /* Cloud Chess Boys: keep the existing board UI/rules, but persist games in Supabase. */
