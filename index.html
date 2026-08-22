@@ -532,6 +532,7 @@ tr:hover { background: rgba(255,255,255,0.03); }
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* ===================== DATA ===================== */
 const KEY = 'metxon_vfinal_2026';
@@ -1644,5 +1645,286 @@ const __sellStockOriginal=sellStock;sellStock=function(ticker,price){__sellStock
   <p style="margin-top:4px;">Molecule · Mettin · MetCount · MetCart — Fictional ecosystem portal.</p>
   <p style="margin-top:8px;font-size:0.75rem;opacity:0.7;">Owner: Jurassic Park · Metxon Ecosystem</p>
 </footer>
+<script>
+/* ===================== METXON SUPABASE BRIDGE ===================== */
+const METXON_SUPABASE_URL = 'https://brahcvovidgjjzpkxsms.supabase.co';
+const METXON_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_FFhWnTcsx3JflSHkIDaSaQ_Mwhh83up';
+const metxonSupabase = window.supabase.createClient(METXON_SUPABASE_URL, METXON_SUPABASE_PUBLISHABLE_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+});
+const METXON_AUTH_FUNCTION = METXON_SUPABASE_URL + '/functions/v1/metxon-auth-v2';
+
+async function metxonAuthRequest(action, payload) {
+  const res = await fetch(METXON_AUTH_FUNCTION, {
+    method:'POST',
+    headers:{'Content-Type':'application/json','apikey':METXON_SUPABASE_PUBLISHABLE_KEY},
+    body:JSON.stringify({action,...payload})
+  });
+  const data = await res.json().catch(()=>({}));
+  if (!res.ok || data.error) throw new Error(data.error || 'Metxon authentication failed');
+  return data;
+}
+
+function syncProfileToLegacy(profile) {
+  if (!profile) return;
+  const u=(profile.username||'').toLowerCase();
+  state.accounts[u]=state.accounts[u]||{};
+  const a=state.accounts[u];
+  a.name=profile.display_name||u;
+  a.balance=Number(profile.balance||0);
+  a.sub=profile.subscription_tier||'None';
+  a.subUntil=profile.subscription_until ? new Date(profile.subscription_until).getTime() : 0;
+  a.phone=profile.phone||a.phone||'';
+  a.dob=profile.dob||a.dob||'';
+  a.addr=profile.address||a.addr||'';
+  a.pass='__supabase__';
+  a.txs=a.txs||[]; a.portfolio=a.portfolio||{}; a.messages=a.messages||[]; a.cart=a.cart||[];
+}
+
+async function loadCloudAccount(username){
+  const {data,error}=await metxonSupabase.from('profiles').select('*').ilike('username',username).maybeSingle();
+  if(error) throw error;
+  if(data) syncProfileToLegacy(data);
+  return data;
+}
+
+async function refreshCloudAccount(){
+  if(!state.currentUser) return null;
+  try{
+    const p=await loadCloudAccount(state.currentUser);
+    if(p){ syncProfileToLegacy(p); save(); renderMetcart(); renderMolecule(); renderSMEs(); if(typeof renderMetCount==='function')updateMcUI(); }
+    return p;
+  }catch(e){ console.warn('Metxon cloud refresh:',e); return null; }
+}
+
+async function cloudLoadTransactions(){
+  if(!state.currentUser)return;
+  const p=await loadCloudAccount(state.currentUser); if(!p)return;
+  const {data,error}=await metxonSupabase.from('transactions').select('*').eq('user_id',p.id).order('created_at',{ascending:false}).limit(100);
+  if(error) return console.warn(error);
+  state.accounts[state.currentUser].txs=(data||[]).map(t=>({date:t.created_at,type:t.type,amount:Number(t.amount),note:t.note||''}));
+  save();
+}
+
+async function cloudLoadHoldings(){
+  if(!state.currentUser)return;
+  const p=await loadCloudAccount(state.currentUser); if(!p)return;
+  const {data,error}=await metxonSupabase.from('portfolio_holdings').select('*').eq('user_id',p.id);
+  if(error)return console.warn(error);
+  state.accounts[state.currentUser].portfolio={};
+  (data||[]).forEach(h=>state.accounts[state.currentUser].portfolio[h.ticker]=Number(h.shares));
+  save();
+}
+
+async function cloudLoadCart(){
+  if(!state.currentUser)return;
+  const p=await loadCloudAccount(state.currentUser); if(!p)return;
+  const {data,error}=await metxonSupabase.from('orders').select('*').eq('user_id',p.id).order('created_at',{ascending:false}).limit(100);
+  if(error)return console.warn(error);
+  state.accounts[state.currentUser].cloudOrders=data||[];
+}
+
+async function cloudTransfer(recipient, amount){
+  const {data,error}=await metxonSupabase.rpc('metxon_transfer',{recipient_username:recipient,transfer_amount:amount});
+  if(error)throw error;
+  await refreshCloudAccount(); await cloudLoadTransactions();
+  return data;
+}
+
+async function cloudBuyStock(ticker, price){
+  const {data,error}=await metxonSupabase.rpc('metxon_buy_stock',{stock_ticker:ticker,share_price:price});
+  if(error)throw error;
+  await refreshCloudAccount(); await cloudLoadHoldings(); await cloudLoadTransactions();
+  return data;
+}
+
+async function cloudSellStock(ticker, price){
+  const {data,error}=await metxonSupabase.rpc('metxon_sell_stock',{stock_ticker:ticker,share_price:price});
+  if(error)throw error;
+  await refreshCloudAccount(); await cloudLoadHoldings(); await cloudLoadTransactions();
+  return data;
+}
+
+async function cloudSubscribe(tier, price){
+  const {data,error}=await metxonSupabase.rpc('metxon_buy_subscription',{tier_name:tier,tier_price:price});
+  if(error)throw error;
+  await refreshCloudAccount(); await cloudLoadTransactions();
+  return data;
+}
+
+async function cloudLoadMessages(otherUsername){
+  const me=await loadCloudAccount(state.currentUser), other=await loadCloudAccount(otherUsername.toLowerCase());
+  if(!me||!other)return [];
+  const {data,error}=await metxonSupabase.from('metalk_messages').select('*').or(`and(sender_id.eq.${me.id},recipient_id.eq.${other.id}),and(sender_id.eq.${other.id},recipient_id.eq.${me.id})`).order('created_at',{ascending:true});
+  if(error)throw error; return data||[];
+}
+
+async function cloudSendMessage(otherUsername,msg){
+  const me=await loadCloudAccount(state.currentUser), other=await loadCloudAccount(otherUsername.toLowerCase());
+  if(!me)throw new Error('Your account is not synchronized yet');
+  if(!other)throw new Error('Recipient not found');
+  const {data,error}=await metxonSupabase.from('metalk_messages').insert({sender_id:me.id,recipient_id:other.id,message:msg}).select().single();
+  if(error)throw error; return data;
+}
+
+async function cloudRealtime(){
+  if(!state.currentUser)return;
+  const me=await loadCloudAccount(state.currentUser); if(!me)return;
+  if(window.__metxonRealtime){ try{await metxonSupabase.removeChannel(window.__metxonRealtime)}catch(e){} }
+  window.__metxonRealtime=metxonSupabase.channel('user:'+me.id+':metxon')
+    .on('postgres_changes',{event:'*',schema:'public',table:'profiles',filter:'id=eq.'+me.id},()=>refreshCloudAccount())
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'transactions',filter:'user_id=eq.'+me.id},()=>cloudLoadTransactions())
+    .on('postgres_changes',{event:'*',schema:'public',table:'portfolio_holdings',filter:'user_id=eq.'+me.id},()=>cloudLoadHoldings())
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'metalk_messages',filter:'recipient_id=eq.'+me.id},()=>{ if(typeof sendAlk==='function')try{sendAlk(true)}catch(e){} })
+    .subscribe();
+}
+
+/* Replace browser-only auth with centralized Supabase Auth. */
+const __legacyHandleAuth=handleAuth;
+handleAuth=async function(){
+  const user=(document.getElementById('authUser').value||'').trim().toLowerCase();
+  const pass=document.getElementById('authPass').value||'';
+  if(!user||!pass)return alert('Username and password required');
+  try{
+    if(window._authMode==='existing'){
+      const result=await metxonAuthRequest('login',{username:user,password:pass});
+      if(result.session) await metxonSupabase.auth.setSession({access_token:result.session.access_token,refresh_token:result.session.refresh_token});
+      syncProfileToLegacy(result.profile); state.currentUser=user; save(); closeAuth(); onLogin(user);
+      await cloudLoadTransactions(); await cloudLoadHoldings(); await cloudLoadCart(); await cloudRealtime();
+      return;
+    }
+    const result=await metxonAuthRequest('signup',{username:user,password:pass,display_name:document.getElementById('authName').value||user,dob:document.getElementById('authDob').value,address:document.getElementById('authAddr').value,phone:document.getElementById('authPhone').value});
+    if(result.session) await metxonSupabase.auth.setSession({access_token:result.session.access_token,refresh_token:result.session.refresh_token});
+    syncProfileToLegacy(result.profile); state.currentUser=user; save(); closeAuth(); onLogin(user);
+    await cloudLoadTransactions(); await cloudLoadHoldings(); await cloudLoadCart(); await cloudRealtime();
+  }catch(e){ alert(e.message||'Unable to connect to Metxon account service'); }
+};
+
+/* Transfer: use the database transaction, so a phone-created username is visible everywhere. */
+const __legacyDoTransfer=doTransfer;
+doTransfer=async function(){
+  const to=(document.getElementById('transferTo').value||'').trim();
+  const amt=parseFloat(document.getElementById('transferAmt').value);
+  if(!to)return alert('Please enter a recipient username.');
+  if(!amt||amt<=0)return alert('Please enter a valid amount.');
+  try{ await cloudTransfer(to,amt); alert('Transferred ₹'+amt.toLocaleString('en-IN')+' to '+to+'.'); if(typeof renderMetCount==='function')updateMcUI(); }
+  catch(e){ alert(e.message||'Transfer failed'); }
+};
+
+/* Stock buy/sell: database becomes the source of truth. */
+buyStock=async function(ticker,price){
+  try{await cloudBuyStock(ticker,price); alert('Bought 1 share of '+ticker+' for ₹'+Number(price).toFixed(2)+'.'); searchStock();}
+  catch(e){alert(e.message||'Stock purchase failed');}
+};
+sellStock=async function(ticker,price){
+  try{await cloudSellStock(ticker,price); alert('Sold 1 share of '+ticker+' for ₹'+Number(price).toFixed(2)+'.'); searchStock();}
+  catch(e){alert(e.message||'Stock sale failed');}
+};
+
+/* Make subscription purchases persistent across devices. */
+if(typeof subscribeTier==='function'){
+  const __legacySubscribeTier=subscribeTier;
+  subscribeTier=async function(tier,price){
+    try{await cloudSubscribe(tier,price);alert('Subscribed to '+tier+'.');if(typeof renderMetCount==='function')updateMcUI();}
+    catch(e){alert(e.message||'Subscription failed');}
+  };
+}
+
+/* Met-Alk cloud send helper. The existing UI remains intact. */
+window.metxonCloudSendAlk=async function(){
+  const to=(document.getElementById('alkTo')||{}).value||'';
+  const box=document.getElementById('alkMsg');
+  const msg=box?box.value.trim():'';
+  if(!to||!msg)return alert('Enter recipient username and message.');
+  try{await cloudSendMessage(to,msg); if(box)box.value=''; alert('Message sent.');}
+  catch(e){alert(e.message||'Message failed');}
+};
+
+/* Make the existing Met-Alk Send button use the cloud database. */
+sendAlk=async function(){
+  const to=(document.getElementById('alkTo').value||'').trim();
+  const msg=(document.getElementById('alkMsg').value||'').trim();
+  if(!to||!msg)return;
+  try{
+    await cloudSendMessage(to,msg);
+    document.getElementById('alkMsg').value='';
+    const log=document.getElementById('alkLog');
+    const rows=await cloudLoadMessages(to);
+    if(log)log.innerHTML=(rows||[]).slice(-20).reverse().map(m=>`<div><strong>${m.sender_id===((state.accounts[state.currentUser]||{}).id||'')?'You':to} → ${m.recipient_id?'': ''}</strong> ${m.message} <span style=\"color:var(--muted);font-size:.75rem\">(${new Date(m.created_at).toLocaleString()})</span></div>`).join('')||'No messages yet.';
+  }catch(e){alert(e.message||'Message failed');}
+};
+
+/* Subscription buttons are backed by the atomic database purchase function. */
+const __legacyBuySub=buySub;
+buySub=async function(tier,price){
+  try{await cloudSubscribe(tier,price);alert(`Subscribed to ${tier} for ₹${Number(price).toLocaleString('en-IN')}/week`);updateMcUI();}
+  catch(e){alert(e.message||'Subscription failed');}
+};
+
+/* MetCount password re-authentication uses the already authenticated Supabase session. */
+verifyMetCount=async function(){
+  const pass=document.getElementById('mcPass').value||'';
+  if(!state.currentUser)return openAuth();
+  try{
+    const result=await metxonAuthRequest('login',{username:state.currentUser,password:pass});
+    if(result.session)await metxonSupabase.auth.setSession({access_token:result.session.access_token,refresh_token:result.session.refresh_token});
+    document.getElementById('mcAuthBox').style.display='none';
+    document.getElementById('mcDashboard').style.display='block';
+    await refreshCloudAccount();await cloudLoadTransactions();await cloudLoadHoldings();updateMcUI();
+  }catch(e){alert('Incorrect password');}
+};
+
+/* Cloud Chess Boys: keep the existing board UI/rules, but persist games in Supabase. */
+async function cloudChessIdentity(username){ return await loadCloudAccount(username.toLowerCase()); }
+async function cloudChessRefresh(gameId){
+  const {data,error}=await metxonSupabase.from('chess_games').select('*').eq('id',gameId).single();
+  if(error||!data||!chessState)return;
+  chessState.game={board:data.board_state,turn:data.turn,white:state.accounts[state.currentUser].chessWhite||chessState.game.white,black:state.accounts[state.currentUser].chessBlack||chessState.game.black};
+  renderChess();
+}
+const __legacyInitChess=initChess;
+initChess=async function(){
+  const opp=(document.getElementById('chessOpp').value||'').trim().toLowerCase();
+  if(!opp)return alert('Enter opponent username');
+  try{
+    const me=await cloudChessIdentity(state.currentUser), other=await cloudChessIdentity(opp);
+    if(!me||!other)return alert('Both players must have Metxon accounts.');
+    const {data:games,error}=await metxonSupabase.from('chess_games').select('*').or(`and(white_player.eq.${me.id},black_player.eq.${other.id}),and(white_player.eq.${other.id},black_player.eq.${me.id})`).order('created_at',{ascending:false}).limit(1);
+    if(error)throw error;
+    let g=games&&games[0];
+    if(!g){
+      const white=me.id < other.id ? me.id : other.id;
+      const black=white===me.id?other.id:me.id;
+      const board=[['r','n','b','q','k','b','n','r'],['p','p','p','p','p','p','p','p'],['','','','','','','',''],['','','','','','','',''],['','','','','','','',''],['','','','','','','',''],['P','P','P','P','P','P','P','P'],['R','N','B','Q','K','B','N','R']];
+      const created=await metxonSupabase.from('chess_games').insert({white_player:white,black_player:black,board_state:board,turn:'white',status:'active'}).select().single();
+      if(created.error)throw created.error; g=created.data;
+    }
+    state.accounts[state.currentUser].chessWhite=g.white_player===me.id?'white':'black';
+    state.accounts[state.currentUser].chessBlack=opp;
+    chessState={gameId:g.id,game:{board:g.board_state,turn:g.turn,white:g.white_player===me.id?state.currentUser:opp,black:g.black_player===me.id?state.currentUser:opp},selected:null};
+    renderChess();
+    if(window.__metxonChessRealtime)await metxonSupabase.removeChannel(window.__metxonChessRealtime);
+    window.__metxonChessRealtime=metxonSupabase.channel('chess:'+g.id).on('postgres_changes',{event:'UPDATE',schema:'public',table:'chess_games',filter:'id=eq.'+g.id},payload=>{if(chessState&&payload.new){chessState.game={board:payload.new.board_state,turn:payload.new.turn,white:payload.new.white_player===me.id?state.currentUser:opp,black:payload.new.black_player===me.id?state.currentUser:opp};chessState.selected=null;renderChess();}}).subscribe();
+  }catch(e){alert(e.message||'Could not start Chess Boys game');}
+};
+const __legacyChessClick=chessClick;
+chessClick=async function(r,c){
+  const g=chessState&&chessState.game;if(!g||!chessState.gameId)return __legacyChessClick(r,c);
+  const myColor=(g.white===state.currentUser)?'white':'black';if(g.turn!==myColor)return alert('Not your turn');
+  const piece=g.board[r][c],isWhitePiece=piece&&piece===piece.toUpperCase(),isMyPiece=(myColor==='white'&&isWhitePiece)||(myColor==='black'&&piece&&!isWhitePiece);
+  if(chessState.selected){const [sr,sc]=chessState.selected;if(sr===r&&sc===c){chessState.selected=null;renderChess();return;}g.board[r][c]=g.board[sr][sc];g.board[sr][sc]='';g.turn=g.turn==='white'?'black':'white';chessState.selected=null;try{const {error}=await metxonSupabase.from('chess_games').update({board_state:g.board,turn:g.turn,updated_at:new Date().toISOString()}).eq('id',chessState.gameId);if(error)throw error;renderChess();}catch(e){alert(e.message||'Move could not be saved');}}else if(isMyPiece){chessState.selected=[r,c];renderChess();}
+};
+
+/* On an existing Supabase session, restore the account on any device. */
+(async function bootstrapMetxonCloud(){
+  try{
+    const {data}=await metxonSupabase.auth.getSession();
+    if(data.session){
+      const {data:p}=await metxonSupabase.from('profiles').select('*').eq('id',data.session.user.id).single();
+      if(p){syncProfileToLegacy(p);state.currentUser=p.username.toLowerCase();save();onLogin(state.currentUser);await cloudLoadTransactions();await cloudLoadHoldings();await cloudLoadCart();await cloudRealtime();}
+    }
+  }catch(e){console.warn('Supabase bootstrap:',e)}
+})();
+</script>
 </body>
 </html>
