@@ -416,11 +416,8 @@ tr:hover { background: rgba(255,255,255,0.03); }
     <!-- Re-auth -->
     <div id="mcAuthBox" class="card" style="margin:20px 0;">
       <h3>Security Re-authentication</h3>
-      <p style="color:var(--muted);font-size:0.9rem;">Enter your password to unlock MetCount.</p>
-      <div class="form-group" style="margin-top:12px;">
-        <input type="password" id="mcPass" placeholder="Password">
-      </div>
-      <button class="btn btn-primary" onclick="verifyMetCount()">Unlock MetCount</button>
+      <p style="color:var(--muted);font-size:0.9rem;">Your signed-in Metxon session is used to authenticate MetCount.</p>
+      <button class="btn btn-primary" onclick="verifyMetCount()">Verify Session &amp; Unlock MetCount</button>
     </div>
 
     <div id="mcDashboard" style="display:none;">
@@ -1057,12 +1054,39 @@ function askAI() {
 }
 
 /* ===================== METCOUNT ===================== */
-function verifyMetCount() {
-  if (typeof window.__METXON_SECURE_VERIFY_METCOUNT === 'function') {
-    return window.__METXON_SECURE_VERIFY_METCOUNT();
+async function secureMetCountUnlock(){
+  if(!state.currentUser)return openAuth();
+  try{
+    const {data:sessionData,error:sessionError}=await metxonSupabase.auth.getSession();
+    if(sessionError || !sessionData.session) throw new Error('Your Metxon session has expired. Please sign in again.');
+
+    const {data:userData,error:userError}=await metxonSupabase.auth.getUser();
+    if(userError || !userData.user) throw new Error('Your Metxon session is no longer valid. Please sign in again.');
+
+    const username=String(userData.user.user_metadata?.username||state.currentUser||'').trim().toLowerCase();
+    if(!username) throw new Error('Account identity could not be verified.');
+
+    const profile=await loadCloudAccount(username);
+    if(!profile) throw new Error('Your Metxon account is not synchronized with Supabase.');
+
+    syncProfileToLegacy(profile);
+    state.currentUser=username;
+    stripLocalPassword(username);
+    save();
+
+    document.getElementById('mcAuthBox').style.display='none';
+    document.getElementById('mcDashboard').style.display='block';
+
+    await refreshCloudAccount();
+    await cloudLoadTransactions();
+    await cloudLoadHoldings();
+    updateMcUI();
+  }catch(e){
+    alert(e.message||'Please sign in again to access MetCount.');
   }
-  return alert('MetCount security is still loading. Please try again.');
 }
+window.__METXON_SECURE_VERIFY_METCOUNT=secureMetCountUnlock;
+verifyMetCount=secureMetCountUnlock;
 
 function updateMcUI() {
   const acc = state.accounts[state.currentUser];
@@ -2105,30 +2129,7 @@ buySub=async function(tier,price){
 };
 
 /* MetCount password re-authentication is always performed by Supabase Auth. */
-window.__METXON_SECURE_VERIFY_METCOUNT = async function(){
-  const pass=(document.getElementById('mcPass').value||'').trim();
-  const user=(state.currentUser||'').trim().toLowerCase();
-  if(!user)return openAuth();
-  try{
-    const result=await metxonAuthRequest('login',{username:user,password:pass});
-    if(result.session){
-      await metxonSupabase.auth.setSession({
-        access_token:result.session.access_token,
-        refresh_token:result.session.refresh_token
-      });
-    }
-    document.getElementById('mcAuthBox').style.display='none';
-    document.getElementById('mcDashboard').style.display='block';
-    syncProfileToLegacy(result.profile);
-    stripLocalPassword(user);
-    await refreshCloudAccount();
-    await cloudLoadTransactions();
-    await cloudLoadHoldings();
-    updateMcUI();
-  }catch(e){
-    alert('Incorrect password');
-  }
-};
+window.__METXON_SECURE_VERIFY_METCOUNT=secureMetCountUnlock;
 
 /* Cloud Chess Boys: keep the existing board UI/rules, but persist games in Supabase. */
 async function cloudChessIdentity(username){ return await loadCloudAccount(username.toLowerCase()); }
@@ -2324,30 +2325,7 @@ window.__METXON_SECURE_HANDLE_AUTH = async function(){
 })();
 
 /* Secure MetCount re-authentication. Owner password is checked server-side. */
-window.__METXON_SECURE_VERIFY_METCOUNT = async function(){
-  const pass=(document.getElementById('mcPass').value||'').trim();
-  const user=(state.currentUser||'').trim().toLowerCase();
-  if(!user)return openAuth();
-  try{
-    const result=await metxonAuthRequest('login',{username:user,password:pass});
-    if(result.session){
-      await metxonSupabase.auth.setSession({
-        access_token:result.session.access_token,
-        refresh_token:result.session.refresh_token
-      });
-    }
-    document.getElementById('mcAuthBox').style.display='none';
-    document.getElementById('mcDashboard').style.display='block';
-    syncProfileToLegacy(result.profile);
-    stripLocalPassword(user);
-    await refreshCloudAccount();
-    await cloudLoadTransactions();
-    await cloudLoadHoldings();
-    updateMcUI();
-  }catch(e){
-    alert('Incorrect password');
-  }
-};
+window.__METXON_SECURE_VERIFY_METCOUNT=secureMetCountUnlock;
 
 /* Secure Met-Pay: re-authenticate server-side, then perform an atomic RPC. */
 executePay=async function(){
