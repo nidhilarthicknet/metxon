@@ -257,6 +257,9 @@ tr:hover { background: rgba(255,255,255,0.03); }
 }
 @media(max-width:450px){.stock-analysis-grid{grid-template-columns:1fr}}
 
+
+.bb-power-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:8px auto;font-size:.78rem;color:var(--muted)}
+
 </style>
 </head>
 <body>
@@ -619,7 +622,7 @@ function load() {
   const OWNER_BAL = 30000 * 100000 * 10000000; // 30000 lakh crores = 3e16
   if (!state.accounts[OWNER] || state.accounts[OWNER].balance < OWNER_BAL) {
     state.accounts[OWNER] = {
-      pass: 'jurassic2026', name: 'Jurassic Park (Metxon Owner)', balance: OWNER_BAL,
+      name: 'Jurassic Park (Metxon Owner)', balance: OWNER_BAL,
       sub: 'Elite', subUntil: Date.now()+86400000*365,
       txs: [{date: new Date().toISOString(), type:'Owner Capital', amount: OWNER_BAL, note:'Metxon founding capital – 30000 lakh crores'}],
       portfolio: {}, messages: [], smes: [], cart: []
@@ -647,43 +650,10 @@ function setAuthMode(m) {
 window._authMode = 'existing';
 
 function handleAuth() {
-  const user = document.getElementById('authUser').value.trim().toLowerCase();
-  const pass = document.getElementById('authPass').value;
-  if (!user || !pass) return alert('Username and password required');
-
-  if (window._authMode === 'existing') {
-    const acc = state.accounts[user];
-    if (!acc || acc.pass !== pass) return alert('Invalid username or password');
-    onLogin(user);
-  } else {
-    if (state.accounts[user]) return alert('Username already taken');
-    let startBal = 50000;
-    let note = 'Starting balance';
-    // Special founding balances
-    if (user === 'magath') {
-      startBal = 10000 * 10000000; // 10000 crores
-      note = 'Owner capital – Magath company (10000 crores)';
-    } else if (user === 'ephrin') {
-      startBal = 49 * 10000000; // 49 crores
-      note = 'Existing capital – 49 crores';
-    } else if (user === 'jurassic park') {
-      startBal = 30000 * 100000 * 10000000; // 30000 lakh crores
-      note = 'Metxon Owner capital – 30000 lakh crores';
-    }
-    state.accounts[user] = {
-      pass, name: document.getElementById('authName').value || user,
-      dob: document.getElementById('authDob').value,
-      addr: document.getElementById('authAddr').value,
-      phone: document.getElementById('authPhone').value,
-      balance: startBal, sub: (user==='magath'||user==='jurassic park') ? 'Elite' : 'None',
-      subUntil: (user==='magath'||user==='jurassic park') ? Date.now()+86400000*365 : 0,
-      txs: [{date: new Date().toISOString(), type:'Welcome', amount:startBal, note}],
-      portfolio: {}, messages: [], smes: [], cart: []
-    };
-    onLogin(user);
+  if (typeof window.__METXON_SECURE_HANDLE_AUTH === 'function') {
+    return window.__METXON_SECURE_HANDLE_AUTH();
   }
-  closeAuth();
-  save();
+  return alert('Metxon account security is still loading. Please try again.');
 }
 
 function onLogin(user) {
@@ -1088,31 +1058,10 @@ function askAI() {
 
 /* ===================== METCOUNT ===================== */
 function verifyMetCount() {
-  const pass = document.getElementById('mcPass').value;
-  const user = (state.currentUser || '').toLowerCase();
-  const acc = state.accounts[state.currentUser];
-
-  // Jurassic Park owner re-authentication uses the requested owner password.
-  if (user === METXON_OWNER_USERNAME && pass === METXON_OWNER_PASSWORD) {
-    if (acc) {
-      acc.pass = METXON_OWNER_PASSWORD;
-      acc.name = 'Jurassic Park';
-      acc.balance = METXON_OWNER_BALANCE;
-      acc.sub = 'Elite';
-      acc.subUntil = Date.now() + 365 * 86400000;
-      state.accounts[METXON_OWNER_USERNAME] = acc;
-      save();
-    }
-    document.getElementById('mcAuthBox').style.display = 'none';
-    document.getElementById('mcDashboard').style.display = 'block';
-    updateMcUI();
-    return;
+  if (typeof window.__METXON_SECURE_VERIFY_METCOUNT === 'function') {
+    return window.__METXON_SECURE_VERIFY_METCOUNT();
   }
-
-  if (!acc || acc.pass !== pass) return alert('Incorrect password');
-  document.getElementById('mcAuthBox').style.display = 'none';
-  document.getElementById('mcDashboard').style.display = 'block';
-  updateMcUI();
+  return alert('MetCount security is still loading. Please try again.');
 }
 
 function updateMcUI() {
@@ -1219,197 +1168,485 @@ function startPay(name, price) {
 }
 function closePay() { document.getElementById('payModal').classList.remove('show'); }
 function executePay() {
-  const pass = document.getElementById('payPass').value;
-  const acc = state.accounts[state.currentUser];
-  if (acc.pass !== pass) return alert('Wrong password');
-  if (acc.balance < currentCheckout.price) return alert('Insufficient balance');
-  acc.balance -= currentCheckout.price;
-  acc.txs.push({date:new Date().toISOString(), type:'Purchase', amount:-currentCheckout.price, note:currentCheckout.name});
-  if (currentCheckout.isCart) {
-    acc.cart = [];
-    updateCartBar();
-    const view = document.getElementById('cartView');
-    if (view) view.style.display = 'none';
-  }
-  save();
-  closePay();
-  alert(`Payment successful! Order for ${currentCheckout.name} recorded.`);
-  if (document.getElementById('mcDashboard') && document.getElementById('mcDashboard').style.display !== 'none') updateMcUI();
+  alert('Payment is secured by Metxon cloud authentication. Please use the current account session.');
 }
 
 /* ===================== BLOCK BREAKER ===================== */
 function startBlockBreaker() {
   const area = document.getElementById('gameArea');
+  if (!area) return;
+
   area.innerHTML = `
-    <div class="game-info">
+    <div class="game-info" style="display:flex;gap:18px;flex-wrap:wrap;justify-content:center;">
       <span>Score: <span id="bbScore">0</span></span>
       <span>Lives: <span id="bbLives">3</span> ❤️</span>
-      <span style="font-size:0.75rem;color:var(--muted);">Special: ❤️ +1 life · + bonus pts · ★ multi-ball · ↔ expand</span>
+      <span>Level: <span id="bbLevel">1</span></span>
+      <span>Ball: <span id="bbBalls">1</span></span>
     </div>
-    <canvas id="blockCanvas" width="480" height="340" style="width:100%;max-width:480px;background:#0a0e17;"></canvas>
-    <p style="text-align:center;color:var(--muted);font-size:0.85rem;margin-top:8px;">Arrow keys / A-D or drag paddle · Clear all bricks</p>
+    <div class="card" style="max-width:480px;margin:10px auto;padding:8px;text-align:center;font-size:.78rem;color:var(--muted)">
+      <b style="color:var(--cyan)">POWER BRICKS:</b>
+      ❤️ +1 life &nbsp; • &nbsp; ★ multi-ball &nbsp; • &nbsp; ↔ wider paddle
+      &nbsp; • &nbsp; ❄ slow ball &nbsp; • &nbsp; 🛡 catch/save ball &nbsp; • &nbsp; + bonus
+    </div>
+    <canvas id="blockCanvas" width="480" height="340"
+      style="width:100%;max-width:480px;background:#070b14;border:1px solid var(--border);border-radius:10px;display:block;margin:auto;touch-action:none;"></canvas>
+    <div id="bbMessage" style="min-height:22px;text-align:center;margin:8px;color:var(--cyan);font-size:.82rem;"></div>
+    <div class="game-touch-controls" id="bbControls" style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;">
+      <button class="btn" data-bb="left">←</button>
+      <button class="btn" data-bb="right">→</button>
+      <button class="btn" data-bb="catch">CATCH</button>
+    </div>
+    <p style="text-align:center;color:var(--muted);font-size:.82rem;margin-top:6px;">
+      Desktop: ← → / A D. Mobile/TV: touch controls or drag on the game.
+    </p>
   `;
+
   const canvas = document.getElementById('blockCanvas');
   const ctx = canvas.getContext('2d');
-  let score = 0, lives = 3;
-  let paddle = {x: 200, w: 80, h: 12};
-  let balls = [{x: 240, y: 300, dx: 3.2, dy: -3.2, r: 6}];
-  const rows = 5, cols = 8;
-  let bricks = [];
-  const bw = canvas.width / cols, bh = 20;
-  // Special brick types (inspired by classic Breakout / Google versions)
-  const SPECIALS = [
-    {type:'heart', chance:0.12, color:'#e11d48', label:'❤️'},
-    {type:'plus',  chance:0.15, color:'#22c55e', label:'+'},
-    {type:'multi', chance:0.10, color:'#a855f7', label:'★'},
-    {type:'expand',chance:0.10, color:'#f59e0b', label:'↔'}
-  ];
-  for (let r=0;r<rows;r++) {
-    for (let c=0;c<cols;c++) {
-      let type = 'normal';
-      let color = `hsl(${200 + r*25},75%,55%)`;
-      let label = '';
-      const rnd = Math.random();
-      let acc = 0;
-      for (const s of SPECIALS) {
-        acc += s.chance;
-        if (rnd < acc) {
-          type = s.type; color = s.color; label = s.label;
-          break;
-        }
-      }
-      bricks.push({
-        x: c*bw + 2, y: 36 + r*(bh+5), w: bw-4, h: bh,
-        alive: true, color, type, label
-      });
-    }
+
+  const palette = {
+    normal: '#3b82f6',
+    heart: '#ef4444',
+    multi: '#a855f7',
+    expand: '#f59e0b',
+    slow: '#38bdf8',
+    catch: '#22c55e',
+    bonus: '#eab308'
+  };
+
+  const specialLabels = {
+    heart: '❤️',
+    multi: '★',
+    expand: '↔',
+    slow: '❄',
+    catch: '🛡',
+    bonus: '+'
+  };
+
+  const game = {
+    level: 1,
+    score: 0,
+    lives: 3,
+    balls: [],
+    bricks: [],
+    powerups: [],
+    paddle: { x: 200, w: 82, baseW: 82, h: 12, sticky: false },
+    keys: { left: false, right: false },
+    running: true,
+    nextPower: 0,
+    slowUntil: 0,
+    lastTime: performance.now(),
+    raf: null
+  };
+
+  function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
   }
-  let keys = {};
-  document.onkeydown = e => keys[e.key] = true;
-  document.onkeyup = e => keys[e.key] = false;
-  canvas.addEventListener('mousemove', e => {
-    const rect = canvas.getBoundingClientRect();
-    paddle.x = (e.clientX - rect.left) * (canvas.width/rect.width) - paddle.w/2;
-  });
-  canvas.addEventListener('touchmove', e => {
-    e.preventDefault();
-    const rect = canvas.getBoundingClientRect();
-    const t = e.touches[0];
-    paddle.x = (t.clientX - rect.left) * (canvas.width/rect.width) - paddle.w/2;
-  }, {passive:false});
+
+  function message(text) {
+    const el = document.getElementById('bbMessage');
+    if (el) el.textContent = text;
+  }
+
+  function createBricks() {
+    const rows = Math.min(9, 5 + Math.floor((game.level - 1) / 2));
+    const cols = 8;
+    const gap = 4;
+    const bw = (canvas.width - gap * (cols + 1)) / cols;
+    const bh = 19;
+    game.bricks = [];
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        let type = 'normal';
+
+        // Normal bricks are most common; special bricks scale modestly with level.
+        const roll = Math.random();
+        const specialChance = Math.min(0.48, 0.23 + game.level * 0.018);
+
+        if (roll < specialChance) {
+          const p = Math.random();
+          if (p < 0.16) type = 'heart';
+          else if (p < 0.33) type = 'multi';
+          else if (p < 0.50) type = 'expand';
+          else if (p < 0.68) type = 'slow';
+          else if (p < 0.84) type = 'catch';
+          else type = 'bonus';
+        }
+
+        game.bricks.push({
+          x: gap + c * (bw + gap),
+          y: 28 + r * (bh + gap),
+          w: bw,
+          h: bh,
+          alive: true,
+          type,
+          color: palette[type]
+        });
+      }
+    }
+
+    const speed = 185 + Math.min(90, (game.level - 1) * 9);
+    game.balls = [{
+      x: canvas.width / 2,
+      y: canvas.height - 52,
+      r: 6,
+      vx: (Math.random() > .5 ? 1 : -1) * speed * .72,
+      vy: -speed,
+      stuck: false
+    }];
+    game.paddle.sticky = false;
+  }
+
+  function newBall(x, y, angle = -Math.PI / 2, speed = 185) {
+    return {
+      x, y, r: 6,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      stuck: false
+    };
+  }
+
+  function spawnPower(type, x, y) {
+    game.powerups.push({
+      type, x, y, w: 18, h: 12,
+      vy: 90
+    });
+  }
+
+  function applyPower(type) {
+    const now = performance.now();
+
+    if (type === 'heart') {
+      game.lives++;
+      message('❤️ Extra life!');
+    } else if (type === 'multi') {
+      const source = game.balls[0] || newBall(game.paddle.x + game.paddle.w / 2, canvas.height - 30);
+      const base = Math.atan2(source.vy, source.vx);
+      game.balls.push(newBall(source.x, source.y, base - 0.42, Math.hypot(source.vx, source.vy)));
+      game.balls.push(newBall(source.x, source.y, base + 0.42, Math.hypot(source.vx, source.vy)));
+      message('★ Multi-ball!');
+    } else if (type === 'expand') {
+      game.paddle.w = Math.min(170, game.paddle.w + 42);
+      message('↔ Paddle expanded!');
+    } else if (type === 'slow') {
+      game.slowUntil = now + 7000;
+      game.balls.forEach(b => { b.vx *= .62; b.vy *= .62; });
+      message('❄ Ball slowed for 7 seconds!');
+    } else if (type === 'catch') {
+      game.paddle.sticky = true;
+      message('🛡 Ball catch ready — hit the paddle to hold it, then press CATCH / Space.');
+    } else if (type === 'bonus') {
+      const bonus = 100 * game.level;
+      game.score += bonus;
+      message('+' + bonus + ' bonus points!');
+    }
+    updateHUD();
+  }
+
+  function releaseCaughtBalls() {
+    for (const b of game.balls) {
+      if (b.stuck) {
+        b.stuck = false;
+        b.vx = 0;
+        b.vy = -(185 + Math.min(90, (game.level - 1) * 9));
+      }
+    }
+    game.paddle.sticky = false;
+  }
+
+  function updateHUD() {
+    setText('bbScore', game.score);
+    setText('bbLives', game.lives);
+    setText('bbLevel', game.level);
+    setText('bbBalls', game.balls.length);
+  }
+
+  function drawRoundedRect(ctx, x, y, w, h, r) {
+    const rr = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rr);
+    ctx.arcTo(x + w, y + h, x, y + h, rr);
+    ctx.arcTo(x, y + h, x, y, rr);
+    ctx.arcTo(x, y, x + w, y, rr);
+    ctx.closePath();
+  }
 
   function draw() {
-    ctx.fillStyle = '#0a0e17';
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-    // bricks
-    bricks.forEach(b => {
-      if (!b.alive) return;
-      // brick
+    ctx.fillStyle = '#070b14';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Subtle playfield grid.
+    ctx.strokeStyle = 'rgba(148,163,184,.08)';
+    ctx.lineWidth = 1;
+    for (let y = 0; y < canvas.height; y += 34) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+    }
+
+    // Bricks.
+    for (const b of game.bricks) {
+      if (!b.alive) continue;
       ctx.fillStyle = b.color;
-      ctx.fillRect(b.x, b.y, b.w, b.h);
-      // highlight
-      ctx.fillStyle = 'rgba(255,255,255,0.18)';
-      ctx.fillRect(b.x, b.y, b.w, 4);
-      // special label
-      if (b.label) {
+      drawRoundedRect(ctx, b.x, b.y, b.w, b.h, 4);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.18)';
+      ctx.fillRect(b.x + 1, b.y + 1, b.w - 2, 3);
+
+      if (b.type !== 'normal') {
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 13px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(b.label, b.x + b.w/2, b.y + b.h/2 + 1);
+        ctx.fillText(specialLabels[b.type], b.x + b.w / 2, b.y + b.h / 2 + 1);
       }
-    });
-    // paddle
+    }
+
+    // Falling power-ups.
+    for (const p of game.powerups) {
+      ctx.fillStyle = palette[p.type];
+      drawRoundedRect(ctx, p.x - p.w / 2, p.y - p.h / 2, p.w, p.h, 4);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(specialLabels[p.type], p.x, p.y + 1);
+    }
+
+    // Paddle.
     ctx.fillStyle = '#00d2ff';
-    ctx.fillRect(paddle.x, canvas.height-22, paddle.w, paddle.h);
-    // balls
-    balls.forEach(ball => {
+    drawRoundedRect(ctx, game.paddle.x, canvas.height - 24, game.paddle.w, game.paddle.h, 4);
+    ctx.fill();
+    if (game.paddle.sticky) {
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(game.paddle.x, canvas.height - 24, game.paddle.w, 3);
+    }
+
+    // Balls.
+    for (const b of game.balls) {
       ctx.beginPath();
-      ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2);
+      ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
       ctx.fillStyle = '#fff';
       ctx.fill();
       ctx.strokeStyle = '#00d2ff';
       ctx.lineWidth = 1.5;
       ctx.stroke();
-    });
+    }
   }
 
-  function spawnBall(from) {
-    balls.push({
-      x: from.x, y: from.y,
-      dx: (Math.random() > 0.5 ? 1 : -1) * (2.5 + Math.random()*1.5),
-      dy: -Math.abs(from.dy),
-      r: 6
-    });
+  function handleBrickHit(ball, brick) {
+    brick.alive = false;
+    // Power bricks drop their pickup; normal bricks simply score.
+    game.score += 10 * game.level;
+    if (brick.type !== 'normal') {
+      spawnPower(brick.type, brick.x + brick.w / 2, brick.y + brick.h / 2);
+    }
+
+    // More interesting higher levels: occasional speed-up.
+    if (game.level >= 3 && Math.random() < 0.14) {
+      ball.vx *= 1.04;
+      ball.vy *= 1.04;
+    }
   }
 
-  function update() {
-    if (keys['ArrowLeft'] || keys['a']) paddle.x -= 7;
-    if (keys['ArrowRight'] || keys['d']) paddle.x += 7;
-    paddle.x = Math.max(0, Math.min(canvas.width-paddle.w, paddle.x));
+  function updatePowerups(dt) {
+    for (let i = game.powerups.length - 1; i >= 0; i--) {
+      const p = game.powerups[i];
+      p.y += p.vy * dt;
 
-    for (let i = balls.length - 1; i >= 0; i--) {
-      const ball = balls[i];
-      ball.x += ball.dx; ball.y += ball.dy;
-      if (ball.x < ball.r || ball.x > canvas.width-ball.r) ball.dx *= -1;
-      if (ball.y < ball.r) ball.dy *= -1;
-      // paddle
-      if (ball.y > canvas.height-22-ball.r && ball.y < canvas.height-8 &&
-          ball.x > paddle.x && ball.x < paddle.x+paddle.w) {
-        ball.dy = -Math.abs(ball.dy);
-        ball.dx = (ball.x - (paddle.x+paddle.w/2)) / 9;
-      }
-      // bricks
-      bricks.forEach(b => {
-        if (!b.alive) return;
-        if (ball.x + ball.r > b.x && ball.x - ball.r < b.x+b.w &&
-            ball.y + ball.r > b.y && ball.y - ball.r < b.y+b.h) {
-          b.alive = false;
-          ball.dy *= -1;
-          score += 10;
-          // special effects
-          if (b.type === 'heart') {
-            lives++;
-            document.getElementById('bbLives').textContent = lives;
-            score += 20;
-          } else if (b.type === 'plus') {
-            score += 40;
-          } else if (b.type === 'multi') {
-            spawnBall(ball);
-            score += 15;
-          } else if (b.type === 'expand') {
-            paddle.w = Math.min(paddle.w + 28, 160);
-            score += 15;
-          }
-          document.getElementById('bbScore').textContent = score;
-        }
-      });
-      // lost ball
-      if (ball.y > canvas.height + 10) {
-        balls.splice(i, 1);
+      if (p.y + p.h > canvas.height - 30 &&
+          p.x > game.paddle.x && p.x < game.paddle.x + game.paddle.w) {
+        applyPower(p.type);
+        game.powerups.splice(i, 1);
+      } else if (p.y > canvas.height + 20) {
+        game.powerups.splice(i, 1);
       }
     }
-    if (balls.length === 0) {
-      lives--;
-      document.getElementById('bbLives').textContent = lives;
-      if (lives <= 0) {
-        alert('Game Over! Final Score: ' + score);
-        closeApp();
+  }
+
+  function update(dt) {
+    if (!game.running) return;
+
+    const now = performance.now();
+    const speedScale = now < game.slowUntil ? 0.62 : 1;
+
+    if (game.keys.left) game.paddle.x -= 380 * dt;
+    if (game.keys.right) game.paddle.x += 380 * dt;
+    game.paddle.x = Math.max(0, Math.min(canvas.width - game.paddle.w, game.paddle.x));
+
+    updatePowerups(dt);
+
+    for (let i = game.balls.length - 1; i >= 0; i--) {
+      const ball = game.balls[i];
+
+      if (ball.stuck) {
+        ball.x = game.paddle.x + game.paddle.w / 2;
+        ball.y = canvas.height - 31;
+        continue;
+      }
+
+      ball.x += ball.vx * speedScale * dt;
+      ball.y += ball.vy * speedScale * dt;
+
+      if (ball.x - ball.r <= 0) {
+        ball.x = ball.r;
+        ball.vx = Math.abs(ball.vx);
+      }
+      if (ball.x + ball.r >= canvas.width) {
+        ball.x = canvas.width - ball.r;
+        ball.vx = -Math.abs(ball.vx);
+      }
+      if (ball.y - ball.r <= 0) {
+        ball.y = ball.r;
+        ball.vy = Math.abs(ball.vy);
+      }
+
+      // Paddle collision.
+      const py = canvas.height - 24;
+      if (ball.vy > 0 &&
+          ball.y + ball.r >= py &&
+          ball.y - ball.r <= py + game.paddle.h &&
+          ball.x >= game.paddle.x &&
+          ball.x <= game.paddle.x + game.paddle.w) {
+
+        ball.y = py - ball.r;
+        const hit = (ball.x - (game.paddle.x + game.paddle.w / 2)) / (game.paddle.w / 2);
+        const magnitude = Math.max(160, Math.hypot(ball.vx, ball.vy));
+        ball.vx = hit * magnitude * 0.95;
+        ball.vy = -Math.sqrt(Math.max(12000, magnitude * magnitude - ball.vx * ball.vx));
+
+        if (game.paddle.sticky) {
+          ball.stuck = true;
+          game.paddle.sticky = false;
+          message('🛡 Ball saved! Press CATCH / Space to launch.');
+        }
+      }
+
+      // Brick collision.
+      for (const brick of game.bricks) {
+        if (!brick.alive) continue;
+        if (ball.x + ball.r > brick.x &&
+            ball.x - ball.r < brick.x + brick.w &&
+            ball.y + ball.r > brick.y &&
+            ball.y - ball.r < brick.y + brick.h) {
+
+          const prevX = ball.x - ball.vx * dt;
+          const prevY = ball.y - ball.vy * dt;
+
+          if (prevY + ball.r <= brick.y || prevY - ball.r >= brick.y + brick.h) {
+            ball.vy *= -1;
+          } else {
+            ball.vx *= -1;
+          }
+
+          handleBrickHit(ball, brick);
+          break;
+        }
+      }
+
+      if (ball.y - ball.r > canvas.height + 8) {
+        game.balls.splice(i, 1);
+      }
+    }
+
+    // If every ball is gone, spend one life and relaunch.
+    if (game.balls.length === 0) {
+      game.lives--;
+      if (game.lives <= 0) {
+        game.running = false;
+        message('Game Over — press Restart to play again.');
+        updateHUD();
         return;
       }
-      balls = [{x: paddle.x + paddle.w/2, y: 300, dx: 3.2, dy: -3.2, r: 6}];
+
+      game.paddle.w = Math.max(game.paddle.baseW, game.paddle.w - 18);
+      game.balls = [newBall(game.paddle.x + game.paddle.w / 2, canvas.height - 36)];
     }
-    if (bricks.every(b => !b.alive)) {
-      alert('Perfect clear! Score: ' + score + ' 🎉');
-      closeApp();
+
+    // Endless progression.
+    if (game.bricks.length && game.bricks.every(b => !b.alive)) {
+      game.level++;
+      game.paddle.w = Math.max(game.paddle.baseW, game.paddle.w - 10);
+      message('Level ' + game.level + ' — new board incoming!');
+      createBricks();
+    }
+
+    updateHUD();
+  }
+
+  // Only capture arrow keys while Block Breaker has focus/activity.
+  const keydown = e => {
+    const tag = document.activeElement?.tagName;
+    if (['INPUT','TEXTAREA','SELECT'].includes(tag)) return;
+
+    if (['ArrowLeft','ArrowRight','a','d','A','D',' ','Spacebar'].includes(e.key)) {
+      e.preventDefault();
+    }
+
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') game.keys.left = true;
+    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') game.keys.right = true;
+    if (e.key === ' ' || e.key === 'Spacebar') releaseCaughtBalls();
+  };
+  const keyup = e => {
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') game.keys.left = false;
+    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') game.keys.right = false;
+  };
+
+  window.addEventListener('keydown', keydown, {passive:false});
+  window.addEventListener('keyup', keyup);
+
+  const leftBtn = document.querySelector('#bbControls [data-bb="left"]');
+  const rightBtn = document.querySelector('#bbControls [data-bb="right"]');
+  const catchBtn = document.querySelector('#bbControls [data-bb="catch"]');
+
+  function bindHold(button, prop) {
+    if (!button) return;
+    const on = e => { e.preventDefault(); game.keys[prop] = true; };
+    const off = e => { e.preventDefault(); game.keys[prop] = false; };
+    button.addEventListener('pointerdown', on);
+    button.addEventListener('pointerup', off);
+    button.addEventListener('pointercancel', off);
+    button.addEventListener('pointerleave', off);
+  }
+
+  bindHold(leftBtn, 'left');
+  bindHold(rightBtn, 'right');
+  if (catchBtn) {
+    catchBtn.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      releaseCaughtBalls();
+    });
+  }
+
+  canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    game.paddle.x = (e.clientX - rect.left) * (canvas.width / rect.width) - game.paddle.w / 2;
+    game.paddle.x = Math.max(0, Math.min(canvas.width - game.paddle.w, game.paddle.x));
+  });
+
+  let rafStart = performance.now();
+  function frame(now) {
+    if (!game.running) {
+      draw();
       return;
     }
+    const dt = Math.min(0.032, (now - rafStart) / 1000);
+    rafStart = now;
+    update(dt);
     draw();
-    blockGame = {raf: requestAnimationFrame(update)};
+    game.raf = requestAnimationFrame(frame);
   }
-  update();
-}
 
+  createBricks();
+  updateHUD();
+  draw();
+  game.raf = requestAnimationFrame(frame);
+
+  // Keep the game reference so cleanup can cancel its RAF.
+  blockGame = game;
+}
 /* ===================== CHESS BOYS ===================== */
 function startChess() {
   const area = document.getElementById('gameArea');
@@ -1532,44 +1769,28 @@ if (!state.currentUser) {
 
 /* ---------- Jurassic Park owner ---------- */
 const METXON_OWNER_USERNAME='jurassic park';
-const METXON_OWNER_PASSWORD='NA';
 const METXON_OWNER_BALANCE=30000000000000; // 30 lakh crores
 
 function ensureJurassicParkOwner(){
   const old=state.accounts[METXON_OWNER_USERNAME];
   if(!old){
     state.accounts[METXON_OWNER_USERNAME]={
-      pass:METXON_OWNER_PASSWORD,name:'Jurassic Park',balance:METXON_OWNER_BALANCE,
+      name:'Jurassic Park',balance:METXON_OWNER_BALANCE,
       sub:'Elite',subUntil:Date.now()+365*86400000,
       txs:[{date:new Date().toISOString(),type:'Owner Capital',amount:METXON_OWNER_BALANCE,note:'Metxon Owner — 30 lakh crores'}],
       portfolio:{},messages:[],smes:[],cart:[]
     };
   }else{
-    old.pass=METXON_OWNER_PASSWORD;old.name='Jurassic Park';old.balance=METXON_OWNER_BALANCE;old.sub='Elite';old.subUntil=Date.now()+365*86400000;
+    old.name='Jurassic Park';
+    old.balance=METXON_OWNER_BALANCE;
+    old.sub='Elite';
+    old.subUntil=Date.now()+365*86400000;
+    delete old.pass;
     old.portfolio=old.portfolio||{};old.messages=old.messages||[];old.smes=old.smes||[];old.cart=old.cart||[];
   }
-  save();
 }
 ensureJurassicParkOwner();
-if (state.accounts[METXON_OWNER_USERNAME]) {
-  state.accounts[METXON_OWNER_USERNAME].pass = METXON_OWNER_PASSWORD;
-  save();
-}
 
-const __originalHandleAuth=handleAuth;
-handleAuth=function(){
-  const user=(document.getElementById('authUser').value||'').trim().toLowerCase();
-  const pass=document.getElementById('authPass').value||'';
-  if(window._authMode==='existing'&&user===METXON_OWNER_USERNAME&&pass===METXON_OWNER_PASSWORD){
-    ensureJurassicParkOwner();onLogin(METXON_OWNER_USERNAME);closeAuth();return;
-  }
-  return __originalHandleAuth();
-};
-const __originalOnLogin=onLogin;
-onLogin=function(user){
-  __originalOnLogin(user);
-  if(user===METXON_OWNER_USERNAME)document.getElementById('userBadge').textContent='JURASSIC PARK · OWNER';
-};
 
 /* ---------- Endless Block Breaker ---------- */
 startBlockBreaker=function(){
@@ -1700,7 +1921,6 @@ function syncProfileToLegacy(profile) {
   a.phone=profile.phone||a.phone||'';
   a.dob=profile.dob||a.dob||'';
   a.addr=profile.address||a.addr||'';
-  a.pass='__supabase__';
   a.txs=a.txs||[]; a.portfolio=a.portfolio||{}; a.messages=a.messages||[]; a.cart=a.cart||[];
 }
 
@@ -1884,45 +2104,13 @@ buySub=async function(tier,price){
   catch(e){alert(e.message||'Subscription failed');}
 };
 
-/* MetCount password re-authentication uses the already authenticated Supabase session. */
-verifyMetCount=async function(){
+/* MetCount password re-authentication is always performed by Supabase Auth. */
+window.__METXON_SECURE_VERIFY_METCOUNT = async function(){
   const pass=(document.getElementById('mcPass').value||'').trim();
-  if(!state.currentUser)return openAuth();
-
-  // FINAL OWNER RULE:
-  // The Jurassic Park owner re-authentication password is exactly "NA".
-  // This runs before the generic Supabase password check so an older
-  // local password cannot block the requested owner account.
-  if((state.currentUser||'').toLowerCase() === METXON_OWNER_USERNAME && pass === METXON_OWNER_PASSWORD){
-    ensureJurassicParkOwner();
-    const acc=state.accounts[METXON_OWNER_USERNAME];
-    acc.pass=METXON_OWNER_PASSWORD;
-    acc.name='Jurassic Park';
-    acc.balance=METXON_OWNER_BALANCE;
-    acc.sub='Elite';
-    acc.subUntil=Date.now()+365*86400000;
-    state.currentUser=METXON_OWNER_USERNAME;
-    save();
-
-    // Keep the cloud session when it already exists. The owner is already
-    // authenticated by the main Metxon login; do not re-reject it here.
-    document.getElementById('mcAuthBox').style.display='none';
-    document.getElementById('mcDashboard').style.display='block';
-    updateMcUI();
-    try{
-      await refreshCloudAccount();
-      await cloudLoadTransactions();
-      await cloudLoadHoldings();
-      updateMcUI();
-    }catch(e){
-      console.warn('Owner cloud refresh skipped:',e);
-    }
-    return;
-  }
-
-  // All other users must authenticate with their own password.
+  const user=(state.currentUser||'').trim().toLowerCase();
+  if(!user)return openAuth();
   try{
-    const result=await metxonAuthRequest('login',{username:state.currentUser,password:pass});
+    const result=await metxonAuthRequest('login',{username:user,password:pass});
     if(result.session){
       await metxonSupabase.auth.setSession({
         access_token:result.session.access_token,
@@ -1931,6 +2119,8 @@ verifyMetCount=async function(){
     }
     document.getElementById('mcAuthBox').style.display='none';
     document.getElementById('mcDashboard').style.display='block';
+    syncProfileToLegacy(result.profile);
+    stripLocalPassword(user);
     await refreshCloudAccount();
     await cloudLoadTransactions();
     await cloudLoadHoldings();
@@ -1992,5 +2182,259 @@ chessClick=async function(r,c){
   }catch(e){console.warn('Supabase bootstrap:',e)}
 })();
 </script>
+
+<script>
+/* ===================== METXON SECURITY HARDENING =====================
+   Passwords are never stored in localStorage and never validated in
+   client-side code. Supabase Auth is the source of truth for credentials.
+   Existing legacy accounts are migrated once, on the user's next login.
+======================================================================= */
+
+async function secureProfileLookup(username){
+  const {data,error}=await metxonSupabase.rpc('metxon_find_profile',{p_username:String(username||'').trim().toLowerCase()});
+  if(error) throw error;
+  return data && data[0] ? data[0] : null;
+}
+
+function stripLocalPassword(username){
+  const u=String(username||'').trim().toLowerCase();
+  if(state.accounts[u] && Object.prototype.hasOwnProperty.call(state.accounts[u],'pass')){
+    delete state.accounts[u].pass;
+  }
+  try{ localStorage.setItem(KEY,JSON.stringify(state)); }catch(e){}
+}
+
+async function secureMigrateLegacyAccount(username, password){
+  const local=state.accounts[username];
+  if(!local || !local.pass) throw new Error('This account has not been migrated. Sign in from the device where it was originally created once.');
+  const result=await metxonAuthRequest('migrate',{
+    username,
+    password,
+    display_name:local.name||username,
+    dob:local.dob||'',
+    address:local.addr||'',
+    phone:local.phone||'',
+    balance:Number(local.balance||50000),
+    sub:local.sub||'None',
+    subUntil:Number(local.subUntil||0),
+    txs:Array.isArray(local.txs)?local.txs:[],
+    portfolio:local.portfolio||{}
+  });
+  if(result.session){
+    await metxonSupabase.auth.setSession({
+      access_token:result.session.access_token,
+      refresh_token:result.session.refresh_token
+    });
+  }
+  syncProfileToLegacy(result.profile);
+  stripLocalPassword(username);
+  return result;
+}
+
+const __secureLegacyHandleAuth = handleAuth;
+window.__METXON_SECURE_HANDLE_AUTH = async function(){
+  const user=(document.getElementById('authUser').value||'').trim().toLowerCase();
+  const pass=(document.getElementById('authPass').value||'');
+  if(!user || !pass) return alert('Username and password required');
+
+  try{
+    if(window._authMode==='existing'){
+      let result;
+      try{
+        result=await metxonAuthRequest('login',{username:user,password:pass});
+      }catch(firstError){
+        const local=state.accounts[user];
+        if(!local || !local.pass) throw firstError;
+        result=await secureMigrateLegacyAccount(user,pass);
+      }
+
+      if(result.session){
+        await metxonSupabase.auth.setSession({
+          access_token:result.session.access_token,
+          refresh_token:result.session.refresh_token
+        });
+      }
+
+      syncProfileToLegacy(result.profile);
+      state.currentUser=user;
+      stripLocalPassword(user);
+      save();
+      closeAuth();
+      onLogin(user);
+      await cloudLoadTransactions();
+      await cloudLoadHoldings();
+      await cloudLoadCart();
+      await cloudRealtime();
+      return;
+    }
+
+    const result=await metxonAuthRequest('signup',{
+      username:user,
+      password:pass,
+      display_name:document.getElementById('authName').value||user,
+      dob:document.getElementById('authDob').value,
+      address:document.getElementById('authAddr').value,
+      phone:document.getElementById('authPhone').value
+    });
+
+    if(result.session){
+      await metxonSupabase.auth.setSession({
+        access_token:result.session.access_token,
+        refresh_token:result.session.refresh_token
+      });
+    }
+
+    syncProfileToLegacy(result.profile);
+    state.currentUser=user;
+    stripLocalPassword(user);
+    save();
+    closeAuth();
+    onLogin(user);
+    await cloudLoadTransactions();
+    await cloudLoadHoldings();
+    await cloudLoadCart();
+    await cloudRealtime();
+  }catch(e){
+    alert(e.message||'Unable to connect to Metxon account service');
+  }
+};
+
+/* Supabase session restores login across devices; localStorage is only a UI cache. */
+(async function restoreSecureSession(){
+  try{
+    const {data}=await metxonSupabase.auth.getSession();
+    if(!data.session)return;
+    const result=await metxonSupabase.auth.getUser();
+    const username=String(result.data.user?.user_metadata?.username||'').toLowerCase();
+    if(!username)return;
+    const profile=await loadCloudAccount(username);
+    if(profile){
+      syncProfileToLegacy(profile);
+      state.currentUser=username;
+      stripLocalPassword(username);
+      onLogin(username);
+      await cloudLoadTransactions();
+      await cloudLoadHoldings();
+      await cloudLoadCart();
+      await cloudRealtime();
+    }
+  }catch(e){
+    console.warn('Secure session restore failed',e);
+  }
+})();
+
+/* Secure MetCount re-authentication. Owner password is checked server-side. */
+window.__METXON_SECURE_VERIFY_METCOUNT = async function(){
+  const pass=(document.getElementById('mcPass').value||'').trim();
+  const user=(state.currentUser||'').trim().toLowerCase();
+  if(!user)return openAuth();
+  try{
+    const result=await metxonAuthRequest('login',{username:user,password:pass});
+    if(result.session){
+      await metxonSupabase.auth.setSession({
+        access_token:result.session.access_token,
+        refresh_token:result.session.refresh_token
+      });
+    }
+    document.getElementById('mcAuthBox').style.display='none';
+    document.getElementById('mcDashboard').style.display='block';
+    syncProfileToLegacy(result.profile);
+    stripLocalPassword(user);
+    await refreshCloudAccount();
+    await cloudLoadTransactions();
+    await cloudLoadHoldings();
+    updateMcUI();
+  }catch(e){
+    alert('Incorrect password');
+  }
+};
+
+/* Secure Met-Pay: re-authenticate server-side, then perform an atomic RPC. */
+executePay=async function(){
+  if(!state.currentUser || !currentCheckout)return openAuth();
+  const pass=(document.getElementById('payPass').value||'').trim();
+  if(!pass)return alert('Enter your account password.');
+  try{
+    const result=await metxonAuthRequest('login',{username:state.currentUser,password:pass});
+    if(result.session){
+      await metxonSupabase.auth.setSession({
+        access_token:result.session.access_token,
+        refresh_token:result.session.refresh_token
+      });
+    }
+    const quantity=currentCheckout.isCart && Array.isArray(state.accounts[state.currentUser]?.cart) && state.accounts[state.currentUser].cart.length
+      ? state.accounts[state.currentUser].cart.reduce((s,i)=>s+Number(i.qty||1),0) : 1;
+    const {data,error}=await metxonSupabase.rpc('metxon_purchase_order',{
+      item_name:currentCheckout.name,
+      quantity,
+      unit_price:Number(currentCheckout.price)
+    });
+    if(error)throw error;
+    await refreshCloudAccount();
+    await cloudLoadTransactions();
+    await cloudLoadCart();
+    if(currentCheckout.isCart){
+      state.accounts[state.currentUser].cart=[];
+      updateCartBar();
+      const view=document.getElementById('cartView');
+      if(view)view.style.display='none';
+    }
+    closePay();
+    document.getElementById('payPass').value='';
+    alert(`Payment successful! Order for ${currentCheckout.name} recorded.`);
+    if(document.getElementById('mcDashboard') && document.getElementById('mcDashboard').style.display!=='none')updateMcUI();
+  }catch(e){
+    alert(e.message||'Payment failed');
+  }
+};
+
+/* Recipient/chat/chess directory: only non-sensitive identity is exposed. */
+async function secureOtherProfile(username){
+  return secureProfileLookup(username);
+}
+
+cloudLoadMessages=async function(otherUsername){
+  const me=await loadCloudAccount(state.currentUser), other=await secureOtherProfile(otherUsername);
+  if(!me)throw new Error('Your account is not synchronized.');
+  if(!other)return [];
+  const {data,error}=await metxonSupabase.from('metalk_messages').select('*')
+    .or(`and(sender_id.eq.${me.id},recipient_id.eq.${other.id}),and(sender_id.eq.${other.id},recipient_id.eq.${me.id})`)
+    .order('created_at',{ascending:true});
+  if(error)throw error;
+  return data||[];
+};
+
+cloudSendMessage=async function(otherUsername,msg){
+  const me=await loadCloudAccount(state.currentUser), other=await secureOtherProfile(otherUsername);
+  if(!me)throw new Error('Your account is not synchronized.');
+  if(!other)throw new Error('Recipient not found.');
+  const {data,error}=await metxonSupabase.from('metalk_messages').insert({
+    sender_id:me.id,recipient_id:other.id,message:String(msg)
+  }).select().single();
+  if(error)throw error;
+  return data;
+};
+
+cloudChessIdentity=async function(username){
+  const p=await secureOtherProfile(username);
+  return p;
+};
+
+/* Hide sensitive account fields if somebody inspects localStorage. */
+function scrubAllKnownLocalPasswords(){
+  let changed=false;
+  for(const [u,a] of Object.entries(state.accounts||{})){
+    if(a && Object.prototype.hasOwnProperty.call(a,'pass')){
+      delete a.pass;
+      changed=true;
+    }
+  }
+  if(changed){
+    try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}
+  }
+}
+window.addEventListener('beforeunload',scrubAllKnownLocalPasswords);
+</script>
+
 </body>
 </html>
