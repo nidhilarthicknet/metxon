@@ -1903,12 +1903,12 @@ function stableStockPrice(ticker){
 function recordStockPoint(ticker,price){
   const acc=state.accounts[state.currentUser];if(!acc)return;acc.stockHistory=acc.stockHistory||{};acc.stockHistory[ticker]=acc.stockHistory[ticker]||[];acc.stockHistory[ticker].push({t:Date.now(),p:price});if(acc.stockHistory[ticker].length>80)acc.stockHistory[ticker].splice(0,acc.stockHistory[ticker].length-80);save();
 }
-function drawStockAnalysis(ticker,price){
+function drawStockAnalysis(ticker,price,currency='USD'){
   const acc=state.accounts[state.currentUser];if(!acc)return;recordStockPoint(ticker,price);
   const hist=(acc.stockHistory[ticker]||[]).map(x=>x.p);const vals=hist.length?hist.slice(-40):[price];while(vals.length<24)vals.unshift(vals[0]);
   const min=Math.min(...vals),max=Math.max(...vals),range=max-min||1;
   const old=document.getElementById('stockAnalysisPanel');if(old)old.remove();
-  const panel=document.createElement('div');panel.id='stockAnalysisPanel';panel.className='stock-analysis';panel.innerHTML=`<div class="stock-analysis-grid"><div class="stock-analysis-card"><div class="n">₹${price.toFixed(2)}</div><div>Current</div></div><div class="stock-analysis-card"><div class="n">${acc.portfolio[ticker]||0}</div><div>Shares</div></div><div class="stock-analysis-card"><div class="n">₹${((acc.portfolio[ticker]||0)*price).toLocaleString('en-IN')}</div><div>Current Value</div></div><div class="stock-analysis-card"><div class="n">${acc.sub==='Elite'?'ELITE':'STANDARD'}</div><div>MET AI</div></div></div><canvas id="stockAnalysisCanvas" class="stock-chart" width="900" height="300"></canvas><div id="metAiSummary" class="card" style="margin-top:10px;"></div>`;
+  const panel=document.createElement('div');panel.id='stockAnalysisPanel';panel.className='stock-analysis';panel.innerHTML=`<div class="stock-analysis-grid"><div class="stock-analysis-card"><div class="n">${(window.metxonMoney||((v,c)=>`${c} ${Number(v).toFixed(2)}`))(price,currency)}</div><div>Current</div></div><div class="stock-analysis-card"><div class="n">${acc.portfolio[ticker]||0}</div><div>Shares</div></div><div class="stock-analysis-card"><div class="n">${(window.metxonMoney||((v,c)=>`${c} ${Number(v).toFixed(2)}`))((acc.portfolio[ticker]||0)*price,currency)}</div><div>Current Value</div></div><div class="stock-analysis-card"><div class="n">${acc.sub==='Elite'?'ELITE':'STANDARD'}</div><div>MET AI</div></div></div><canvas id="stockAnalysisCanvas" class="stock-chart" width="900" height="300"></canvas><div id="metAiSummary" class="card" style="margin-top:10px;"></div>`;
   document.getElementById('stockResult').appendChild(panel);
   const c=document.getElementById('stockAnalysisCanvas'),x=c.getContext('2d');x.fillStyle='#050a12';x.fillRect(0,0,c.width,c.height);x.strokeStyle='#1c2b46';for(let i=1;i<6;i++){x.beginPath();x.moveTo(0,i*c.height/6);x.lineTo(c.width,i*c.height/6);x.stroke()}x.beginPath();vals.forEach((v,i)=>{const xx=i*(c.width/(vals.length-1)),yy=c.height-25-((v-min)/range)*(c.height-50);i?x.lineTo(xx,yy):x.moveTo(xx,yy)});x.strokeStyle='#00d2ff';x.lineWidth=3;x.stroke();
   const aiBox=document.getElementById('metAiSummary'); if(aiBox){aiBox.innerHTML=acc.sub==='Elite'?`<strong style="color:var(--purple)">MET AI</strong><br><span style="color:var(--muted)">Use the Elite MET AI section below and click <strong>Analyze with MET AI</strong> to request a summary for ${ticker}.</span>`:`<strong style="color:var(--muted)">MET AI</strong><br><span style="color:var(--muted)">Upgrade to Elite for MET AI stock summaries.</span>`;}
@@ -1955,9 +1955,22 @@ async function analyzeMetAI(){
     }
 
     const m=data.market||{};
-    const fmt=v=>Number.isFinite(Number(v))
-      ? Number(v).toLocaleString('en-US',{maximumFractionDigits:2})+(m.currency?` ${m.currency}`:'')
-      : '—';
+    if(Number.isFinite(Number(m.currentPrice))){
+      const stockInput=document.getElementById('stockSearch');
+      if(stockInput)stockInput.value=ticker;
+      const quoteBox=document.getElementById('stockResult');
+      const fmt=window.metxonMoney||((v,c)=>`${c} ${Number(v).toFixed(2)}`);
+      if(quoteBox){
+        const existing=quoteBox.querySelector('.card');
+        if(existing){
+          const priceNode=existing.querySelector('span');
+          if(priceNode)priceNode.textContent=fmt(Number(m.currentPrice),String(m.currency||'USD').toUpperCase());
+          const text=existing.innerHTML;
+          if(!text.includes(String(m.currency||'USD').toUpperCase())) existing.insertAdjacentHTML('afterbegin',`<span style="display:none">${m.currency}</span>`);
+        }
+      }
+    }
+    const fmt=v=>Number.isFinite(Number(v)) ? (window.metxonMoney||((n,c)=>`${c} ${Number(n).toFixed(2)}`))(v,String(m.currency||'USD').toUpperCase()) : '—';
     const pct=v=>Number.isFinite(Number(v))
       ? `${Number(v)>=0?'+':''}${Number(v).toFixed(2)}%`
       : '—';
@@ -1983,7 +1996,7 @@ async function analyzeMetAI(){
         ${String(data.summary||'No analysis returned.').replace(/\n/g,'<br>')}
       </div>
       <p style="margin:10px 0 0;color:var(--muted);font-size:.8rem;">
-        Exchange: ${m.exchange||'—'} · Source: ${data.source||'Market data API'} ·
+        Exchange: ${m.exchange||'—'} · Quote currency: ${String(m.currency||'USD').toUpperCase()} · Source: ${data.source||'Market data API'} ·
         AI provider: ${data.aiProvider||'METXON_RULES_ENGINE'} ·
         ${data.disclaimer||'Informational analysis only.'}
       </p>
@@ -2006,10 +2019,56 @@ function setMetAITierUI(){
   if(!elite)out.innerHTML='<strong style="color:var(--purple)">MET AI — Elite</strong><br><span style="color:var(--muted)">Available only with an Elite subscription.</span>';
 }
 
-searchStock=function(){
-  const ticker=(document.getElementById('stockSearch').value||'MTX').trim().toUpperCase(),price=stableStockPrice(ticker);
-  document.getElementById('stockResult').innerHTML=`<div class="card"><strong>${ticker}</strong> – Simulated current price: ₹${price.toFixed(2)}<div style="margin-top:10px"><button class="btn btn-primary" onclick="buyStock('${ticker}',${price})">Buy 1 Share</button><button class="btn" onclick="sellStock('${ticker}',${price})">Sell 1 Share</button></div></div>`;drawStockAnalysis(ticker,price);
+async function searchStock(){
+  const input=document.getElementById('stockSearch');
+  const ticker=(input?.value||'').trim().toUpperCase();
+  const result=document.getElementById('stockResult');
+  if(!ticker){
+    if(result)result.innerHTML='<div class="card">Enter a stock ticker first.</div>';
+    return;
+  }
+  if(result)result.innerHTML=`<div class="card"><strong>${ticker}</strong> — Fetching live market quote…</div>`;
+
+  try{
+    const {data:sessionData,error:sessionError}=await metxonSupabase.auth.getSession();
+    if(sessionError || !sessionData.session)throw new Error('Your Metxon session has expired. Please sign in again.');
+
+    const {data,error}=await metxonSupabase.functions.invoke('metxon-market-data',{body:{ticker}});
+    if(error)throw error;
+    if(!data || data.error)throw new Error(data?.error||'Market quote unavailable.');
+
+    const m=data.market||{};
+    const price=Number(m.currentPrice);
+    const currency=String(m.currency||'USD').toUpperCase();
+    if(!Number.isFinite(price))throw new Error('Market price unavailable.');
+
+    // Use the same native-currency formatter everywhere.
+    const money=window.metxonMoney||((v,code)=>{
+      const n=Number(v);
+      const symbols={INR:'₹',USD:'$',EUR:'€',GBP:'£',JPY:'¥',KRW:'₩',CAD:'C$',AUD:'A$',CHF:'CHF '};
+      const sym=symbols[code]||`${code} `;
+      return `${sym}${n.toLocaleString('en-US',{maximumFractionDigits:2})}`;
+    });
+    window.metxonMoney=money;
+
+    result.innerHTML=`
+      <div class="card">
+        <strong>${ticker}</strong> — <span style="color:var(--cyan);font-weight:800;">${money(price,currency)}</span>
+        <span style="color:var(--muted);">(${currency})</span>
+        <div style="margin-top:6px;color:var(--muted);font-size:.82rem;">
+          Exchange: ${m.exchange||'—'} · Today: ${Number.isFinite(Number(m.todayChangePct))?(Number(m.todayChangePct)>=0?'+':'')+Number(m.todayChangePct).toFixed(2)+'%':'—'}
+        </div>
+        <div style="margin-top:10px">
+          <button class="btn btn-primary" onclick="buyStock('${ticker}',${price})">Buy 1 Share</button>
+          <button class="btn" onclick="sellStock('${ticker}',${price})">Sell 1 Share</button>
+        </div>
+      </div>`;
+    drawStockAnalysis(ticker,price,currency);
+  }catch(e){
+    if(result)result.innerHTML=`<div class="card"><strong style="color:var(--red)">Stock search failed.</strong><br><span style="color:var(--muted)">${String(e?.message||e)}</span></div>`;
+  }
 };
+
 const __buyStockOriginal=buyStock;buyStock=function(ticker,price){__buyStockOriginal(ticker,price);recordStockPoint(ticker,price);searchStock()};
 const __sellStockOriginal=sellStock;sellStock=function(ticker,price){__sellStockOriginal(ticker,price);recordStockPoint(ticker,price);searchStock()};
 
@@ -2037,6 +2096,14 @@ const metxonSupabase = window.supabase.createClient(METXON_SUPABASE_URL, METXON_
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
 });
 const METXON_AUTH_FUNCTION = METXON_SUPABASE_URL + '/functions/v1/metxon-auth-v2';
+window.metxonMoney=window.metxonMoney||function(value,currency){
+  const n=Number(value);
+  const code=String(currency||'USD').toUpperCase();
+  const symbols={INR:'₹',USD:'$',EUR:'€',GBP:'£',JPY:'¥',KRW:'₩',CAD:'C$',AUD:'A$',CHF:'CHF '};
+  const sym=symbols[code]||`${code} `;
+  return `${sym}${n.toLocaleString('en-US',{maximumFractionDigits:2})}`;
+};
+
 
 async function metxonAuthRequest(action, payload) {
   const res = await fetch(METXON_AUTH_FUNCTION, {
