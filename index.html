@@ -474,18 +474,13 @@ tr:hover { background: rgba(255,255,255,0.03); }
           </div>
           <span id="metAiTierBadge" class="badge">ELITE</span>
         </div>
-
         <div id="metAiSearchRow" style="display:flex;gap:8px;flex-wrap:wrap;">
-          <input
-            id="metAiStockSearch"
-            type="text"
+          <input id="metAiStockSearch" type="text"
             placeholder="Enter ticker (e.g. AMD, AAPL, NVDA, MTX)"
             style="flex:1;min-width:220px;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:11px 12px;border-radius:8px;"
-            onkeydown="if(event.key==='Enter'){event.preventDefault();analyzeMetAI();}"
-          >
+            onkeydown="if(event.key==='Enter'){event.preventDefault();analyzeMetAI();}">
           <button class="btn btn-primary" onclick="analyzeMetAI()">Analyze with MET AI</button>
         </div>
-
         <div id="metAiOutput" class="card" style="margin-top:12px;border-color:var(--border);">
           <strong style="color:var(--purple);">MET AI</strong><br>
           <span style="color:var(--muted);">Enter a ticker above and click <b>Analyze with MET AI</b>. MET AI will not generate a summary until you ask for one.</span>
@@ -1916,125 +1911,114 @@ function drawStockAnalysis(ticker,price){
   const panel=document.createElement('div');panel.id='stockAnalysisPanel';panel.className='stock-analysis';panel.innerHTML=`<div class="stock-analysis-grid"><div class="stock-analysis-card"><div class="n">₹${price.toFixed(2)}</div><div>Current</div></div><div class="stock-analysis-card"><div class="n">${acc.portfolio[ticker]||0}</div><div>Shares</div></div><div class="stock-analysis-card"><div class="n">₹${((acc.portfolio[ticker]||0)*price).toLocaleString('en-IN')}</div><div>Current Value</div></div><div class="stock-analysis-card"><div class="n">${acc.sub==='Elite'?'ELITE':'STANDARD'}</div><div>MET AI</div></div></div><canvas id="stockAnalysisCanvas" class="stock-chart" width="900" height="300"></canvas><div id="metAiSummary" class="card" style="margin-top:10px;"></div>`;
   document.getElementById('stockResult').appendChild(panel);
   const c=document.getElementById('stockAnalysisCanvas'),x=c.getContext('2d');x.fillStyle='#050a12';x.fillRect(0,0,c.width,c.height);x.strokeStyle='#1c2b46';for(let i=1;i<6;i++){x.beginPath();x.moveTo(0,i*c.height/6);x.lineTo(c.width,i*c.height/6);x.stroke()}x.beginPath();vals.forEach((v,i)=>{const xx=i*(c.width/(vals.length-1)),yy=c.height-25-((v-min)/range)*(c.height-50);i?x.lineTo(xx,yy):x.moveTo(xx,yy)});x.strokeStyle='#00d2ff';x.lineWidth=3;x.stroke();
-  const aiBox=document.getElementById('metAiSummary');
-  if(aiBox){
-    aiBox.innerHTML=acc.sub==='Elite'
-      ? `<strong style="color:var(--purple)">MET AI</strong><br><span style="color:var(--muted)">Select <strong>MET AI — Elite Stock Intelligence</strong> below and click <strong>Analyze with MET AI</strong> to request a summary for ${ticker}.</span>`
-      : `<strong style="color:var(--muted)">MET AI</strong><br><span style="color:var(--muted)">Upgrade to Elite for MET AI stock summaries.</span>`;
-  }
-}
-
-function setMetAITierUI(){
-  const acc=state.accounts[state.currentUser];
-  const elite=!!(acc && acc.sub==='Elite');
-  const badge=document.getElementById('metAiTierBadge');
-  const output=document.getElementById('metAiOutput');
-  const input=document.getElementById('metAiStockSearch');
-  const button=document.querySelector('#metAiEliteSection button.btn-primary');
-  if(badge)badge.textContent=elite?'ELITE':'ELITE REQUIRED';
-  if(!elite){
-    if(input)input.disabled=true;
-    if(button)button.disabled=true;
-    if(output)output.innerHTML=`<strong style="color:var(--purple)">MET AI — Elite</strong><br><span style="color:var(--muted)">MET AI stock analysis is available only with an Elite subscription.</span>`;
-  }else{
-    if(input)input.disabled=false;
-    if(button)button.disabled=false;
-    if(output && !input?.value.trim()) output.innerHTML=`<strong style="color:var(--purple)">MET AI</strong><br><span style="color:var(--muted)">Enter a ticker above and click <b>Analyze with MET AI</b>. MET AI will not generate a summary until you ask for one.</span>`;
-  }
+  const aiBox=document.getElementById('metAiSummary'); if(aiBox){aiBox.innerHTML=acc.sub==='Elite'?`<strong style="color:var(--purple)">MET AI</strong><br><span style="color:var(--muted)">Use the Elite MET AI section below and click <strong>Analyze with MET AI</strong> to request a summary for ${ticker}.</span>`:`<strong style="color:var(--muted)">MET AI</strong><br><span style="color:var(--muted)">Upgrade to Elite for MET AI stock summaries.</span>`;}
 }
 
 async function analyzeMetAI(){
   const acc=state.accounts[state.currentUser];
   if(!acc)return openAuth();
   if(acc.sub!=='Elite'){
-    setMetAITierUI();
+    if(typeof setMetAITierUI==='function')setMetAITierUI();
     return alert('MET AI stock analysis requires an Elite subscription.');
   }
-
   const input=document.getElementById('metAiStockSearch');
   const output=document.getElementById('metAiOutput');
   const ticker=(input?.value||'').trim().toUpperCase();
-
   if(!ticker){
-    if(output)output.innerHTML=`<strong style="color:var(--purple)">MET AI</strong><br><span style="color:var(--muted)">Enter a stock ticker first, for example <b>AMD</b>, <b>AAPL</b>, <b>NVDA</b>, or <b>RELIANCE.NS</b>.</span>`;
+    if(output)output.innerHTML='<strong style="color:var(--purple)">MET AI</strong><br><span style="color:var(--muted)">Enter a ticker first.</span>';
     return;
   }
 
-  if(output){
-    output.innerHTML=`
-      <div style="display:flex;align-items:center;gap:10px;">
-        <strong style="color:var(--purple)">MET AI — ${ticker}</strong>
-        <span class="badge">ANALYZING…</span>
-      </div>
-      <p style="color:var(--muted);margin-top:10px;">Fetching the latest market snapshot and preparing the Elite analysis.</p>
-    `;
-  }
+  if(output)output.innerHTML=`<strong style="color:var(--purple)">MET AI — ${ticker}</strong><br><span style="color:var(--muted)">Fetching market data and preparing the analysis…</span>`;
 
   try{
-    if(typeof metxonSupabase==='undefined' || !metxonSupabase){
-      throw new Error('Supabase session is not available. Please sign in again.');
-    }
-
     const {data:sessionData,error:sessionError}=await metxonSupabase.auth.getSession();
     if(sessionError || !sessionData.session)throw new Error('Your Metxon session has expired. Please sign in again.');
 
-    const {data,error}=await metxonSupabase.functions.invoke('metxon-market-ai',{
-      body:{ticker}
-    });
-
+    const {data,error}=await metxonSupabase.functions.invoke('metxon-market-ai',{body:{ticker}});
     if(error)throw error;
     if(!data || data.error)throw new Error(data?.error||'MET AI could not analyze this ticker.');
 
-    const market=data.market||{};
-    const money=market.currency||'USD';
-    const fmt=(v)=>{
-      const n=Number(v);
-      if(!Number.isFinite(n))return '—';
-      return `${n.toLocaleString('en-US',{maximumFractionDigits:2})} ${money}`;
-    };
-    const pct=(v)=>{
-      const n=Number(v);
-      if(!Number.isFinite(n))return '—';
-      return `${n>=0?'+':''}${n.toFixed(2)}%`;
-    };
+    const m=data.market||{};
+    const fmt=v=>Number.isFinite(Number(v))?Number(v).toLocaleString('en-US',{maximumFractionDigits:2})+(m.currency?` ${m.currency}`:''):'—';
+    const pct=v=>Number.isFinite(Number(v))?`${Number(v)>=0?'+':''}${Number(v).toFixed(2)}%`:'—';
 
-    // Keep the real market observation visible in the user's MetCount chart history.
-    recordStockPoint(ticker,Number(market.currentPrice));
+    if(Number.isFinite(Number(m.currentPrice)))recordStockPoint(ticker,Number(m.currentPrice));
 
-    if(output){
-      output.innerHTML=`
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-          <strong style="color:var(--purple);font-size:1.08rem;">MET AI — ${ticker}</strong>
-          <span class="badge">${data.aiPowered?'AI-POWERED':'MARKET ANALYSIS'}</span>
-        </div>
-
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:12px 0;">
-          <div class="card"><div style="font-weight:800;color:var(--cyan);">${fmt(market.currentPrice)}</div><small>Current</small></div>
-          <div class="card"><div style="font-weight:800;">${pct(market.todayChangePct)}</div><small>Today</small></div>
-          <div class="card"><div style="font-weight:800;">${fmt(market.dayHigh)}</div><small>Day high</small></div>
-          <div class="card"><div style="font-weight:800;">${fmt(market.dayLow)}</div><small>Day low</small></div>
-          <div class="card"><div style="font-weight:800;">${pct(market.oneMonthChangePct)}</div><small>1-month</small></div>
-          <div class="card"><div style="font-weight:800;">${market.marketState||'—'}</div><small>Market state</small></div>
-        </div>
-
-        <div style="padding:12px 14px;border:1px solid var(--border);border-radius:9px;background:var(--bg);">
-          ${String(data.summary||'').replace(/\n/g,'<br>')}
-        </div>
-
-        <p style="margin:10px 0 0;color:var(--muted);font-size:.8rem;">
-          Exchange: ${market.exchange||'—'} · Source: ${data.source||'Market data API'} · ${data.disclaimer||'Market data may be delayed. Informational analysis only.'}
-        </p>
-      `;
-    }
+    if(output)output.innerHTML=`
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <strong style="color:var(--purple);font-size:1.08rem;">MET AI — ${ticker}</strong>
+        <span class="badge">${data.aiPowered?'AI-POWERED':'MARKET ANALYSIS'}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:12px 0;">
+        <div class="card"><b style="color:var(--cyan)">${fmt(m.currentPrice)}</b><small>Current</small></div>
+        <div class="card"><b>${pct(m.todayChangePct)}</b><small>Today</small></div>
+        <div class="card"><b>${fmt(m.dayHigh)}</b><small>Day high</small></div>
+        <div class="card"><b>${fmt(m.dayLow)}</b><small>Day low</small></div>
+        <div class="card"><b>${pct(m.oneMonthChangePct)}</b><small>1-month</small></div>
+        <div class="card"><b>${m.marketState||'—'}</b><small>Market state</small></div>
+      </div>
+      <div style="padding:12px 14px;border:1px solid var(--border);border-radius:9px;background:var(--bg);">
+        ${String(data.summary||'No analysis returned.').replace(/\n/g,'<br>')}
+      </div>
+      <p style="margin:10px 0 0;color:var(--muted);font-size:.8rem;">
+        Exchange: ${m.exchange||'—'} · Source: ${data.source||'Market data API'} · ${data.disclaimer||'Informational analysis only.'}
+      </p>`;
   }catch(e){
-    if(output){
-      output.innerHTML=`
-        <strong style="color:var(--red)">MET AI could not complete the analysis.</strong>
-        <p style="color:var(--muted);margin-top:8px;">${String(e?.message||e)}</p>
-        <p style="color:var(--muted);font-size:.82rem;margin-top:8px;">Try again in a moment, or verify that the requested ticker exists on the market-data provider.</p>
-      `;
-    }
+    if(output)output.innerHTML=`<strong style="color:var(--red)">MET AI could not complete the analysis.</strong><p style="color:var(--muted)">${String(e?.message||e)}</p>`;
   }
+}
+
+function setMetAITierUI(){
+  const acc=state.accounts[state.currentUser],elite=!!(acc&&acc.sub==='Elite');
+  const badge=document.getElementById('metAiTierBadge'),input=document.getElementById('metAiStockSearch'),btn=document.querySelector('#metAiEliteSection button.btn-primary'),out=document.getElementById('metAiOutput');
+  if(!badge||!input||!btn||!out)return;
+  badge.textContent=elite?'ELITE':'ELITE REQUIRED';
+  input.disabled=!elite;btn.disabled=!elite;
+  if(!elite)out.innerHTML='<strong style="color:var(--purple)">MET AI — Elite</strong><br><span style="color:var(--muted)">Available only with an Elite subscription.</span>';
+}
+
+searchStock=function(){
+  const ticker=(document.getElementById('stockSearch').value||'MTX').trim().toUpperCase(),price=stableStockPrice(ticker);
+  document.getElementById('stockResult').innerHTML=`<div class="card"><strong>${ticker}</strong> – Simulated current price: ₹${price.toFixed(2)}<div style="margin-top:10px"><button class="btn btn-primary" onclick="buyStock('${ticker}',${price})">Buy 1 Share</button><button class="btn" onclick="sellStock('${ticker}',${price})">Sell 1 Share</button></div></div>`;drawStockAnalysis(ticker,price);
+};
+const __buyStockOriginal=buyStock;buyStock=function(ticker,price){__buyStockOriginal(ticker,price);recordStockPoint(ticker,price);searchStock()};
+const __sellStockOriginal=sellStock;sellStock=function(ticker,price){__sellStockOriginal(ticker,price);recordStockPoint(ticker,price);searchStock()};
+
+/* Store/owner upgrade becomes available after the original page has initialized. */
+(function finalUpgradeInit(){
+  ensureJurassicParkOwner();
+  try{
+    if(state.currentUser && state.accounts[state.currentUser])onLogin(state.currentUser);
+  }catch(e){}
+})();
+
+</script>
+
+<footer style="text-align:center;padding:28px 16px 40px;border-top:1px solid var(--border);margin-top:40px;color:var(--muted);font-size:0.8rem;">
+  <p style="margin-bottom:6px;"><strong style="color:var(--cyan);">METXON CORPORATE</strong></p>
+  <p>© 2024–2026 Metxon Corporate. All rights reserved.</p>
+  <p style="margin-top:4px;">Molecule · Mettin · MetCount · MetCart — Fictional ecosystem portal.</p>
+  <p style="margin-top:8px;font-size:0.75rem;opacity:0.7;">Owner: Jurassic Park · Metxon Ecosystem</p>
+</footer>
+<script>
+/* ===================== METXON SUPABASE BRIDGE ===================== */
+const METXON_SUPABASE_URL = 'https://brahcvovidgjjzpkxsms.supabase.co';
+const METXON_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_FFhWnTcsx3JflSHkIDaSaQ_Mwhh83up';
+const metxonSupabase = window.supabase.createClient(METXON_SUPABASE_URL, METXON_SUPABASE_PUBLISHABLE_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+});
+const METXON_AUTH_FUNCTION = METXON_SUPABASE_URL + '/functions/v1/metxon-auth-v2';
+
+async function metxonAuthRequest(action, payload) {
+  const res = await fetch(METXON_AUTH_FUNCTION, {
+    method:'POST',
+    headers:{'Content-Type':'application/json','apikey':METXON_SUPABASE_PUBLISHABLE_KEY},
+    body:JSON.stringify({action,...payload})
+  });
+  const data = await res.json().catch(()=>({}));
+  if (!res.ok || data.error) throw new Error(data.error || 'Metxon authentication failed');
+  return data;
 }
 
 function syncProfileToLegacy(profile) {
