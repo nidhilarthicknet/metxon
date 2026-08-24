@@ -1921,9 +1921,11 @@ async function analyzeMetAI(){
     if(typeof setMetAITierUI==='function')setMetAITierUI();
     return alert('MET AI stock analysis requires an Elite subscription.');
   }
+
   const input=document.getElementById('metAiStockSearch');
   const output=document.getElementById('metAiOutput');
   const ticker=(input?.value||'').trim().toUpperCase();
+
   if(!ticker){
     if(output)output.innerHTML='<strong style="color:var(--purple)">MET AI</strong><br><span style="color:var(--muted)">Enter a ticker first.</span>';
     return;
@@ -1936,14 +1938,33 @@ async function analyzeMetAI(){
     if(sessionError || !sessionData.session)throw new Error('Your Metxon session has expired. Please sign in again.');
 
     const {data,error}=await metxonSupabase.functions.invoke('metxon-market-ai',{body:{ticker}});
-    if(error)throw error;
-    if(!data || data.error)throw new Error(data?.error||'MET AI could not analyze this ticker.');
+    if(error){
+      // Supabase JS may only expose "non-2xx status code"; preserve the
+      // actual function error if a response body is available.
+      throw error;
+    }
+    if(!data){
+      throw new Error('No response was returned by MET AI.');
+    }
+    if(data.error){
+      if(output)output.innerHTML=`
+        <strong style="color:var(--red)">MET AI could not complete the analysis.</strong>
+        <p style="color:var(--muted);margin-top:8px;">${String(data.error)}</p>
+        <p style="color:var(--muted);font-size:.82rem;margin-top:8px;">The market/AI service is responding, but it could not return usable data for <b>${ticker}</b>.</p>`;
+      return;
+    }
 
     const m=data.market||{};
-    const fmt=v=>Number.isFinite(Number(v))?Number(v).toLocaleString('en-US',{maximumFractionDigits:2})+(m.currency?` ${m.currency}`:''):'—';
-    const pct=v=>Number.isFinite(Number(v))?`${Number(v)>=0?'+':''}${Number(v).toFixed(2)}%`:'—';
+    const fmt=v=>Number.isFinite(Number(v))
+      ? Number(v).toLocaleString('en-US',{maximumFractionDigits:2})+(m.currency?` ${m.currency}`:'')
+      : '—';
+    const pct=v=>Number.isFinite(Number(v))
+      ? `${Number(v)>=0?'+':''}${Number(v).toFixed(2)}%`
+      : '—';
 
-    if(Number.isFinite(Number(m.currentPrice)))recordStockPoint(ticker,Number(m.currentPrice));
+    if(Number.isFinite(Number(m.currentPrice))){
+      recordStockPoint(ticker,Number(m.currentPrice));
+    }
 
     if(output)output.innerHTML=`
       <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;">
@@ -1962,12 +1983,19 @@ async function analyzeMetAI(){
         ${String(data.summary||'No analysis returned.').replace(/\n/g,'<br>')}
       </div>
       <p style="margin:10px 0 0;color:var(--muted);font-size:.8rem;">
-        Exchange: ${m.exchange||'—'} · Source: ${data.source||'Market data API'} · ${data.disclaimer||'Informational analysis only.'}
-      </p>`;
+        Exchange: ${m.exchange||'—'} · Source: ${data.source||'Market data API'} ·
+        AI provider: ${data.aiProvider||'METXON_RULES_ENGINE'} ·
+        ${data.disclaimer||'Informational analysis only.'}
+      </p>
+    `;
   }catch(e){
-    if(output)output.innerHTML=`<strong style="color:var(--red)">MET AI could not complete the analysis.</strong><p style="color:var(--muted)">${String(e?.message||e)}</p>`;
+    if(output)output.innerHTML=`
+      <strong style="color:var(--red)">MET AI could not complete the analysis.</strong>
+      <p style="color:var(--muted);margin-top:8px;">${String(e?.message||e)}</p>
+      <p style="color:var(--muted);font-size:.82rem;margin-top:8px;">Please try again. If the market service is temporarily unavailable, MET AI will fall back to a rules-based market summary.</p>`;
   }
 }
+
 
 function setMetAITierUI(){
   const acc=state.accounts[state.currentUser],elite=!!(acc&&acc.sub==='Elite');
