@@ -3292,7 +3292,7 @@ function chessToFen(st){
     document.querySelectorAll('[data-chess-bot]').forEach(btn=>{
       btn.onclick=()=>{
         const elo=Number(btn.getAttribute('data-chess-bot'));
-        if(typeof window.startStockfishBotGame==='function') window.startStockfishBotGame(elo);
+        if(typeof window.startStockfishBotGame==='function'){ window.__metxonBotGame=null; window.startStockfishBotGame(elo); }
         else alert('Stockfish bot is still loading. Please try again in a moment.');
       };
     });
@@ -3452,6 +3452,30 @@ function chessToFen(st){
         if(!nextMoves.length){
           if(nextCheck){status='checkmate';winner=me.id;}
           else status='stalemate';
+        }
+
+        /* LOCAL STOCKFISH BOT GAMES MUST NEVER WRITE to chess_games.
+           They intentionally have gameId === null. */
+        if(window.__metxonBotGame){
+          const bg=window.__metxonBotGame;
+          bg.positions=Array.isArray(bg.positions)?bg.positions:[];
+          bg.positions.push({
+            fen:chessToFen(next),
+            label:`After ${bg.positions.length}. ${squareName(move.from[0],move.from[1])}-${squareName(move.to[0],move.to[1])}${move.promotion?'='+promotion:''}`
+          });
+          chessState.game=next;
+          chessState.meta.status=status;
+          chessState.meta.winner=winner;
+          chessState.selected=null;
+          chessState.legal=[];
+          renderChessBoard();
+
+          if(status==='checkmate'||status==='stalemate'){
+            showChessFinishModal(null,status==='stalemate'?'draw':'white_win',chessState.meta);
+          }else{
+            setTimeout(window.__metxonBotMove,250);
+          }
+          return;
         }
 
         const hist=Array.isArray(g.move_history)?g.move_history.slice():[];
@@ -3789,6 +3813,7 @@ function chessToFen(st){
       </div>
       <div id="chessBoardWrap" style="display:flex;justify-content:center;margin-top:12px"></div>
       <div id="chessStatus" style="text-align:center;margin-top:8px;color:var(--muted)"></div>
+      <div id="chessBotInfo" style="text-align:center;margin-top:6px;color:var(--muted);font-size:.82rem">Local Stockfish bot game · moves are handled in this browser.</div>
       <div id="chessToolsPanel" style="margin-top:16px"></div>
     </div>`;
     I.renderChessBoard();
