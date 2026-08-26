@@ -3231,6 +3231,7 @@ function chessToFen(st){
 
   startChess=function(){
     stopChessPoll();
+    window.__metxonBotGame=null;
     const area=document.getElementById('gameArea');if(!area)return;
     area.innerHTML=`
       <div class="card">
@@ -3385,9 +3386,9 @@ function chessToFen(st){
         const chosen=sel&&sel[0]===r&&sel[1]===c;
         const move=legal.find(m=>m.to[0]===r&&m.to[1]===c);
         const marker=move?(g.board[r][c]?'●':'•'):'';
-        out+=`<div class="chess-square ${light?'light':'dark'}" style="position:relative;width:min(11vw,64px);height:min(11vw,64px);font-size:min(8vw,42px);${chosen?'outline:3px solid var(--cyan);z-index:2;':''}" onclick="chessSquareClick(${r},${c})">
+        out+=`<div class="chess-square ${light?'light':'dark'}" data-chess-r="${r}" data-chess-c="${c}" role="button" tabindex="0" style="position:relative;width:min(11vw,64px);height:min(11vw,64px);font-size:min(8vw,42px);cursor:pointer;${chosen?'outline:3px solid var(--cyan);z-index:2;':''}">
           <span class="chess-piece ${color(p)==='white'?'white':'black'}">${p?PIECES2[p]:''}</span>
-          ${marker?`<span style="position:absolute;font-size:14px;color:${p?'rgba(0,0,0,.55)':'rgba(0,0,0,.38)'};left:50%;top:50%;transform:translate(-50%,-50%);">${marker}</span>`:''}
+          ${marker?`<span style="position:absolute;font-size:14px;color:${p?'rgba(0,0,0,.55)':'rgba(0,0,0,.38)'};left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;">${marker}</span>`:''}
         </div>`;
       }
       out+='</div>';
@@ -3405,11 +3406,24 @@ function chessToFen(st){
     status.innerHTML=`${statusText}<br><span style="font-size:.82rem;">White: <b>${meta.white_username||'White'}</b> · Black: <b>${meta.black_username||'Black'}</b></span>`;
 
     wrap.innerHTML=out;
+
+    // Use real DOM listeners instead of inline onclick handlers. This is important for
+    // the local Stockfish board because the bot game intentionally has gameId=null.
+    // Inline handlers could resolve to the multiplayer handler and silently return.
+    wrap.querySelectorAll('[data-chess-r][data-chess-c]').forEach(el=>{
+      const r=Number(el.dataset.chessR),c=Number(el.dataset.chessC);
+      const handler=()=>window.chessSquareClick(r,c);
+      el.addEventListener('click',handler);
+      el.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();handler();}});
+    });
   }
 
   window.flipChessBoard=function(){chessFlipped=!chessFlipped;renderChessBoard();};
 
   window.chessSquareClick=async function(r,c){
+    // Bot games are local and deliberately have no Supabase game id.
+    if(window.__metxonBotGame&&typeof window.__metxonBotClick==='function')
+      return window.__metxonBotClick(r,c);
     if(!chessState||!chessState.gameId)return;
     const g=chessState.game,meta=chessState.meta;
     if(meta.status!=='active')return;
@@ -3809,7 +3823,9 @@ function chessToFen(st){
           showChessFinishModal(null,chessState.meta.status==='stalemate'?'draw':'white_win',chessState.meta);
           return;
         }
-        I.renderChessBoard();setTimeout(window.__metxonBotMove,250);return;
+        I.renderChessBoard();
+        bg.thinking=false;
+        setTimeout(window.__metxonBotMove,250);return;
       }
       const own=g.board[r][c]&&I.color(g.board[r][c])==='white';
       if(own){chessState.selected=[r,c];chessState.legal=I.legalMovesForSquare(g,r,c);I.renderChessBoard();return;}
@@ -3821,7 +3837,8 @@ function chessToFen(st){
 
   window.__metxonBotMove=async function(){
     const bg=window.__metxonBotGame,I=window.__metxonChessInternals;
-    if(!bg||!I||!chessState||chessState.meta.status!=='active'||chessState.game.turn!=='black')return;
+    if(!bg||!I||!chessState||chessState.meta.status!=='active'||chessState.game.turn!=='black'||bg.thinking)return;
+    bg.thinking=true;
     try{
       const depth=bg.elo<=800?7:bg.elo<=1100?8:bg.elo<=1400?10:bg.elo<=1700?12:14;
       const r=await window.__metxonEngineAnalyze(chessToFen(chessState.game),depth);
@@ -3840,12 +3857,7 @@ function chessToFen(st){
       I.renderChessBoard();
       if(chessState.meta.status!=='active')showChessFinishModal(null,chessState.meta.status==='stalemate'?'draw':'black_win',chessState.meta);
     }catch(e){console.warn(e);alert(e.message||'Stockfish could not move.');}
-  };
-
-  const originalClick=window.chessSquareClick;
-  window.chessSquareClick=function(r,c){
-    if(window.__metxonBotGame)return window.__metxonBotClick(r,c);
-    return originalClick(r,c);
+    finally{if(bg===window.__metxonBotGame)bg.thinking=false;}
   };
 
   const originalReview=window.analyzeChessGame;
