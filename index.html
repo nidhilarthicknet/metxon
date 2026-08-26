@@ -957,9 +957,11 @@ function openApp(name) {
       <div class="form-group"><input id="alkTo" placeholder="Recipient username"></div>
       <div class="form-group"><textarea id="alkMsg" placeholder="Message..." rows="3"></textarea></div>
       <button class="btn btn-primary" onclick="sendAlk()">Transmit</button>
+      <button class="btn" onclick="metxonAddFriend(document.getElementById('alkTo').value)">Add Friend</button>
+      <div id="metalkFriends" style="margin-top:8px"></div>
       <div class="terminal" id="alkLog" style="margin-top:12px;max-height:200px;overflow-y:auto;"></div>
     `;
-    renderAlkLog();
+    renderAlkLog(); if(typeof renderMetalkFriends==='function')renderMetalkFriends();
   } else if (name === 'nebulaStore') {
     title.textContent = 'Nebula Store';
     content.innerHTML = `
@@ -2489,7 +2491,7 @@ async function cloudRealtime(){
   if(window.__metxonRealtime){ try{await metxonSupabase.removeChannel(window.__metxonRealtime)}catch(e){} }
   window.__metxonRealtime=metxonSupabase.channel('user:'+me.id+':metxon')
     .on('postgres_changes',{event:'*',schema:'public',table:'profiles',filter:'id=eq.'+me.id},()=>refreshCloudAccount())
-    .on('postgres_changes',{event:'INSERT',schema:'public',table:'transactions',filter:'user_id=eq.'+me.id},()=>cloudLoadTransactions())
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'transactions',filter:'user_id=eq.'+me.id},payload=>{cloudLoadTransactions();const n=document.createElement('div');n.style.cssText='position:fixed;right:18px;bottom:18px;z-index:100000';n.innerHTML=`<div class="card"><strong>Transaction</strong><p>${String(payload.new.type||'')}</p><b>${Number(payload.new.amount||0).toLocaleString('en-IN')}</b></div>`;document.body.appendChild(n);setTimeout(()=>n.remove(),5000)})
     .on('postgres_changes',{event:'*',schema:'public',table:'portfolio_holdings',filter:'user_id=eq.'+me.id},()=>cloudLoadHoldings())
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'metalk_messages',filter:'recipient_id=eq.'+me.id},()=>{ if(typeof sendAlk==='function')try{sendAlk(true)}catch(e){} })
     .subscribe();
@@ -3318,7 +3320,7 @@ function chessToFen(st){
     else if(meta.status==='resigned')statusText=`Game ended by resignation — ${meta.winner===meta.white?meta.white_username:meta.black_username} wins.`;
     else if(check&&moves.length)statusText+=' — CHECK';
     else if(!moves.length)statusText='Draw — no legal moves.';
-    status.innerHTML=`${statusText}<br><span style="font-size:.82rem;">White: <b>${meta.white_username}</b> · Black: <b>${meta.black_username}</b></span>`;
+    status.innerHTML=`${statusText}<br><span style="font-size:.82rem;">White: <b>${meta.white_username||'White'}</b> · Black: <b>${meta.black_username||'Black'}</b></span>`;
 
     wrap.innerHTML=out;
   }
@@ -3403,6 +3405,7 @@ function chessToFen(st){
   // Aliases used by older UI code.
   window.startChess=startChess;
   window.initChess=async()=>{};
+  window.__metxonChessInternals={initialBoard,freshState,applyMove,allLegalMoves,legalMovesForSquare,inCheck,color,renderChessBoard};
 })();
 </script>
 
@@ -3414,11 +3417,11 @@ function chessToFen(st){
 
   async function loadChessChat(){
     const log=document.getElementById('chessChatLog');
-    if(!log || !window.chessState?.gameId)return;
+    if(!log || !chessState?.gameId)return;
     try{
       const {data,error}=await metxonSupabase.from('chess_chat_messages')
         .select('id,sender_id,message,created_at')
-        .eq('game_id',window.chessState.gameId)
+        .eq('game_id',chessState.gameId)
         .order('created_at',{ascending:true}).limit(200);
       if(error)throw error;
       const me=await loadCloudAccount(state.currentUser);
@@ -3436,14 +3439,14 @@ function chessToFen(st){
 
   window.sendChessChat=async function(){
     const input=document.getElementById('chessChatInput');
-    if(!input || !window.chessState?.gameId)return alert('Start or open a chess game first.');
+    if(!input || !chessState?.gameId)return alert('Start or open a chess game first.');
     const msg=input.value.trim();
     if(!msg)return;
     if(msg.length>1000)return alert('Message is limited to 1000 characters.');
     try{
       const me=await loadCloudAccount(state.currentUser);
       if(!me)throw new Error('Account not synchronized.');
-      const {error}=await metxonSupabase.from('chess_chat_messages').insert({game_id:window.chessState.gameId,sender_id:me.id,message:msg});
+      const {error}=await metxonSupabase.from('chess_chat_messages').insert({game_id:chessState.gameId,sender_id:me.id,message:msg});
       if(error)throw error;
       input.value='';
       await loadChessChat();
@@ -3464,8 +3467,6 @@ function chessToFen(st){
     if(controls){
       if(!controls.innerHTML.includes('Review Game')){
         controls.insertAdjacentHTML('beforeend',`
-          <button class="btn" onclick="analyzeChessGame()">Review Game</button>
-          <button class="btn" onclick="analyzeCurrentChessPosition()">Analyze Position</button>
         `);
       }
     }
@@ -3546,12 +3547,13 @@ function chessToFen(st){
   const moveName=u=>u&&u.length>=4?`${u.slice(0,2)} → ${u.slice(2,4)}${u.length>4?'='+u.slice(4).toUpperCase():''}`:'—';
   const evalText=r=>r?.mate!=null?`Mate in ${Math.abs(r.mate)}`:(r?.cp!=null?`${r.cp>=0?'+':''}${(r.cp/100).toFixed(2)}`:'—');
 
+  window.__metxonEngineAnalyze=engineAnalyze;
   window.analyzeCurrentChessPosition=async function(){
-    if(!window.chessState?.game)return alert('Open a chess game first.');
+    if(!chessState?.game)return alert('Open a chess game first.');
     const s=document.getElementById('chessReviewStatus'),o=document.getElementById('chessReviewOutput');
     try{
       s.textContent='Loading Stockfish…';
-      const r=await engineAnalyze(chessToFen(window.chessState.game),13);
+      const r=await engineAnalyze(chessToFen(chessState.game),13);
       s.textContent='Analysis complete.';
       o.innerHTML=`<div class="card"><b>Best move:</b> ${moveName(r.bestmove)}<br><b>Evaluation:</b> ${evalText(r)}<br><b>Depth:</b> ${r.depth||13}</div>`;
     }catch(e){s.textContent='Engine unavailable.';o.innerHTML=`<div class="card"><strong style="color:var(--red)">Stockfish review failed.</strong><br>${String(e.message||e)}</div>`;}
@@ -3559,13 +3561,13 @@ function chessToFen(st){
 
   window.analyzeChessGame=async function(){
     if(reviewRunning)return;
-    if(!window.chessState?.gameId)return alert('Open a chess game first.');
+    if(!chessState?.gameId)return alert('Open a chess game first.');
     reviewRunning=true;
     const s=document.getElementById('chessReviewStatus'),o=document.getElementById('chessReviewOutput');
     try{
       const {data:g,error}=await metxonSupabase.from('chess_games')
         .select('board_state,turn,status,winner,position_history,move_history')
-        .eq('id',window.chessState.gameId).single();
+        .eq('id',chessState.gameId).single();
       if(error)throw error;
 
       const positions=(Array.isArray(g.position_history)&&g.position_history.length)
@@ -3612,5 +3614,239 @@ function chessToFen(st){
 })();
 </script>
 
+
+<script>
+/* ===== CHESS BOYS: POST-GAME RESULT + STOCKFISH BOTS ===== */
+(function(){
+  let finishShownFor=null;
+  const esc=s=>String(s??'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+
+  window.showChessFinishModal=function(gameId,result,metaOverride){
+    const meta=metaOverride||chessState?.meta||{};
+    const winner=result==='draw'?'Draw':
+      result==='white_win'?(meta.white_username||'White'):
+      result==='black_win'?(meta.black_username||'Black'):'Winner';
+    document.getElementById('chessFinishModal')?.remove();
+    const o=document.createElement('div');
+    o.id='chessFinishModal';
+    o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.76);display:flex;align-items:center;justify-content:center;z-index:100000;padding:18px;';
+    o.innerHTML=`<div class="card" style="width:min(560px,100%);text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.65)">
+      <div style="font-size:2.4rem">♛</div>
+      <h2 style="margin:4px 0 8px;color:var(--cyan)">${esc(winner)}${result==='draw'?'':' wins'}</h2>
+      <p style="color:var(--muted);margin-bottom:18px">The game is over.</p>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-primary" id="finishReview">Game Review with Stockfish</button>
+        <button class="btn" id="finishNew">New Game</button>
+        <button class="btn" id="finishRematch">Rematch</button>
+        <button class="btn" id="finishSave">Save Game</button>
+      </div></div>`;
+    document.body.appendChild(o);
+    document.getElementById('finishReview').onclick=async()=>{
+      o.remove();
+      if(typeof window.addChessReviewPanel==='function')window.addChessReviewPanel();
+      await window.analyzeChessGame(gameId);
+    };
+    document.getElementById('finishNew').onclick=()=>{o.remove();window.__metxonBotGame=null;startChess();};
+    document.getElementById('finishRematch').onclick=()=>{
+      o.remove();
+      if(window.__metxonBotGame){startStockfishBotGame(window.__metxonBotGame.elo);return;}
+      startChess();
+    };
+    document.getElementById('finishSave').onclick=()=>{
+      if(gameId)localStorage.setItem('metxon_saved_chess_'+gameId,JSON.stringify({gameId,savedAt:new Date().toISOString()}));
+      o.remove();alert('Game saved.');
+    };
+  };
+
+  window.__metxonMaybeChessFinish=function(){
+    const m=chessState?.meta;
+    if(!m||m.status==='active'||!chessState.gameId||finishShownFor===chessState.gameId)return;
+    finishShownFor=chessState.gameId;
+    const result=m.status==='stalemate'?'draw':(m.winner===m.white?'white_win':m.winner===m.black?'black_win':'draw');
+    setTimeout(()=>showChessFinishModal(chessState.gameId,result,m),80);
+  };
+
+  /* ---------- Local Stockfish bot game ---------- */
+  window.startStockfishBotGame=function(elo){
+    const I=window.__metxonChessInternals, me=state.accounts[state.currentUser];
+    if(!I)return alert('Chess engine is not ready. Please reload the page.');
+    if(!me)return openAuth();
+    const rating=Number(elo)||1200;
+    window.__metxonBotGame={elo:rating,humanId:me.id,humanUsername:state.currentUser,positions:[]};
+    const game=I.freshState(I.initialBoard());
+    chessState={gameId:null,game,meta:{
+      white:me.id,black:'stockfish-'+rating,
+      white_username:state.currentUser,black_username:'Stockfish '+rating,
+      white_rating:me.chess_rating||1200,black_rating:rating,status:'active',winner:null
+    },selected:null,legal:[]};
+    const area=document.getElementById('gameArea');
+    if(area)area.innerHTML=`<div class="card">
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <strong>${esc(state.currentUser)} · ELO ${me.chess_rating||1200}</strong>
+        <strong>Stockfish ${rating}</strong>
+      </div>
+      <div id="chessBoardWrap" style="display:flex;justify-content:center;margin-top:12px"></div>
+      <div id="chessStatus" style="text-align:center;margin-top:8px;color:var(--muted)"></div>
+      <div id="chessToolsPanel" style="margin-top:16px"></div>
+    </div>`;
+    I.renderChessBoard();
+    window.__metxonBotGame.positions=[{fen:chessToFen(game),label:'Initial position'}];
+    addChessReviewPanel();
+  };
+
+  function addChessReviewPanel(){
+    const p=document.getElementById('chessToolsPanel');
+    if(!p)return;
+    if(document.getElementById('chessReviewStatus'))return;
+    p.innerHTML=`<div class="card"><h3>Game Review</h3>
+      <div id="chessReviewStatus" style="color:var(--cyan)">Review becomes available after the game ends.</div>
+      <div id="chessReviewOutput" style="margin-top:8px"></div></div>`;
+  }
+  window.addChessReviewPanel=addChessReviewPanel;
+
+  const uciCoords=u=>{
+    if(!u||u.length<4)return null;
+    return {from:[8-Number(u[1]),u.charCodeAt(0)-97],to:[8-Number(u[3]),u.charCodeAt(2)-97],promotion:u[4]?u[4].toUpperCase():null};
+  };
+
+  window.__metxonBotClick=async function(r,c){
+    const bg=window.__metxonBotGame,I=window.__metxonChessInternals;
+    if(!bg||!I||!chessState||chessState.meta.status!=='active'||chessState.game.turn!=='white')return;
+    const g=chessState.game;
+    if(chessState.selected){
+      const mv=(chessState.legal||[]).find(m=>m.to[0]===r&&m.to[1]===c);
+      if(mv){
+        const next=I.applyMove(g,mv,mv.promotion?'Q':null);
+        bg.positions.push({fen:chessToFen(next),label:`After ${bg.positions.length}. ${squareName(mv.from[0],mv.from[1])}-${squareName(mv.to[0],mv.to[1])}`});
+        chessState.game=next;chessState.selected=null;chessState.legal=[];
+        const replies=I.allLegalMoves(next,'black');
+        if(!replies.length){
+          chessState.meta.status=I.inCheck(next,'black')?'checkmate':'stalemate';
+          chessState.meta.winner=chessState.meta.status==='checkmate'?bg.humanId:null;
+          I.renderChessBoard();
+          showChessFinishModal(null,chessState.meta.status==='stalemate'?'draw':'white_win',chessState.meta);
+          return;
+        }
+        I.renderChessBoard();setTimeout(window.__metxonBotMove,250);return;
+      }
+      const own=g.board[r][c]&&I.color(g.board[r][c])==='white';
+      if(own){chessState.selected=[r,c];chessState.legal=I.legalMovesForSquare(g,r,c);I.renderChessBoard();return;}
+      chessState.selected=null;chessState.legal=[];I.renderChessBoard();return;
+    }
+    const own=g.board[r][c]&&I.color(g.board[r][c])==='white';
+    if(own){chessState.selected=[r,c];chessState.legal=I.legalMovesForSquare(g,r,c);I.renderChessBoard();}
+  };
+
+  window.__metxonBotMove=async function(){
+    const bg=window.__metxonBotGame,I=window.__metxonChessInternals;
+    if(!bg||!I||!chessState||chessState.meta.status!=='active'||chessState.game.turn!=='black')return;
+    try{
+      const depth=bg.elo<=800?7:bg.elo<=1100?8:bg.elo<=1400?10:bg.elo<=1700?12:14;
+      const r=await window.__metxonEngineAnalyze(chessToFen(chessState.game),depth);
+      const u=uciCoords(r.bestmove);if(!u)return;
+      const legal=I.allLegalMoves(chessState.game,'black');
+      const mv=legal.find(m=>m.from[0]===u.from[0]&&m.from[1]===u.from[1]&&m.to[0]===u.to[0]&&m.to[1]===u.to[1]);
+      if(!mv)throw new Error('Stockfish returned a move that is not legal for the current position.');
+      const next=I.applyMove(chessState.game,mv,u.promotion||'Q');
+      bg.positions.push({fen:chessToFen(next),label:`After ${bg.positions.length}. ${squareName(mv.from[0],mv.from[1])}-${squareName(mv.to[0],mv.to[1])}`});
+      chessState.game=next;chessState.selected=null;chessState.legal=[];
+      const replies=I.allLegalMoves(next,'white');
+      if(!replies.length){
+        chessState.meta.status=I.inCheck(next,'white')?'checkmate':'stalemate';
+        chessState.meta.winner=chessState.meta.status==='checkmate'?bg.black:null;
+      }
+      I.renderChessBoard();
+      if(chessState.meta.status!=='active')showChessFinishModal(null,chessState.meta.status==='stalemate'?'draw':'black_win',chessState.meta);
+    }catch(e){console.warn(e);alert(e.message||'Stockfish could not move.');}
+  };
+
+  const originalClick=window.chessSquareClick;
+  window.chessSquareClick=function(r,c){
+    if(window.__metxonBotGame)return window.__metxonBotClick(r,c);
+    return originalClick(r,c);
+  };
+
+  const originalReview=window.analyzeChessGame;
+  window.analyzeChessGame=async function(gameId){
+    if(window.__metxonBotGame&&chessState?.gameId===null&&chessState.meta?.status!=='active'){
+      const s=document.getElementById('chessReviewStatus'),o=document.getElementById('chessReviewOutput');
+      if(!s||!o)return;
+      s.textContent='Reviewing the completed game with Stockfish…';
+      try{
+        const rows=[];
+        for(const pos of (window.__metxonBotGame.positions||[]).slice(0,40))
+          rows.push({...pos,...(await window.__metxonEngineAnalyze(pos.fen,11))});
+        o.innerHTML=`<div style="overflow:auto"><table style="width:100%;border-collapse:collapse"><thead><tr><th>Position</th><th>Evaluation</th><th>Best move</th></tr></thead><tbody>${
+          rows.map((x,i)=>`<tr><td>${i+1}. ${esc(x.label)}</td><td>${x.mate!=null?'Mate in '+Math.abs(x.mate):(x.cp!=null?(x.cp>=0?'+':'')+(x.cp/100).toFixed(2):'—')}</td><td>${esc(x.bestmove||'—')}</td></tr>`).join('')
+        }</tbody></table></div>`;
+        s.textContent='Review complete.';
+      }catch(e){s.textContent='Review failed.';o.innerHTML=`<div class="card">${esc(e.message||e)}</div>`;}
+      return;
+    }
+    return originalReview(gameId||chessState?.gameId);
+  };
+
+  /* Bot choices shown directly under player matchmaking. */
+  function addBotPanel(){
+    if(document.getElementById('chessBotsPanel'))return;
+    const area=document.getElementById('gameArea');if(!area)return;
+    const p=document.createElement('div');p.id='chessBotsPanel';p.className='card';p.style.marginTop='16px';
+    p.innerHTML=`<h3>Play with Bots</h3><p style="color:var(--muted)">Stockfish bots use different ELO/difficulty levels.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" data-b="800">800 ELO · Beginner</button>
+      <button class="btn" data-b="1100">1100 ELO · Easy</button>
+      <button class="btn" data-b="1400">1400 ELO · Intermediate</button>
+      <button class="btn" data-b="1700">1700 ELO · Advanced</button>
+      <button class="btn btn-primary" data-b="2000">2000 ELO · Expert</button></div>`;
+    p.querySelectorAll('[data-b]').forEach(b=>b.onclick=()=>startStockfishBotGame(Number(b.dataset.b)));
+    area.appendChild(p);
+  }
+  setTimeout(addBotPanel,700);
+})();
+</script>
+
+<script>
+window.metxonAddFriend=async function(username){
+  try{
+    const {error}=await metxonSupabase.rpc('metalk_add_friend',{friend_username:String(username||'').trim()});
+    if(error)throw error;
+    if(typeof renderMetalkFriends==='function')await renderMetalkFriends();
+    alert('Added to your friend list.');
+  }catch(e){alert(e.message||'Could not add friend.');}
+};
+window.loadMetalkFriends=async function(){
+  const me=await loadCloudAccount(state.currentUser);if(!me)return[];
+  const {data,error}=await metxonSupabase.from('metalk_friends')
+    .select('friend_id,profiles!metalk_friends_friend_id_fkey(username,display_name)')
+    .eq('user_id',me.id).order('created_at',{ascending:true});
+  if(error){console.warn(error);return[]}
+  return data||[];
+};
+window.renderMetalkFriends=async function(){
+  const box=document.getElementById('metalkFriends');if(!box)return;
+  const rows=await loadMetalkFriends();
+  box.innerHTML=rows.length?rows.map(r=>{
+    const u=r.profiles?.username||'';
+    return `<button class="btn" style="margin:3px" data-friend="${String(u).replace(/"/g,'&quot;')}">${String(u)}</button>`;
+  }).join(''):'<span style="color:var(--muted);font-size:.82rem">No friends yet.</span>';
+  box.querySelectorAll('[data-friend]').forEach(b=>b.onclick=()=>{document.getElementById('alkTo').value=b.dataset.friend;renderAlkLog()});
+};
+window.showIncomingMessagePopup=function(username,message){
+  const old=document.getElementById('metalkIncomingPopup');if(old)old.remove();
+  const box=document.createElement('div');box.id='metalkIncomingPopup';
+  box.style.cssText='position:fixed;right:18px;bottom:18px;z-index:100001;width:min(390px,calc(100vw - 36px))';
+  box.innerHTML=`<div class="card"><strong>New Met-Alk message</strong><p style="margin:8px 0">${String(message||'').replace(/[&<>]/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[x]))}</p>
+    <div style="display:flex;gap:8px"><button class="btn btn-primary" id="addMsgFriend">Add to friend list</button><button class="btn" id="closeMsg">Close</button></div></div>`;
+  document.body.appendChild(box);
+  document.getElementById('addMsgFriend').onclick=async()=>{
+    try{
+      const p=await metxonSupabase.from('profiles').select('username').eq('id',username).maybeSingle();
+      if(p.data?.username)await metxonAddFriend(p.data.username);
+      box.remove();
+    }catch(e){alert(e.message||'Could not add friend.');}
+  };
+  document.getElementById('closeMsg').onclick=()=>box.remove();
+};
+</script>
 </body>
 </html>
