@@ -3564,50 +3564,67 @@ function chessToFen(st){
     startChat();
   }
 
-  const STOCKFISH_WORKER='https://huggingface.co/cstr/stockfish-js-wasm/resolve/main/stockfish-18-lite-single.js';
-
-  function ensureEngine(){
-    return new Promise((resolve,reject)=>{
-      if(sfReady&&sfWorker)return resolve(sfWorker);
-      let settled=false;
-      try{sfWorker=new Worker(STOCKFISH_WORKER);}catch(e){reject(e);return;}
-      const finishOk=()=>{if(!settled){settled=true;sfReady=true;const el=document.getElementById('chessBotInfo');if(el)el.textContent='Stockfish 18 ready · bot will respond after your move.';resolve(sfWorker);}};
-      const finishErr=msg=>{if(!settled){settled=true;const el=document.getElementById('chessBotInfo');if(el){el.textContent='Stockfish unavailable. Check the browser network/extension settings.';el.style.color='var(--red)';}reject(new Error(msg));}};
-      sfWorker.onmessage=e=>{
-        if(String(e.data||'')==='uciok')finishOk();
-      };
-      sfWorker.onerror=()=>finishErr('Stockfish could not load. The engine file or its WASM companion was blocked or unavailable.');
-      sfWorker.postMessage('uci');
-      setTimeout(()=>finishErr('Stockfish load timed out.'),12000);
-    });
-  }
-
-  function parseInfo(line){
-    const d=(line.match(/\bdepth\s+(\d+)/)||[])[1];
-    const cp=(line.match(/\bscore cp (-?\d+)/)||[])[1];
-    const mate=(line.match(/\bscore mate (-?\d+)/)||[])[1];
-    return {depth:d?Number(d):0,cp:cp?Number(cp):null,mate:mate?Number(mate):null};
-  }
+  const STOCKFISH_API='https://chess-api.com/v1';
 
   async function engineAnalyze(fen,depth=12){
-    const worker=await ensureEngine();
-    return new Promise((resolve,reject)=>{
-      let last=null,done=false;
-      const old=worker.onmessage;
-      worker.onmessage=e=>{
-        const line=String(e.data||'');
-        if(line.startsWith('info ')){
-          const p=parseInfo(line);if(p.depth)last=p;
-        }
-        if(line.startsWith('bestmove ')){
-          done=true;worker.onmessage=old;
-          resolve({...last,bestmove:(line.split(/\s+/)[1]||'')});
-        }
+    const safeDepth=Math.max(6,Math.min(18,Number(depth)||12));
+    const status=document.getElementById('chessBotInfo');
+    if(status){
+      status.textContent='Stockfish is calculating…';
+      status.style.color='var(--muted)';
+    }
+
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),15000);
+
+    try{
+      const response=await fetch(STOCKFISH_API,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          fen,
+          depth:safeDepth,
+          variants:1,
+          maxThinkingTime:Math.max(50,Math.min(1000,350))
+        }),
+        signal:controller.signal
+      });
+
+      if(!response.ok)throw new Error(`Stockfish API returned HTTP ${response.status}.`);
+      const data=await response.json();
+
+      if(data.type==='error'||data.error) {
+        throw new Error(data.error||data.text||'Stockfish API returned an error.');
+      }
+
+      const bestmove=String(data.move||data.lan||'').trim();
+      if(!bestmove)throw new Error('Stockfish API returned no move.');
+
+      if(status){
+        status.textContent='Stockfish ready when you make a move.';
+        status.style.color='var(--green)';
+      }
+
+      const cpRaw = data.centipawns!=null
+        ? Number(data.centipawns)
+        : (data.eval!=null ? Math.round(Number(data.eval)*100) : null);
+
+      return {
+        depth:Number(data.depth||safeDepth),
+        cp:Number.isFinite(cpRaw)?cpRaw:null,
+        mate:data.mate!=null?Number(data.mate):null,
+        bestmove
       };
-      worker.postMessage('position fen '+fen);
-      worker.postMessage('go depth '+depth);
-      setTimeout(()=>{if(done)return;try{worker.postMessage('stop');}catch(_){}worker.onmessage=old;reject(new Error('Stockfish analysis timed out.'));},22000);
-    });
+    }catch(e){
+      if(status){
+        status.textContent='Stockfish unavailable. Please try the move again.';
+        status.style.color='var(--red)';
+      }
+      if(e.name==='AbortError')throw new Error('Stockfish request timed out.');
+      throw e;
+    }finally{
+      clearTimeout(timer);
+    }
   }
 
   const moveName=u=>u&&u.length>=4?`${u.slice(0,2)} → ${u.slice(2,4)}${u.length>4?'='+u.slice(4).toUpperCase():''}`:'—';
@@ -3657,7 +3674,7 @@ function chessToFen(st){
       s.textContent='Review complete.';
       o.innerHTML=`<div class="card">
         <h3>Stockfish Game Review</h3>
-        <p style="color:var(--muted);font-size:.82rem;">Stockfish 18 lite · depth 11 per saved position. Analysis runs locally in your browser.</p>
+        <p style="color:var(--muted);font-size:.82rem;">Stockfish 18 · engine analysis is requested securely from the Stockfish service.</p>
         <div style="overflow:auto;"><table style="width:100%;border-collapse:collapse;font-size:.84rem;">
           <thead><tr><th style="text-align:left;padding:6px;">Position</th><th style="text-align:left;padding:6px;">Evaluation</th><th style="text-align:left;padding:6px;">Best move</th></tr></thead>
           <tbody>${outRows||'<tr><td colspan="3" style="padding:8px;color:var(--muted);">No saved move positions yet. Analyze the current position instead.</td></tr>'}</tbody>
