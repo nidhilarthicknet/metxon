@@ -3,7 +3,40 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Metxon Corporate // Ecosystem Portal</title>
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+<meta name="description" content="Metxon Corporate is the official Metxon ecosystem portal for Molecule hardware, Mettin software and AI, MetCount financial services, MetCart commerce, and Chess Boys.">
+<meta name="author" content="Metxon Corporate">
+<meta name="application-name" content="Metxon Corporate">
+<meta name="theme-color" content="#060913">
+<link rel="canonical" href="https://nidhilarthicknet.github.io/metxon/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Metxon Corporate">
+<meta property="og:title" content="Metxon Corporate | Official Ecosystem Portal">
+<meta property="og:description" content="The official Metxon Corporate ecosystem portal: Molecule hardware, Mettin software & AI, MetCount finance, MetCart commerce, and Chess Boys.">
+<meta property="og:url" content="https://nidhilarthicknet.github.io/metxon/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Metxon Corporate | Official Ecosystem Portal">
+<meta name="twitter:description" content="The official Metxon Corporate ecosystem portal for Molecule, Mettin, MetCount, MetCart and Chess Boys.">
+<title>Metxon Corporate | Official Ecosystem Portal</title>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "Metxon Corporate",
+  "alternateName": "Metxon",
+  "url": "https://nidhilarthicknet.github.io/metxon/",
+  "description": "The official Metxon Corporate ecosystem portal for Molecule hardware, Mettin software and AI, MetCount financial services, MetCart commerce, and Chess Boys."
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Metxon Corporate",
+  "url": "https://nidhilarthicknet.github.io/metxon/",
+  "description": "Metxon Corporate ecosystem portal."
+}
+</script>
 <style>
 :root {
   --bg: #060913;
@@ -260,24 +293,15 @@ tr:hover { background: rgba(255,255,255,0.03); }
 
 .bb-power-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:8px auto;font-size:.78rem;color:var(--muted)}
 
-
-/* ===================== NEBULA STORE INSTALL SYSTEM ===================== */
-#legacyAppGrid .card:not(:nth-child(3)){display:none;}
-.installed-app-card{min-height:150px;display:flex;flex-direction:column;justify-content:space-between;}
-.store-item{display:flex;flex-direction:column;justify-content:space-between;min-height:190px;}
-.store-price{font-size:1.15rem;font-weight:800;color:var(--green);margin:8px 0;}
-.install-note{font-size:.76rem;color:var(--muted);margin-top:7px;}
-.app-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0;}
-.app-tab{border:1px solid var(--border);background:var(--card);color:var(--muted);padding:8px 12px;border-radius:8px;cursor:pointer;}
-.app-tab.active{border-color:var(--cyan);color:var(--cyan);}
-.metpay-panel{display:none;}
-.metpay-panel.active{display:block;}
-.metpay-video{width:100%;max-width:520px;background:#000;border:1px solid var(--border);border-radius:10px;display:block;margin:0 auto;}
-.notification-toast{position:fixed;right:18px;bottom:18px;z-index:100000;max-width:min(420px,calc(100vw - 36px));padding:13px 15px;border:1px solid var(--border);background:rgba(13,21,39,.97);box-shadow:0 16px 50px #0009;border-radius:12px;animation:metToastIn .2s ease;}
-.notification-toast.success{border-color:var(--green);}.notification-toast.error{border-color:var(--red);}.notification-toast.info{border-color:var(--cyan);}
-@keyframes metToastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-@media(max-width:700px){.store-item{min-height:0}.notification-toast{bottom:12px;right:12px;left:12px;max-width:none}}
 </style>
+
+<style id="nebula-store-metpay-css">
+.nebula-store-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.nebula-app-card{position:relative;border:1px solid var(--border);border-radius:14px;padding:16px;background:linear-gradient(180deg,rgba(15,23,42,.96),rgba(7,11,20,.96));}
+.nebula-app-card h3{margin:0 0 5px}.nebula-price{font-weight:800;color:var(--cyan);font-size:1.05rem}.nebula-installed{color:#4ade80;font-weight:800;font-size:.82rem}.metpay-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.metpay-tabs button.active{outline:2px solid var(--cyan);background:rgba(6,182,212,.13)}
+.metpay-panel{display:none}.metpay-panel.active{display:block}.metpay-contacts{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}.metpay-contact{cursor:pointer}.metpay-qr{display:block;width:220px;height:220px;max-width:100%;margin:12px auto;border-radius:10px;background:#fff;padding:8px}.metpay-scanner{width:100%;max-width:420px;border-radius:12px;background:#000;display:block;margin:10px auto}.metpay-status{min-height:24px;margin-top:8px;color:var(--muted)}
+</style>
+
 </head>
 <body>
 
@@ -300,7 +324,7 @@ tr:hover { background: rgba(255,255,255,0.03); }
   <div class="hero">
     <div style="font-size:0.8rem;color:var(--cyan);letter-spacing:2px;margin-bottom:8px;">METXON CORPORATE</div>
     <h1>Metxon Corporate</h1>
-    <p>Metxon's ecosystem portal: Molecule hardware, Mettin software & AI, MetCount financial infrastructure, and MetCart commerce.</p>
+    <p>Welcome to the official <strong>Metxon Corporate</strong> ecosystem portal: Molecule hardware, Mettin software &amp; AI, MetCount financial infrastructure, MetCart commerce, and Chess Boys.</p>
     
     <div class="search-wrap">
       <input type="text" id="homeSearch" placeholder="Search the Metxon ecosystem with Cule-In..." onkeydown="if(event.key==='Enter')homeSearch()">
@@ -340,7 +364,7 @@ tr:hover { background: rgba(255,255,255,0.03); }
   <h2 class="section-title">Corporate Overview</h2>
   <div class="card">
     <p><strong>Metxon Corporate</strong> is a fictional multinational technology ecosystem founded on 15 November 2024. On 28 January 2026 it restructured into four core divisions: Molecule (hardware), Mettin (software & AI), MetCount (finance) and MetCart (commerce).</p>
-    <p style="margin-top:10px;color:var(--muted);">Sign in or create an account to access the full platform.</p>
+    <p style="margin-top:10px;color:var(--muted);">This is the official Metxon Corporate website and ecosystem portal. Sign in or create an account to access the full platform.</p>
   </div>
 </div>
 
@@ -373,31 +397,16 @@ tr:hover { background: rgba(255,255,255,0.03); }
     <h1 style="color:var(--green);">Mettin™ – Software & AI Division</h1>
     <p style="color:var(--muted);">Five pre-installed apps + SME Registry + Metware</p>
 
-    <h2 class="section-title" id="installedAppsHeading">Installed Apps</h2>
-    <div id="installedAppsGrid" class="grid"></div>
+    <h2 class="section-title">Apps</h2>
+    <p style="color:var(--muted);">Only apps you have installed from Nebula Store appear here. Nebula Store itself remains available below.</p>
+    <div id="installedAppsGrid" class="grid">
+      <div class="card"><span style="color:var(--muted);">Loading installed apps…</span></div>
+    </div>
 
-    <h2 class="section-title">App Library</h2>
-    <div class="grid" id="legacyAppGrid">
-      <div class="card" onclick="openApp('metDevelop')" style="cursor:pointer;">
-        <h3>Met Develop</h3>
-        <p>Code, compile (Atbash/MetLang), Buy & Infuse SME</p>
-      </div>
-      <div class="card" onclick="openApp('metAlk')" style="cursor:pointer;">
-        <h3>Met-Alk</h3>
-        <p>Username-based encrypted messenger</p>
-      </div>
-      <div class="card" onclick="openApp('nebulaStore')" style="cursor:pointer;">
-        <h3>Nebula Store</h3>
-        <p>Apps, Met-Pay & Games</p>
-      </div>
-      <div class="card" onclick="openApp('culeIn')" style="cursor:pointer;">
-        <h3>Cule-In</h3>
-        <p>Natural language product search</p>
-      </div>
-      <div class="card" onclick="openApp('nebulaAI')" style="cursor:pointer;">
-        <h3>Nebula AI</h3>
-        <p>Assistant terminal</p>
-      </div>
+    <div class="card" style="margin-top:14px;cursor:pointer;" onclick="openApp('nebulaStore')">
+      <h3>🛍️ Nebula Store</h3>
+      <p>Install MetDevelop, Cule-In, Nebula AI, Met-Alk, Block Breaker, Football, Chess Boys and MetPay. Every installation is a one-time Metxon-balance payment.</p>
+      <button class="btn btn-primary" onclick="event.stopPropagation();openApp('nebulaStore')">Open Nebula Store</button>
     </div>
 
     <div id="appWorkspace" class="app-workspace">
@@ -505,6 +514,18 @@ tr:hover { background: rgba(255,255,255,0.03); }
           <strong style="color:var(--purple);">MET AI</strong><br>
           <span style="color:var(--muted);">Enter a ticker above and click <b>Analyze with MET AI</b>. MET AI will not generate a summary until you ask for one.</span>
         </div>
+      </div>
+
+      <h2 class="section-title">Portfolio</h2>
+      <div class="card" id="metAiPortfolioSection">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+          <div>
+            <h3 style="color:var(--cyan);margin:0;">Your Stock Portfolio</h3>
+            <p style="color:var(--muted);margin:4px 0 0;">All stocks you have purchased are listed here. Holdings are loaded from Supabase.</p>
+          </div>
+          <button class="btn" onclick="renderMetAiPortfolio()">Refresh Portfolio</button>
+        </div>
+        <div id="metAiPortfolio" style="margin-top:12px;"></div>
       </div>
 
       <h2 class="section-title">Met-Transfer</h2>
@@ -977,9 +998,11 @@ function openApp(name) {
       <div class="form-group"><input id="alkTo" placeholder="Recipient username"></div>
       <div class="form-group"><textarea id="alkMsg" placeholder="Message..." rows="3"></textarea></div>
       <button class="btn btn-primary" onclick="sendAlk()">Transmit</button>
+      <button class="btn" onclick="metxonAddFriend(document.getElementById('alkTo').value)">Add Friend</button>
+      <div id="metalkFriends" style="margin-top:8px"></div>
       <div class="terminal" id="alkLog" style="margin-top:12px;max-height:200px;overflow-y:auto;"></div>
     `;
-    renderAlkLog();
+    renderAlkLog(); if(typeof renderMetalkFriends==='function')renderMetalkFriends();
   } else if (name === 'nebulaStore') {
     title.textContent = 'Nebula Store';
     content.innerHTML = `
@@ -1157,10 +1180,13 @@ function updateMcUI() {
     `<div style="padding:6px 0;border-bottom:1px solid var(--border)">${t.date.slice(0,16)} – ${t.type}: <strong style="color:${t.amount>=0? 'var(--green)':'var(--red)'}">${t.amount>=0?'+':''}${t.amount.toLocaleString('en-IN')}</strong> ${t.note||''}</div>`
   ).join('') || 'No transactions yet.';
 
-  // Portfolio
+  // Portfolio summary inside Stocks
   const port = document.getElementById('portfolio');
   const holdings = Object.entries(acc.portfolio || {});
-  port.innerHTML = holdings.length ? '<strong>Holdings:</strong><br>' + holdings.map(([t,s]) => `${t}: ${s} shares`).join('<br>') : 'No holdings yet.';
+  port.innerHTML = holdings.length
+    ? '<strong>Holdings summary:</strong> ' + holdings.map(([t,s]) => `${t}: ${s} shares`).join(' · ')
+    : 'No holdings yet.';
+  if(typeof renderMetAiPortfolio==='function') renderMetAiPortfolio();
 }
 
 function buySub(tier, price) {
@@ -2155,32 +2181,47 @@ function startSoccerGame(){
  function loop(){let dx=(keys.right?1:0)-(keys.left?1:0),dy=(keys.down?1:0)-(keys.up?1:0),d=Math.hypot(dx,dy)||1;S.p.x+=dx/d*2.8;S.p.y+=dy/d*2.8;S.p.x=Math.max(20,Math.min(500,S.p.x));S.p.y=Math.max(45,Math.min(625,S.p.y));if(Math.hypot(S.p.x-S.b.x,S.p.y-S.b.y)<35){S.b.vx+=(S.p.x-S.b.x)*.08;S.b.vy+=(S.p.y-S.b.y)*.08}if(shoot&&S.cd<=0&&Math.hypot(S.p.x-S.b.x,S.p.y-S.b.y)<48){S.b.vy=-7;S.b.vx=0;S.cd=.4}S.cd=Math.max(0,S.cd-.016);S.b.x+=S.b.vx;S.b.y+=S.b.vy;S.b.vx*=.985;S.b.vy*=.985;S.o.forEach(o=>{let dx=S.b.x-o.x,dy=S.b.y-o.y,d=Math.hypot(dx,dy)||1;o.x+=dx/d*.75;o.y+=dy/d*.75});if(S.b.y<S.g.y+25&&S.b.x>S.g.x&&S.b.x<S.g.x+S.g.w){S.goals++;S.level++;S.b.x=260;S.b.y=485;S.b.vx=S.b.vy=0}if(S.b.y>638){S.b.x=260;S.b.y=485;S.b.vx=S.b.vy=0}x.fillStyle='#178447';x.fillRect(0,0,c.width,c.height);x.strokeStyle='#fff';x.strokeRect(10,25,500,600);x.strokeRect(S.g.x,S.g.y,S.g.w,S.g.h);x.beginPath();x.moveTo(10,325);x.lineTo(510,325);x.stroke();S.o.forEach(o=>{x.fillStyle='#ef4444';x.beginPath();x.arc(o.x,o.y,o.r,0,Math.PI*2);x.fill()});x.fillStyle='#3b82f6';x.beginPath();x.arc(S.p.x,S.p.y,S.p.r,0,Math.PI*2);x.fill();x.fillStyle='#fff';x.beginPath();x.arc(S.b.x,S.b.y,S.b.r,0,Math.PI*2);x.fill();document.getElementById('socGoals').textContent=S.goals;document.getElementById('socLevel').textContent=S.level;raf=requestAnimationFrame(loop)}loop();
 }
 
-/* ---------- Racing ---------- */
-function startRacingGame(){
- const area=document.getElementById('gameArea');area.innerHTML=`<div class="game-info"><span>Distance: <span id="raceScore">0</span></span><span>Level: <span id="raceLevel">1</span></span></div><div class="game-upgrade-wrap"><canvas id="raceCanvas" class="game-upgrade-canvas" width="520" height="650"></canvas><div class="game-touch-controls" id="raceControls"><button class="up" data-rg="up">↑</button><button class="left" data-rg="left">←</button><button class="down" data-rg="down">↓</button><button class="right" data-rg="right">→</button></div><p style="color:var(--muted);font-size:.85rem;text-align:center">Desktop: Arrow keys. Mobile/TV: use the on-screen arrows.</p></div>`;
- const c=document.getElementById('raceCanvas'),x=c.getContext('2d'),R={car:{x:260,y:575,speed:0},level:1,score:0,phase:0},keys={};let raf;
- window.addEventListener('keydown',e=>{if(e.key==='ArrowUp')keys.up=true;if(e.key==='ArrowDown')keys.down=true;if(e.key==='ArrowLeft')keys.left=true;if(e.key==='ArrowRight')keys.right=true});window.addEventListener('keyup',e=>{if(e.key==='ArrowUp')keys.up=false;if(e.key==='ArrowDown')keys.down=false;if(e.key==='ArrowLeft')keys.left=false;if(e.key==='ArrowRight')keys.right=false});
- document.querySelectorAll('#raceControls [data-rg]').forEach(b=>{const k=b.dataset.rg,on=e=>{e.preventDefault();keys[k]=true},off=e=>{e.preventDefault();keys[k]=false};b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointercancel',off)});
- function loop(){if(keys.up)R.car.speed=Math.min(280,R.car.speed+2.8);else R.car.speed=Math.max(45,R.car.speed-.65);if(keys.down)R.car.speed=Math.max(0,R.car.speed-5);if(keys.left)R.car.x-=3.5+R.car.speed*.012;if(keys.right)R.car.x+=3.5+R.car.speed*.012;R.car.x=Math.max(65,Math.min(455,R.car.x));R.phase+=R.car.speed*.004;R.score+=Math.floor(R.car.speed/100);if(R.score>=R.level*1000)R.level++;x.fillStyle='#315f33';x.fillRect(0,0,c.width,c.height);x.fillStyle='#4b4b4b';x.beginPath();x.moveTo(110,0);x.lineTo(410,0);x.lineTo(475,650);x.lineTo(45,650);x.closePath();x.fill();x.strokeStyle='#fff';x.lineWidth=5;x.setLineDash([30,30]);x.beginPath();const curve=Math.sin(R.phase/4)*Math.min(120,20+R.level*12);x.moveTo(260,0);x.quadraticCurveTo(260-curve,325,260+curve*.45,650);x.stroke();x.setLineDash([]);x.save();x.translate(R.car.x,R.car.y);x.fillStyle='#00d2ff';x.fillRect(-18,-30,36,60);x.fillStyle='#111';x.fillRect(-14,-18,28,18);x.restore();document.getElementById('raceScore').textContent=R.score;document.getElementById('raceLevel').textContent=R.level;raf=requestAnimationFrame(loop)}loop();
-}
+/* ---------- Stock line graph + portfolio analysis ---------- */
 
-/* Add Soccer/Racing beside the existing Block Breaker + Chess Boys without removing them. */
-const __openAppOriginal=openApp;
-openApp=function(name){
-  __openAppOriginal(name);
-  if(name==='nebulaStore'){
-    const content=document.getElementById('appContent');
-    if(!content)return;
-    if(!document.getElementById('extraNebulaGames')){
-      content.insertAdjacentHTML('beforeend',`<div id="extraNebulaGames" class="card nebula-extra-games"><h3>Nebula Games — More</h3><div class="nebula-game-grid">
-        <div class="card"><h3>Football / Soccer</h3><p>Control one player, defend your goal and shoot against AI opponents.</p><button class="btn btn-primary" onclick="startSoccerGame()">Play Soccer</button></div>
-        
-      </div></div>`);
-    }
+/* ===================== METCOUNT PORTFOLIO UNDER MET AI ===================== */
+window.renderMetAiPortfolio=function(){
+  const box=document.getElementById('metAiPortfolio');
+  if(!box)return;
+  const acc=state.accounts[state.currentUser];
+  if(!acc){box.innerHTML='<span style="color:var(--muted)">Sign in to view your portfolio.</span>';return;}
+
+  const holdings=Object.entries(acc.portfolio||{}).filter(([,shares])=>Number(shares)>0);
+  if(!holdings.length){
+    box.innerHTML='<div class="card"><span style="color:var(--muted)">You have not purchased any stocks yet.</span></div>';
+    return;
   }
+
+  const rows=holdings.map(([ticker,shares])=>{
+    const price=stableStockPrice(ticker);
+    const currency=['MTX','NEB'].includes(ticker)?'INR':'USD';
+    const value=Number(shares)*price;
+    const fmt=window.metxonMoney||((v,c)=>`${c} ${Number(v).toLocaleString('en-US',{maximumFractionDigits:2})}`);
+    return `<tr>
+      <td><strong>${String(ticker).replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]))}</strong></td>
+      <td>${Number(shares).toLocaleString('en-IN')}</td>
+      <td>${fmt(price,currency)}</td>
+      <td>${fmt(value,currency)}</td>
+    </tr>`;
+  }).join('');
+
+  box.innerHTML=`<div style="overflow:auto">
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr>
+        <th>Ticker</th><th>Shares</th><th>Current Price</th><th>Current Value</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>
+  <p style="color:var(--muted);font-size:.8rem;margin-top:8px">
+    Portfolio holdings are synchronized from Supabase. Prices shown here use the same stock-price source used by MetCount analysis.
+  </p>`;
 };
 
-/* ---------- Stock line graph + portfolio analysis ---------- */
 function stableStockPrice(ticker){
   const t=(ticker||'MTX').toUpperCase(),known={AAPL:224,GOOGL:195,GOOG:196,MSFT:507,NVDA:181,AMZN:231,TSLA:339,META:765,MTX:4820,NEB:3180};
   const base=known[t]||500+([...t].reduce((a,c)=>a+c.charCodeAt(0),0)%4000);
@@ -2370,7 +2411,7 @@ const __sellStockOriginal=sellStock;sellStock=function(ticker,price){__sellStock
 
 <footer style="text-align:center;padding:28px 16px 40px;border-top:1px solid var(--border);margin-top:40px;color:var(--muted);font-size:0.8rem;">
   <p style="margin-bottom:6px;"><strong style="color:var(--cyan);">METXON CORPORATE</strong></p>
-  <p>© 2024–2026 Metxon Corporate. All rights reserved.</p>
+  <p>© 2024–2026 Metxon Corporate. All rights reserved. · Official Metxon Corporate ecosystem portal.</p>
   <p style="margin-top:4px;">Molecule · Mettin · MetCount · MetCart — Fictional ecosystem portal.</p>
   <p style="margin-top:8px;font-size:0.75rem;opacity:0.7;">Owner: Jurassic Park · Metxon Ecosystem</p>
 </footer>
@@ -2509,7 +2550,7 @@ async function cloudRealtime(){
   if(window.__metxonRealtime){ try{await metxonSupabase.removeChannel(window.__metxonRealtime)}catch(e){} }
   window.__metxonRealtime=metxonSupabase.channel('user:'+me.id+':metxon')
     .on('postgres_changes',{event:'*',schema:'public',table:'profiles',filter:'id=eq.'+me.id},()=>refreshCloudAccount())
-    .on('postgres_changes',{event:'INSERT',schema:'public',table:'transactions',filter:'user_id=eq.'+me.id},()=>cloudLoadTransactions())
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'transactions',filter:'user_id=eq.'+me.id},payload=>{if(typeof metxonNotifySound==='function')metxonNotifySound('transaction');cloudLoadTransactions();const n=document.createElement('div');n.style.cssText='position:fixed;right:18px;bottom:18px;z-index:100000';n.innerHTML=`<div class="card"><strong>Transaction</strong><p>${String(payload.new.type||'')}</p><b>${Number(payload.new.amount||0).toLocaleString('en-IN')}</b></div>`;document.body.appendChild(n);setTimeout(()=>n.remove(),5000)})
     .on('postgres_changes',{event:'*',schema:'public',table:'portfolio_holdings',filter:'user_id=eq.'+me.id},()=>cloudLoadHoldings())
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'metalk_messages',filter:'recipient_id=eq.'+me.id},()=>{ if(typeof sendAlk==='function')try{sendAlk(true)}catch(e){} })
     .subscribe();
@@ -2735,6 +2776,7 @@ window.__METXON_SECURE_HANDLE_AUTH = async function(){
       await cloudLoadHoldings();
       await cloudLoadCart();
       await cloudRealtime();
+      if(typeof renderInstalledApps==='function')await renderInstalledApps();
       return;
     }
 
@@ -2787,6 +2829,7 @@ window.__METXON_SECURE_HANDLE_AUTH = async function(){
       await cloudLoadHoldings();
       await cloudLoadCart();
       await cloudRealtime();
+      if(typeof renderInstalledApps==='function')await renderInstalledApps();
     }
   }catch(e){
     console.warn('Secure session restore failed',e);
@@ -2828,7 +2871,7 @@ executePay=async function(){
     }
     closePay();
     document.getElementById('payPass').value='';
-    window.__metxonPaymentSuccess?.(currentCheckout); alert(`Payment successful! Order for ${currentCheckout.name} recorded.`);
+    alert(`Payment successful! Order for ${currentCheckout.name} recorded.`);
     if(document.getElementById('mcDashboard') && document.getElementById('mcDashboard').style.display!=='none')updateMcUI();
   }catch(e){
     alert(e.message||'Payment failed');
@@ -3338,7 +3381,7 @@ function chessToFen(st){
     else if(meta.status==='resigned')statusText=`Game ended by resignation — ${meta.winner===meta.white?meta.white_username:meta.black_username} wins.`;
     else if(check&&moves.length)statusText+=' — CHECK';
     else if(!moves.length)statusText='Draw — no legal moves.';
-    status.innerHTML=`${statusText}<br><span style="font-size:.82rem;">White: <b>${meta.white_username}</b> · Black: <b>${meta.black_username}</b></span>`;
+    status.innerHTML=`${statusText}<br><span style="font-size:.82rem;">White: <b>${meta.white_username||'White'}</b> · Black: <b>${meta.black_username||'Black'}</b></span>`;
 
     wrap.innerHTML=out;
   }
@@ -3423,6 +3466,7 @@ function chessToFen(st){
   // Aliases used by older UI code.
   window.startChess=startChess;
   window.initChess=async()=>{};
+  window.__metxonChessInternals={initialBoard,freshState,applyMove,allLegalMoves,legalMovesForSquare,inCheck,color,renderChessBoard};
 })();
 </script>
 
@@ -3434,11 +3478,11 @@ function chessToFen(st){
 
   async function loadChessChat(){
     const log=document.getElementById('chessChatLog');
-    if(!log || !window.chessState?.gameId)return;
+    if(!log || !chessState?.gameId)return;
     try{
       const {data,error}=await metxonSupabase.from('chess_chat_messages')
         .select('id,sender_id,message,created_at')
-        .eq('game_id',window.chessState.gameId)
+        .eq('game_id',chessState.gameId)
         .order('created_at',{ascending:true}).limit(200);
       if(error)throw error;
       const me=await loadCloudAccount(state.currentUser);
@@ -3456,14 +3500,14 @@ function chessToFen(st){
 
   window.sendChessChat=async function(){
     const input=document.getElementById('chessChatInput');
-    if(!input || !window.chessState?.gameId)return alert('Start or open a chess game first.');
+    if(!input || !chessState?.gameId)return alert('Start or open a chess game first.');
     const msg=input.value.trim();
     if(!msg)return;
     if(msg.length>1000)return alert('Message is limited to 1000 characters.');
     try{
       const me=await loadCloudAccount(state.currentUser);
       if(!me)throw new Error('Account not synchronized.');
-      const {error}=await metxonSupabase.from('chess_chat_messages').insert({game_id:window.chessState.gameId,sender_id:me.id,message:msg});
+      const {error}=await metxonSupabase.from('chess_chat_messages').insert({game_id:chessState.gameId,sender_id:me.id,message:msg});
       if(error)throw error;
       input.value='';
       await loadChessChat();
@@ -3484,8 +3528,6 @@ function chessToFen(st){
     if(controls){
       if(!controls.innerHTML.includes('Review Game')){
         controls.insertAdjacentHTML('beforeend',`
-          <button class="btn" onclick="analyzeChessGame()">Review Game</button>
-          <button class="btn" onclick="analyzeCurrentChessPosition()">Analyze Position</button>
         `);
       }
     }
@@ -3566,12 +3608,13 @@ function chessToFen(st){
   const moveName=u=>u&&u.length>=4?`${u.slice(0,2)} → ${u.slice(2,4)}${u.length>4?'='+u.slice(4).toUpperCase():''}`:'—';
   const evalText=r=>r?.mate!=null?`Mate in ${Math.abs(r.mate)}`:(r?.cp!=null?`${r.cp>=0?'+':''}${(r.cp/100).toFixed(2)}`:'—');
 
+  window.__metxonEngineAnalyze=engineAnalyze;
   window.analyzeCurrentChessPosition=async function(){
-    if(!window.chessState?.game)return alert('Open a chess game first.');
+    if(!chessState?.game)return alert('Open a chess game first.');
     const s=document.getElementById('chessReviewStatus'),o=document.getElementById('chessReviewOutput');
     try{
       s.textContent='Loading Stockfish…';
-      const r=await engineAnalyze(chessToFen(window.chessState.game),13);
+      const r=await engineAnalyze(chessToFen(chessState.game),13);
       s.textContent='Analysis complete.';
       o.innerHTML=`<div class="card"><b>Best move:</b> ${moveName(r.bestmove)}<br><b>Evaluation:</b> ${evalText(r)}<br><b>Depth:</b> ${r.depth||13}</div>`;
     }catch(e){s.textContent='Engine unavailable.';o.innerHTML=`<div class="card"><strong style="color:var(--red)">Stockfish review failed.</strong><br>${String(e.message||e)}</div>`;}
@@ -3579,13 +3622,13 @@ function chessToFen(st){
 
   window.analyzeChessGame=async function(){
     if(reviewRunning)return;
-    if(!window.chessState?.gameId)return alert('Open a chess game first.');
+    if(!chessState?.gameId)return alert('Open a chess game first.');
     reviewRunning=true;
     const s=document.getElementById('chessReviewStatus'),o=document.getElementById('chessReviewOutput');
     try{
       const {data:g,error}=await metxonSupabase.from('chess_games')
         .select('board_state,turn,status,winner,position_history,move_history')
-        .eq('id',window.chessState.gameId).single();
+        .eq('id',chessState.gameId).single();
       if(error)throw error;
 
       const positions=(Array.isArray(g.position_history)&&g.position_history.length)
@@ -3632,289 +3675,536 @@ function chessToFen(st){
 })();
 </script>
 
+
 <script>
-/* ===================== NEBULA STORE / INSTALLS / METPAY / NOTIFICATION SOUND ===================== */
+/* ===== CHESS BOYS: POST-GAME RESULT + STOCKFISH BOTS ===== */
 (function(){
-  const APP_CATALOG = {
-    metDevelop:{name:'Met Develop',price:20000,desc:'Code, compile with MetLang/Atbash, develop with friends, buy and infuse SME.'},
-    metAlk:{name:'Met-Alk',price:15000,desc:'Username-based encrypted messaging.'},
-    culeIn:{name:'Cule-In',price:1000,desc:'Unified Metxon ecosystem search.'},
-    nebulaAI:{name:'Nebula AI',price:10000,desc:'Metxon AI assistant terminal.'},
-    metPay:{name:'MetPay',price:1000,desc:'Transactions, payment chat, QR scanning and payment contacts.'},
-    blockBreaker:{name:'Block Breaker',price:500,desc:'Google-style endless brick breaker with lives and power-ups.'},
-    football:{name:'Football / Soccer',price:200,desc:'One-player football game with touch/keyboard controls.'},
-    chessBoys:{name:'Chess Boys',price:10000,desc:'Standard online chess, challenges, matchmaking, chat and post-game Stockfish review.'}
-  };
+  let finishShownFor=null;
+  const esc=s=>String(s??'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
 
-  function current(){return state.accounts[state.currentUser]||(state.accounts[state.currentUser]={messages:[],cart:[]});}
-  function ensureInstallState(a){
-    if(!a.installedApps||typeof a.installedApps!=='object')a.installedApps={};
-    return a.installedApps;
-  }
-  function isInstalled(id){return !!(state.currentUser && ensureInstallState(current())[id]);}
-
-  /* Default notification sound: generated locally with Web Audio, so no sound file is required. */
-  let audioCtx=null;
-  function notificationSound(kind='info'){
-    try{
-      audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
-      if(audioCtx.state==='suspended')audioCtx.resume();
-      const osc=audioCtx.createOscillator(),gain=audioCtx.createGain();
-      osc.type='sine';
-      osc.frequency.value=kind==='error'?330:kind==='success'?660:520;
-      gain.gain.setValueAtTime(0.0001,audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.055,audioCtx.currentTime+0.015);
-      gain.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+0.18);
-      osc.connect(gain);gain.connect(audioCtx.destination);osc.start();osc.stop(audioCtx.currentTime+0.2);
-    }catch(_){}
-  }
-  window.metxonNotificationSound=notificationSound;
-
-  window.metxonToast=function(text,kind='info'){
-    notificationSound(kind);
-    const d=document.createElement('div');d.className='notification-toast '+kind;d.textContent=text;
-    document.body.appendChild(d);setTimeout(()=>d.remove(),4200);
-  };
-
-  function renderInstalledApps(){
-    const grid=document.getElementById('installedAppsGrid');if(!grid)return;
-    const installed=Object.keys(ensureInstallState(current())).filter(id=>APP_CATALOG[id]);
-    if(!state.currentUser){grid.innerHTML='<div class="card"><p>Please sign in to install and use Metxon apps.</p></div>';return;}
-    if(!installed.length){grid.innerHTML='<div class="card"><h3>No installed apps yet</h3><p>Open <b>Nebula Store</b> below, pay the one-time installation charge, and the app will appear here.</p></div>';return;}
-    grid.innerHTML=installed.map(id=>{
-      const a=APP_CATALOG[id];
-      return `<div class="card installed-app-card"><div><span class="creator">Installed</span><h3>${esc(a.name)}</h3><p>${esc(a.desc)}</p></div><button class="btn btn-primary" onclick="openApp('${id}')">Open App</button></div>`;
-    }).join('');
-  }
-  window.renderInstalledApps=renderInstalledApps;
-
-  function storeCard(id){
-    const a=APP_CATALOG[id],installed=isInstalled(id);
-    return `<div class="card store-item"><div><span class="creator">Created by Metxon Corporate</span><h3>${esc(a.name)}</h3><p>${esc(a.desc)}</p><div class="store-price">₹${a.price.toLocaleString('en-IN')}</div><div class="install-note">One-time installation payment</div></div>${installed?`<button class="btn btn-primary" onclick="openApp('${id}')">Open Installed App</button>`:`<button class="btn btn-primary" onclick="requestAppInstall('${id}')">Install for ₹${a.price.toLocaleString('en-IN')}</button>`}</div>`;
-  }
-
-  function renderNebulaStore(){
-    const c=document.getElementById('appContent');if(!c)return;
-    c.innerHTML=`
-      <div class="card" style="margin-bottom:16px;">
-        <h3>Nebula Store</h3>
-        <p>Install Metxon apps and games. Every listed installation is a <strong>one-time payment</strong>. After successful payment, the app appears in your Installed Apps section above.</p>
-      </div>
-      <h3 style="margin:16px 0 8px;">Apps & Games available to install</h3>
-      <div class="grid">
-        ${['metPay','metDevelop','metAlk','culeIn','nebulaAI','blockBreaker','football','chessBoys'].map(storeCard).join('')}
-      </div>
-      <div id="gameArea" style="margin-top:14px;"></div>`;
-  }
-
-  window.requestAppInstall=function(id){
-    if(!state.currentUser)return openAuth();
-    const item=APP_CATALOG[id];if(!item)return;
-    if(isInstalled(id)){openApp(id);return;}
-    const ok=window.confirm(`Install ${item.name} for ₹${item.price.toLocaleString('en-IN')}? This is a one-time Metxon installation payment.`);
-    if(!ok)return;
-    currentCheckout={name:'APP INSTALL: '+item.name,price:item.price,isAppInstall:true,appId:id,displayName:item.name};
-    document.getElementById('payItemInfo').innerHTML=`Installing <strong>${esc(item.name)}</strong><br><span style="color:var(--green);font-weight:800;">One-time charge: ₹${item.price.toLocaleString('en-IN')}</span>`;
-    document.getElementById('payPass').value='';
-    document.getElementById('payModal').classList.add('show');
-    notificationSound('info');
-  };
-
-  window.__metxonPaymentSuccess=function(checkout){
-    if(!checkout?.isAppInstall)return;
-    const a=current();ensureInstallState(a)[checkout.appId]={installedAt:new Date().toISOString(),price:checkout.price,name:checkout.displayName||APP_CATALOG[checkout.appId]?.name};
-    save();renderInstalledApps();renderNebulaStore();
-    metxonToast(`${checkout.displayName||'App'} installed successfully.`, 'success');
-  };
-
-  /* Recover purchased installations from the Supabase order history on another device. */
-  async function hydrateInstalledApps(){
-    if(!state.currentUser)return;
-    try{
-      if(typeof cloudLoadCart==='function')await cloudLoadCart();
-      const a=current(),inst=ensureInstallState(a);
-      (a.cloudOrders||[]).forEach(o=>{
-        const raw=String(o.item_name||o.item||o.name||'');
-        if(!raw.toUpperCase().startsWith('APP INSTALL:'))return;
-        const n=raw.slice('APP INSTALL:'.length).trim().toLowerCase();
-        const found=Object.entries(APP_CATALOG).find(([,v])=>v.name.toLowerCase()===n);
-        if(found)inst[found[0]]={installedAt:o.created_at||new Date().toISOString(),price:Number(o.unit_price||o.price||found[1].price),name:found[1].name};
-      });
-      save();renderInstalledApps();
-    }catch(e){console.warn('Installed app sync:',e);renderInstalledApps();}
-  }
-  window.hydrateInstalledApps=hydrateInstalledApps;
-
-  /* Extend the existing secure payment function without replacing its Supabase/RPC security. */
-  const previousExecutePay=window.executePay;
-  window.executePay=async function(){
-    const pending=currentCheckout?{...currentCheckout}:null;
-    if(typeof previousExecutePay==='function')await previousExecutePay();
-  };
-
-  /* The secure payment layer calls this hook immediately after a successful atomic payment. */
-  const hookInstall=()=>{};
-  void hookInstall;
-
-  /* Patch the final secure payment function by observing its success alert text once, while keeping its RPC intact. */
-  const originalAlert=window.alert;
-  let alertPatchInstalled=false;
-  if(!alertPatchInstalled){
-    window.alert=function(message){
-      try{
-        const text=String(message||'');
-        if(text.startsWith('Payment successful! Order for '))notificationSound('success');
-        if(/Message sent|Transfer successful|Transferred ₹|Bought 1 share|Sold 1 share|Subscribed to/.test(text))notificationSound('success');
-      }catch(_){}
-      return originalAlert.apply(this,arguments);
+  window.showChessFinishModal=function(gameId,result,metaOverride){
+    const meta=metaOverride||chessState?.meta||{};
+    const winner=result==='draw'?'Draw':
+      result==='white_win'?(meta.white_username||'White'):
+      result==='black_win'?(meta.black_username||'Black'):'Winner';
+    document.getElementById('chessFinishModal')?.remove();
+    const o=document.createElement('div');
+    o.id='chessFinishModal';
+    o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.76);display:flex;align-items:center;justify-content:center;z-index:100000;padding:18px;';
+    o.innerHTML=`<div class="card" style="width:min(560px,100%);text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.65)">
+      <div style="font-size:2.4rem">♛</div>
+      <h2 style="margin:4px 0 8px;color:var(--cyan)">${esc(winner)}${result==='draw'?'':' wins'}</h2>
+      <p style="color:var(--muted);margin-bottom:18px">The game is over.</p>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-primary" id="finishReview">Game Review with Stockfish</button>
+        <button class="btn" id="finishNew">New Game</button>
+        <button class="btn" id="finishRematch">Rematch</button>
+        <button class="btn" id="finishSave">Save Game</button>
+      </div></div>`;
+    document.body.appendChild(o);
+    document.getElementById('finishReview').onclick=async()=>{
+      o.remove();
+      if(typeof window.addChessReviewPanel==='function')window.addChessReviewPanel();
+      await window.analyzeChessGame(gameId);
     };
-    alertPatchInstalled=true;
-  }
-
-  /* Capture the install checkout just before the secure payment call uses it. */
-  const securePay=window.executePay;
-  window.executePay=async function(){
-    window.__metxonLastCheckoutForPayment=currentCheckout?{...currentCheckout}:null;
-    return securePay();
+    document.getElementById('finishNew').onclick=()=>{o.remove();window.__metxonBotGame=null;startChess();};
+    document.getElementById('finishRematch').onclick=()=>{
+      o.remove();
+      if(window.__metxonBotGame){startStockfishBotGame(window.__metxonBotGame.elo);return;}
+      startChess();
+    };
+    document.getElementById('finishSave').onclick=()=>{
+      if(gameId)localStorage.setItem('metxon_saved_chess_'+gameId,JSON.stringify({gameId,savedAt:new Date().toISOString()}));
+      o.remove();alert('Game saved.');
+    };
   };
 
-  /* App-aware open routing. The original app implementations are preserved. */
-  const originalOpenApp=window.openApp;
-  window.openApp=function(name){
-    if(name==='nebulaStore'){
-      originalOpenApp(name);
-      setTimeout(renderNebulaStore,0);
+  window.__metxonMaybeChessFinish=function(){
+    const m=chessState?.meta;
+    if(!m||m.status==='active'||!chessState.gameId||finishShownFor===chessState.gameId)return;
+    finishShownFor=chessState.gameId;
+    const result=m.status==='stalemate'?'draw':(m.winner===m.white?'white_win':m.winner===m.black?'black_win':'draw');
+    setTimeout(()=>showChessFinishModal(chessState.gameId,result,m),80);
+  };
+
+  /* ---------- Local Stockfish bot game ---------- */
+  window.startStockfishBotGame=function(elo){
+    const I=window.__metxonChessInternals, me=state.accounts[state.currentUser];
+    if(!I)return alert('Chess engine is not ready. Please reload the page.');
+    if(!me)return openAuth();
+    const rating=Number(elo)||1200;
+    window.__metxonBotGame={elo:rating,humanId:me.id,humanUsername:state.currentUser,positions:[]};
+    const game=I.freshState(I.initialBoard());
+    chessState={gameId:null,game,meta:{
+      white:me.id,black:'stockfish-'+rating,
+      white_username:state.currentUser,black_username:'Stockfish '+rating,
+      white_rating:me.chess_rating||1200,black_rating:rating,status:'active',winner:null
+    },selected:null,legal:[]};
+    const area=document.getElementById('gameArea');
+    if(area)area.innerHTML=`<div class="card">
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <strong>${esc(state.currentUser)} · ELO ${me.chess_rating||1200}</strong>
+        <strong>Stockfish ${rating}</strong>
+      </div>
+      <div id="chessBoardWrap" style="display:flex;justify-content:center;margin-top:12px"></div>
+      <div id="chessStatus" style="text-align:center;margin-top:8px;color:var(--muted)"></div>
+      <div id="chessToolsPanel" style="margin-top:16px"></div>
+    </div>`;
+    I.renderChessBoard();
+    window.__metxonBotGame.positions=[{fen:chessToFen(game),label:'Initial position'}];
+    addChessReviewPanel();
+  };
+
+  function addChessReviewPanel(){
+    const p=document.getElementById('chessToolsPanel');
+    if(!p)return;
+    if(document.getElementById('chessReviewStatus'))return;
+    p.innerHTML=`<div class="card"><h3>Game Review</h3>
+      <div id="chessReviewStatus" style="color:var(--cyan)">Review becomes available after the game ends.</div>
+      <div id="chessReviewOutput" style="margin-top:8px"></div></div>`;
+  }
+  window.addChessReviewPanel=addChessReviewPanel;
+
+  const uciCoords=u=>{
+    if(!u||u.length<4)return null;
+    return {from:[8-Number(u[1]),u.charCodeAt(0)-97],to:[8-Number(u[3]),u.charCodeAt(2)-97],promotion:u[4]?u[4].toUpperCase():null};
+  };
+
+  window.__metxonBotClick=async function(r,c){
+    const bg=window.__metxonBotGame,I=window.__metxonChessInternals;
+    if(!bg||!I||!chessState||chessState.meta.status!=='active'||chessState.game.turn!=='white')return;
+    const g=chessState.game;
+    if(chessState.selected){
+      const mv=(chessState.legal||[]).find(m=>m.to[0]===r&&m.to[1]===c);
+      if(mv){
+        const next=I.applyMove(g,mv,mv.promotion?'Q':null);
+        bg.positions.push({fen:chessToFen(next),label:`After ${bg.positions.length}. ${squareName(mv.from[0],mv.from[1])}-${squareName(mv.to[0],mv.to[1])}`});
+        chessState.game=next;chessState.selected=null;chessState.legal=[];
+        const replies=I.allLegalMoves(next,'black');
+        if(!replies.length){
+          chessState.meta.status=I.inCheck(next,'black')?'checkmate':'stalemate';
+          chessState.meta.winner=chessState.meta.status==='checkmate'?bg.humanId:null;
+          I.renderChessBoard();
+          showChessFinishModal(null,chessState.meta.status==='stalemate'?'draw':'white_win',chessState.meta);
+          return;
+        }
+        I.renderChessBoard();setTimeout(window.__metxonBotMove,250);return;
+      }
+      const own=g.board[r][c]&&I.color(g.board[r][c])==='white';
+      if(own){chessState.selected=[r,c];chessState.legal=I.legalMovesForSquare(g,r,c);I.renderChessBoard();return;}
+      chessState.selected=null;chessState.legal=[];I.renderChessBoard();return;
+    }
+    const own=g.board[r][c]&&I.color(g.board[r][c])==='white';
+    if(own){chessState.selected=[r,c];chessState.legal=I.legalMovesForSquare(g,r,c);I.renderChessBoard();}
+  };
+
+  window.__metxonBotMove=async function(){
+    const bg=window.__metxonBotGame,I=window.__metxonChessInternals;
+    if(!bg||!I||!chessState||chessState.meta.status!=='active'||chessState.game.turn!=='black')return;
+    try{
+      const depth=bg.elo<=800?7:bg.elo<=1100?8:bg.elo<=1400?10:bg.elo<=1700?12:14;
+      const r=await window.__metxonEngineAnalyze(chessToFen(chessState.game),depth);
+      const u=uciCoords(r.bestmove);if(!u)return;
+      const legal=I.allLegalMoves(chessState.game,'black');
+      const mv=legal.find(m=>m.from[0]===u.from[0]&&m.from[1]===u.from[1]&&m.to[0]===u.to[0]&&m.to[1]===u.to[1]);
+      if(!mv)throw new Error('Stockfish returned a move that is not legal for the current position.');
+      const next=I.applyMove(chessState.game,mv,u.promotion||'Q');
+      bg.positions.push({fen:chessToFen(next),label:`After ${bg.positions.length}. ${squareName(mv.from[0],mv.from[1])}-${squareName(mv.to[0],mv.to[1])}`});
+      chessState.game=next;chessState.selected=null;chessState.legal=[];
+      const replies=I.allLegalMoves(next,'white');
+      if(!replies.length){
+        chessState.meta.status=I.inCheck(next,'white')?'checkmate':'stalemate';
+        chessState.meta.winner=chessState.meta.status==='checkmate'?bg.black:null;
+      }
+      I.renderChessBoard();
+      if(chessState.meta.status!=='active')showChessFinishModal(null,chessState.meta.status==='stalemate'?'draw':'black_win',chessState.meta);
+    }catch(e){console.warn(e);alert(e.message||'Stockfish could not move.');}
+  };
+
+  const originalClick=window.chessSquareClick;
+  window.chessSquareClick=function(r,c){
+    if(window.__metxonBotGame)return window.__metxonBotClick(r,c);
+    return originalClick(r,c);
+  };
+
+  const originalReview=window.analyzeChessGame;
+  window.analyzeChessGame=async function(gameId){
+    if(window.__metxonBotGame&&chessState?.gameId===null&&chessState.meta?.status!=='active'){
+      const s=document.getElementById('chessReviewStatus'),o=document.getElementById('chessReviewOutput');
+      if(!s||!o)return;
+      s.textContent='Reviewing the completed game with Stockfish…';
+      try{
+        const rows=[];
+        for(const pos of (window.__metxonBotGame.positions||[]).slice(0,40))
+          rows.push({...pos,...(await window.__metxonEngineAnalyze(pos.fen,11))});
+        o.innerHTML=`<div style="overflow:auto"><table style="width:100%;border-collapse:collapse"><thead><tr><th>Position</th><th>Evaluation</th><th>Best move</th></tr></thead><tbody>${
+          rows.map((x,i)=>`<tr><td>${i+1}. ${esc(x.label)}</td><td>${x.mate!=null?'Mate in '+Math.abs(x.mate):(x.cp!=null?(x.cp>=0?'+':'')+(x.cp/100).toFixed(2):'—')}</td><td>${esc(x.bestmove||'—')}</td></tr>`).join('')
+        }</tbody></table></div>`;
+        s.textContent='Review complete.';
+      }catch(e){s.textContent='Review failed.';o.innerHTML=`<div class="card">${esc(e.message||e)}</div>`;}
       return;
     }
-    const installId=name;
-    if(APP_CATALOG[installId] && !isInstalled(installId)){
-      metxonToast(`${APP_CATALOG[installId].name} is not installed. Open Nebula Store to install it.`, 'info');
-      originalOpenApp('nebulaStore');setTimeout(renderNebulaStore,0);return;
-    }
-    if(name==='metPay'){renderMetPayApp();return;}
-    if(name==='blockBreaker'){
-      originalOpenApp('nebulaStore');setTimeout(()=>{renderNebulaStore();startBlockBreaker();},0);return;
-    }
-    if(name==='football'){
-      originalOpenApp('nebulaStore');setTimeout(()=>{renderNebulaStore();startSoccerGame();},0);return;
-    }
-    if(name==='chessBoys'){
-      originalOpenApp('nebulaStore');setTimeout(()=>{renderNebulaStore();startChess();},0);return;
-    }
-    originalOpenApp(name);
+    return originalReview(gameId||chessState?.gameId);
   };
 
-  /* ---------- MetPay installed app ---------- */
-  window.renderMetPayApp=function(){
-    const ws=document.getElementById('appWorkspace'),title=document.getElementById('appTitle'),content=document.getElementById('appContent');
-    ws.style.display='block';title.textContent='MetPay';
-    content.innerHTML=`
-      <div class="creator">Created by Metxon Corporate</div>
-      <p style="color:var(--muted);margin:6px 0 12px;">MetPay is Metxon's simulated internal payment app. It does not directly debit a real bank account.</p>
-      <div class="app-tabs">
-        <button class="app-tab active" data-mp="pay">Transaction</button>
-        <button class="app-tab" data-mp="chat">Chat</button>
-        <button class="app-tab" data-mp="scan">Scan</button>
-        <button class="app-tab" data-mp="contacts">Contacts</button>
-      </div>
-      <div id="mp-pay" class="metpay-panel active"></div>
-      <div id="mp-chat" class="metpay-panel"></div>
-      <div id="mp-scan" class="metpay-panel"></div>
-      <div id="mp-contacts" class="metpay-panel"></div>`;
-    document.querySelectorAll('[data-mp]').forEach(btn=>btn.onclick=()=>{
-      document.querySelectorAll('[data-mp]').forEach(x=>x.classList.toggle('active',x===btn));
-      document.querySelectorAll('.metpay-panel').forEach(x=>x.classList.toggle('active',x.id==='mp-'+btn.dataset.mp));
-      if(btn.dataset.mp==='contacts')renderMetPayContacts();
-    });
-    renderMetPayPay();renderMetPayChat();renderMetPayScan();renderMetPayContacts();
-    ws.scrollIntoView({behavior:'smooth'});
-  };
-
-  function renderMetPayPay(){
-    const b=document.getElementById('mp-pay');if(!b)return;
-    b.innerHTML=`<div class="card"><h3>Send Money</h3><div class="form-group"><label>Username</label><input id="mpPayUser" placeholder="Recipient username"></div><div class="form-group"><label>Amount (₹)</label><input id="mpPayAmount" type="number" min="1" placeholder="Amount"></div><button class="btn btn-primary" onclick="metPaySendMoney()">Send Payment</button></div>`;
+  /* Bot choices shown directly under player matchmaking. */
+  function addBotPanel(){
+    if(document.getElementById('chessBotsPanel'))return;
+    const area=document.getElementById('gameArea');if(!area)return;
+    const p=document.createElement('div');p.id='chessBotsPanel';p.className='card';p.style.marginTop='16px';
+    p.innerHTML=`<h3>Play with Bots</h3><p style="color:var(--muted)">Stockfish bots use different ELO/difficulty levels.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" data-b="800">800 ELO · Beginner</button>
+      <button class="btn" data-b="1100">1100 ELO · Easy</button>
+      <button class="btn" data-b="1400">1400 ELO · Intermediate</button>
+      <button class="btn" data-b="1700">1700 ELO · Advanced</button>
+      <button class="btn btn-primary" data-b="2000">2000 ELO · Expert</button></div>`;
+    p.querySelectorAll('[data-b]').forEach(b=>b.onclick=()=>startStockfishBotGame(Number(b.dataset.b)));
+    area.appendChild(p);
   }
-
-  window.metPaySendMoney=async function(){
-    const to=(document.getElementById('mpPayUser')?.value||'').trim().toLowerCase(),amt=Number(document.getElementById('mpPayAmount')?.value);
-    if(!to||!amt||amt<=0)return metxonToast('Enter a valid username and amount.','error');
-    try{await cloudTransfer(to,amt);metxonToast(`₹${amt.toLocaleString('en-IN')} sent to ${to}.`,'success');renderMetPayContacts();}
-    catch(e){metxonToast(e.message||'Payment failed.','error');}
-  };
-
-  async function renderMetPayChat(){
-    const b=document.getElementById('mp-chat');if(!b)return;
-    b.innerHTML=`<div class="card"><h3>Payment Chat</h3><div class="form-group"><input id="mpChatUser" placeholder="Username to chat with"></div><div id="mpChatLog" class="terminal" style="max-height:220px;overflow:auto;min-height:100px;"></div><div class="row" style="margin-top:8px;"><input id="mpChatMsg" placeholder="Discuss sending/receiving cash"><button class="btn btn-primary" onclick="metPaySendChat()">Send</button></div></div>`;
-    const input=document.getElementById('mpChatUser');input?.addEventListener('change',loadMetPayChat);
-    document.getElementById('mpChatMsg')?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();metPaySendChat();}});
-    document.getElementById('mpChatLog').innerHTML='<span style="color:var(--muted)">Enter a username to load the conversation.</span>';
-  }
-
-  window.loadMetPayChat=async function(){
-    const to=(document.getElementById('mpChatUser')?.value||'').trim().toLowerCase(),log=document.getElementById('mpChatLog');if(!to||!log)return;
-    try{const rows=await cloudLoadMessages(to);log.innerHTML=(rows||[]).map(m=>`<div style="padding:5px 0;border-bottom:1px solid var(--border)"><b>${esc(m.sender_id===((state.accounts[state.currentUser]||{}).id||'')?'You':to)}</b>: ${esc(m.message)}<div style="font-size:.7rem;color:var(--muted)">${new Date(m.created_at).toLocaleString()}</div></div>`).join('')||'<span style="color:var(--muted)">No messages yet.</span>';log.scrollTop=log.scrollHeight;}catch(e){log.textContent=e.message||'Could not load chat.';}
-  };
-
-  window.metPaySendChat=async function(){
-    const to=(document.getElementById('mpChatUser')?.value||'').trim().toLowerCase(),msg=(document.getElementById('mpChatMsg')?.value||'').trim();
-    if(!to||!msg)return metxonToast('Enter a username and message.','error');
-    try{await cloudSendMessage(to,msg);document.getElementById('mpChatMsg').value='';await loadMetPayChat();metxonToast('Message sent.','success');}
-    catch(e){metxonToast(e.message||'Message failed.','error');}
-  };
-
-  let mpStream=null,mpScanTimer=null;
-  function parsePayQR(raw){
-    try{const u=new URL(raw);const user=u.searchParams.get('user')||u.searchParams.get('username');const amount=u.searchParams.get('amount');if(user){document.getElementById('mpScanUser').value=user;if(amount)document.getElementById('mpScanAmount').value=amount;return true;}}catch(_){}
-    const m=String(raw).match(/(?:user|username)[:=]([A-Za-z0-9_. -]+).*?(?:amount)[:=₹ ]([0-9]+(?:\\.[0-9]+)?)/i);
-    if(m){document.getElementById('mpScanUser').value=m[1].trim();document.getElementById('mpScanAmount').value=m[2];return true;}
-    return false;
-  }
-  async function scanFrame(){
-    const video=document.getElementById('mpVideo');if(!video||!video.videoWidth)return;
-    if(!('BarcodeDetector' in window))return;
-    try{const detector=new BarcodeDetector({formats:['qr_code']});const codes=await detector.detect(video);if(codes.length&&codes[0].rawValue){parsePayQR(codes[0].rawValue);metxonToast('QR code detected. Check the username and amount before paying.','success');stopMetPayScan();}}catch(_){}
-  }
-  window.startMetPayScan=async function(){
-    const video=document.getElementById('mpVideo'),status=document.getElementById('mpScanStatus');if(!video)return;
-    if(!navigator.mediaDevices?.getUserMedia)return status.textContent='Camera scanning is not supported in this browser.';
-    try{mpStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}});video.srcObject=mpStream;await video.play();status.textContent='Camera active. Point it at a MetPay QR code.';if('BarcodeDetector' in window)mpScanTimer=setInterval(scanFrame,700);else status.textContent+=' QR auto-detection is unavailable; use the fields below.';}catch(e){status.textContent='Camera permission was not granted.';}
-  };
-  window.stopMetPayScan=function(){if(mpScanTimer){clearInterval(mpScanTimer);mpScanTimer=null;}if(mpStream){mpStream.getTracks().forEach(t=>t.stop());mpStream=null;}const v=document.getElementById('mpVideo');if(v)v.srcObject=null;const s=document.getElementById('mpScanStatus');if(s)s.textContent='Camera stopped.';};
-  window.payScannedQR=async function(){
-    const to=(document.getElementById('mpScanUser')?.value||'').trim().toLowerCase(),amt=Number(document.getElementById('mpScanAmount')?.value);
-    if(!to||!amt||amt<=0)return metxonToast('Check the QR username and amount.','error');
-    const ok=confirm(`Pay ₹${amt.toLocaleString('en-IN')} to ${to}?`);if(!ok)return;
-    try{await cloudTransfer(to,amt);metxonToast(`QR payment of ₹${amt.toLocaleString('en-IN')} sent to ${to}.`,'success');}
-    catch(e){metxonToast(e.message||'QR payment failed.','error');}
-  };
-  function renderMetPayScan(){
-    const b=document.getElementById('mp-scan');if(!b)return;
-    b.innerHTML=`<div class="card"><h3>Scan to Pay</h3><p style="color:var(--muted);">MetPay scans Metxon payment QR data. It does not take money from a real bank account.</p><video id="mpVideo" class="metpay-video" playsinline muted></video><div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px;"><button class="btn btn-primary" onclick="startMetPayScan()">Start Camera</button><button class="btn" onclick="stopMetPayScan()">Stop</button></div><div id="mpScanStatus" style="text-align:center;color:var(--muted);margin:8px 0;">Camera is off.</div><div class="form-group"><label>Username from QR</label><input id="mpScanUser" placeholder="username"></div><div class="form-group"><label>Amount (₹)</label><input id="mpScanAmount" type="number" min="1" placeholder="amount"></div><button class="btn btn-primary" onclick="payScannedQR()">Confirm Payment</button></div>`;
-  }
-
-  window.renderMetPayContacts=function(){
-    const b=document.getElementById('mp-contacts');if(!b||!state.currentUser)return;const a=current();a.metPayContacts=Array.isArray(a.metPayContacts)?a.metPayContacts:[];
-    b.innerHTML=`<div class="card"><h3>Contacts</h3><div class="row"><input id="mpContactUser" placeholder="Username to add"><button class="btn" onclick="metPayAddContact()">Add Contact</button></div><div id="mpContactList" style="margin-top:12px;">${a.metPayContacts.length?a.metPayContacts.map(u=>`<div class="cartline"><span><b>${esc(u)}</b></span><span><button class="btn btn-primary small" onclick="metPayQuickPay('${esc(u)}')">Pay</button></span></div>`).join(''):'<span style="color:var(--muted)">No payment contacts yet.</span>'}</div></div>`;
-  };
-  window.metPayAddContact=async function(){
-    const u=(document.getElementById('mpContactUser')?.value||'').trim().toLowerCase();if(!u)return;
-    try{const p=await secureOtherProfile(u);if(!p)return metxonToast('Username not found.','error');const a=current();a.metPayContacts=Array.isArray(a.metPayContacts)?a.metPayContacts:[];if(!a.metPayContacts.includes(u))a.metPayContacts.push(u);save();renderMetPayContacts();metxonToast(u+' added to contacts.','success');}catch(e){metxonToast(e.message||'Could not add contact.','error');}
-  };
-  window.metPayQuickPay=function(u){document.querySelector('[data-mp="pay"]')?.click();setTimeout(()=>{const i=document.getElementById('mpPayUser');if(i)i.value=u;},0);};
-
-  /* Existing onLogin remains the source of truth; this only adds the installed-app refresh. */
-  const previousOnLogin=window.onLogin;
-  window.onLogin=function(user){
-    previousOnLogin(user);
-    const a=current();ensureInstallState(a);renderInstalledApps();hydrateInstalledApps();
-  };
-
-  /* If the page starts already authenticated, populate the section immediately. */
-  setTimeout(()=>{if(state.currentUser){ensureInstallState(current());renderInstalledApps();hydrateInstalledApps();}},2500);
-
-  /* When the secure payment layer succeeds, it calls window.alert with the success text.
-     The checkout snapshot above identifies an app installation without changing the secure RPC. */
+  setTimeout(addBotPanel,700);
 })();
-</script>\n
+</script>
+
+<script>
+window.metxonAddFriend=async function(username){
+  try{
+    const {error}=await metxonSupabase.rpc('metalk_add_friend',{friend_username:String(username||'').trim()});
+    if(error)throw error;
+    if(typeof renderMetalkFriends==='function')await renderMetalkFriends();
+    alert('Added to your friend list.');
+  }catch(e){alert(e.message||'Could not add friend.');}
+};
+window.loadMetalkFriends=async function(){
+  const me=await loadCloudAccount(state.currentUser);if(!me)return[];
+  const {data,error}=await metxonSupabase.from('metalk_friends')
+    .select('friend_id,profiles!metalk_friends_friend_id_fkey(username,display_name)')
+    .eq('user_id',me.id).order('created_at',{ascending:true});
+  if(error){console.warn(error);return[]}
+  return data||[];
+};
+window.renderMetalkFriends=async function(){
+  const box=document.getElementById('metalkFriends');if(!box)return;
+  const rows=await loadMetalkFriends();
+  box.innerHTML=rows.length?rows.map(r=>{
+    const u=r.profiles?.username||'';
+    return `<button class="btn" style="margin:3px" data-friend="${String(u).replace(/"/g,'&quot;')}">${String(u)}</button>`;
+  }).join(''):'<span style="color:var(--muted);font-size:.82rem">No friends yet.</span>';
+  box.querySelectorAll('[data-friend]').forEach(b=>b.onclick=()=>{document.getElementById('alkTo').value=b.dataset.friend;renderAlkLog()});
+};
+window.showIncomingMessagePopup=function(username,message){
+  const old=document.getElementById('metalkIncomingPopup');if(old)old.remove();
+  const box=document.createElement('div');box.id='metalkIncomingPopup';
+  box.style.cssText='position:fixed;right:18px;bottom:18px;z-index:100001;width:min(390px,calc(100vw - 36px))';
+  box.innerHTML=`<div class="card"><strong>New Met-Alk message</strong><p style="margin:8px 0">${String(message||'').replace(/[&<>]/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[x]))}</p>
+    <div style="display:flex;gap:8px"><button class="btn btn-primary" id="addMsgFriend">Add to friend list</button><button class="btn" id="closeMsg">Close</button></div></div>`;
+  document.body.appendChild(box);
+  document.getElementById('addMsgFriend').onclick=async()=>{
+    try{
+      const p=await metxonSupabase.from('profiles').select('username').eq('id',username).maybeSingle();
+      if(p.data?.username)await metxonAddFriend(p.data.username);
+      box.remove();
+    }catch(e){alert(e.message||'Could not add friend.');}
+  };
+  document.getElementById('closeMsg').onclick=()=>box.remove();
+};
+</script>
+
+<script>
+/* ===================== NEBULA STORE INSTALLS + METPAY + NOTIFICATION SOUNDS ===================== */
+(function(){
+  const APPS = {
+    metDevelop:{id:'met_develop',name:'MetDevelop',price:20000,desc:'Development workspace, MetLang/Atbash tools, SME development and cloud saving.'},
+    culeIn:{id:'cule_in',name:'Cule-In',price:1000,desc:'Natural-language product and device search.'},
+    nebulaAI:{id:'nebula_ai',name:'Nebula AI',price:10000,desc:'Nebula AI assistant terminal.'},
+    metAlk:{id:'met_alk',name:'Met-Alk',price:15000,desc:'Username-based messaging, friends and cloud chat.'},
+    blockBreaker:{id:'block_breaker',name:'Block Breaker',price:500,desc:'Arcade brick breaker with lives, extra balls and power bricks.'},
+    football:{id:'football',name:'Football',price:200,desc:'One-player football/soccer game with keyboard and touch controls.'},
+    chessBoys:{id:'chess_boys',name:'Chess Boys',price:10000,desc:'Chess matchmaking, usernames, chat and post-game Stockfish review.'},
+    metPay:{id:'metpay',name:'MetPay',price:1000,desc:'Metxon payments, cash chat, QR scanning and payment contacts.'}
+  };
+  window.NEBULA_APPS = APPS;
+
+  function esc(v){
+    return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function money(n){return '₹'+Number(n||0).toLocaleString('en-IN');}
+
+  /* Default notification sound: generated locally, no external sound file needed. */
+  window.metxonNotifySound=function(kind='default'){
+    try{
+      const C=window.AudioContext||window.webkitAudioContext;
+      if(!C)return;
+      const ctx=new C(), now=ctx.currentTime;
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.type='sine';
+      o.frequency.setValueAtTime(kind==='message'?880:660,now);
+      o.frequency.exponentialRampToValueAtTime(kind==='message'?1046:880,now+.12);
+      g.gain.setValueAtTime(.0001,now);
+      g.gain.exponentialRampToValueAtTime(.055,now+.012);
+      g.gain.exponentialRampToValueAtTime(.0001,now+.22);
+      o.connect(g);g.connect(ctx.destination);o.start(now);o.stop(now+.23);
+      setTimeout(()=>ctx.close().catch(()=>{}),350);
+    }catch(e){}
+  };
+
+  async function currentCloudProfile(){
+    return state.currentUser?await loadCloudAccount(state.currentUser):null;
+  }
+
+  async function installedSet(){
+    const me=await currentCloudProfile();
+    if(!me)return new Set();
+
+    /* Preferred persistent installation table. */
+    try{
+      const {data,error}=await metxonSupabase.from('metxon_app_installations')
+        .select('app_id').eq('user_id',me.id);
+      if(!error) return new Set((data||[]).map(x=>x.app_id));
+    }catch(e){}
+
+    /* Fallback: installation orders are still persistent in Supabase. */
+    try{
+      const {data,error}=await metxonSupabase.from('orders')
+        .select('item_name,created_at').eq('user_id',me.id).order('created_at',{ascending:true});
+      if(!error){
+        const set=new Set();
+        (data||[]).forEach(o=>{
+          const item=String(o.item_name||'');
+          if(item.startsWith('APP_INSTALL:')){
+            const id=item.slice('APP_INSTALL:'.length);
+            if(id)set.add(id);
+          }
+        });
+        return set;
+      }
+    }catch(e){}
+    return new Set();
+  }
+
+  window.nebulaIsInstalled=async id=>(await installedSet()).has(id);
+
+  function appCard(key,installed){
+    const a=APPS[key];
+    return `<div class="nebula-app-card">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
+        <div><h3>${esc(a.name)}</h3><span style="color:var(--muted);font-size:.78rem">Created by Metxon Corporate</span></div>
+        ${installed?'<span class="nebula-installed">INSTALLED</span>':''}
+      </div>
+      <p style="color:var(--muted);min-height:44px">${esc(a.desc)}</p>
+      <div class="nebula-price">${money(a.price)} one-time installation</div>
+      <button class="btn ${installed?'':'btn-primary'}" style="margin-top:10px"
+        onclick="${installed?`launchNebulaApp('${key}')`:`installNebulaApp('${key}')`}">
+        ${installed?'Open':`Install · ${money(a.price)}`}
+      </button>
+    </div>`;
+  }
+
+  window.renderInstalledApps=async function(){
+    const box=document.getElementById('installedAppsGrid');
+    if(!box)return;
+    if(!state.currentUser){
+      box.innerHTML='<div class="card"><span style="color:var(--muted)">Sign in to see your installed apps.</span></div>';
+      return;
+    }
+    const installed=await installedSet();
+    const keys=Object.keys(APPS).filter(k=>installed.has(APPS[k].id));
+    box.innerHTML=keys.length
+      ? keys.map(k=>`<div class="card" style="cursor:pointer" onclick="launchNebulaApp('${k}')">
+          <h3>${esc(APPS[k].name)}</h3>
+          <p style="color:var(--muted)">Installed · one-time purchase</p>
+          <button class="btn btn-primary" onclick="event.stopPropagation();launchNebulaApp('${k}')">Open</button>
+        </div>`).join('')
+      : '<div class="card"><span style="color:var(--muted)">No apps installed yet. Open Nebula Store to install an app.</span></div>';
+  };
+
+  window.installNebulaApp=async function(key){
+    const app=APPS[key];
+    if(!app)return;
+    if(!state.currentUser)return openAuth();
+
+    if(await nebulaIsInstalled(app.id)){
+      return launchNebulaApp(key);
+    }
+
+    const ok=confirm(
+      `Install ${app.name} for ${money(app.price)}?\n\n`+
+      `This is a ONE-TIME installation payment and will be charged from your Metxon balance only after you confirm.`
+    );
+    if(!ok)return;
+
+    try{
+      let result=null;
+      let installed=false;
+
+      /* Use the dedicated secure installation RPC when available. */
+      try{
+        const r=await metxonSupabase.rpc('metxon_install_app',{
+          p_app_id:app.id,
+          p_app_name:app.name,
+          p_price:app.price
+        });
+        if(!r.error){result=r.data;installed=true;}
+      }catch(e){}
+
+      /* Compatibility fallback to the existing secure purchase RPC. */
+      if(!installed){
+        const r=await metxonSupabase.rpc('metxon_purchase_order',{
+          item_name:'APP_INSTALL:'+app.id,
+          quantity:1,
+          unit_price:Number(app.price)
+        });
+        if(r.error)throw r.error;
+      }
+
+      await refreshCloudAccount();
+      await cloudLoadTransactions();
+      await cloudLoadCart();
+
+      alert(`${app.name} installed successfully.\n${money(app.price)} was charged from your Metxon balance.`);
+      await renderNebulaStore();
+      await renderInstalledApps();
+    }catch(e){
+      alert(e.message||'Installation failed.');
+    }
+  };
+
+  window.renderNebulaStore=async function(){
+    const content=document.getElementById('appContent');
+    if(!content)return;
+    const installed=await installedSet();
+    content.innerHTML=`
+      <div class="card" style="margin-bottom:16px">
+        <h3>🛍️ Nebula Store</h3>
+        <p style="color:var(--muted)">
+          Install apps before using them. Every installation is a one-time payment from your Metxon balance.
+          Nebula Store itself does not require installation.
+        </p>
+      </div>
+      <h3>Apps</h3>
+      <div class="nebula-store-grid">
+        ${Object.keys(APPS).map(k=>appCard(k,installed.has(APPS[k].id))).join('')}
+      </div>
+      <div class="card" style="margin-top:16px">
+        <strong>One-time installation prices</strong>
+        <p style="color:var(--muted);margin:6px 0 0">
+          MetDevelop ₹20,000 · Cule-In ₹1,000 · Nebula AI ₹10,000 · Met-Alk ₹15,000 ·
+          Block Breaker ₹500 · Football ₹200 · Chess Boys ₹10,000 · MetPay ₹1,000
+        </p>
+      </div>
+      <div id="gameArea" style="margin-top:16px"></div>`;
+  };
+
+  window.launchNebulaApp=async function(key){
+    const a=APPS[key];
+    if(!a)return;
+    if(!(await nebulaIsInstalled(a.id))){
+      return alert(`Please install ${a.name} from the Nebula Store first.`);
+    }
+
+    const ws=document.getElementById('appWorkspace');
+    const area=document.getElementById('appContent');
+    if(!ws||!area)return;
+    ws.style.display='block';
+    document.getElementById('appTitle').textContent=a.name;
+
+    if(key==='metDevelop'||key==='metAlk'||key==='culeIn'||key==='nebulaAI'){
+      /* Use the existing full app implementation, but only after installation. */
+      const base=window.__openAppOriginal;
+      if(typeof base==='function'){
+        base(key);
+        await renderInstalledApps();
+        return;
+      }
+    }
+
+    area.innerHTML='<div id="gameArea"></div>';
+    const gameArea=document.getElementById('gameArea');
+    if(key==='blockBreaker'){startBlockBreaker();return;}
+    if(key==='football'){startSoccerGame();return;}
+    if(key==='chessBoys'){startChess();return;}
+    if(key==='metPay'){renderMetPayApp(gameArea);return;}
+  };
+
+  /* Guard direct calls to openApp for install-gated apps. */
+  if(!window.__openAppOriginal)window.__openAppOriginal=window.openApp;
+  window.openApp=function(name){
+    if(name==='nebulaStore'){
+      if(!state.currentUser)return openAuth();
+      const ws=document.getElementById('appWorkspace');
+      ws.style.display='block';
+      document.getElementById('appTitle').textContent='Nebula Store';
+      renderNebulaStore();
+      ws.scrollIntoView({behavior:'smooth'});
+      return;
+    }
+
+    const map={metDevelop:'metDevelop',metAlk:'metAlk',culeIn:'culeIn',nebulaAI:'nebulaAI',metPay:'metPay',
+               blockBreaker:'blockBreaker',football:'football',chessBoys:'chessBoys'};
+    if(map[name]){
+      if(!state.currentUser)return openAuth();
+      nebulaIsInstalled(APPS[map[name]].id).then(ok=>{
+        if(!ok)return alert(`Please install ${APPS[map[name]].name} from the Nebula Store first.`);
+        if(map[name]==='metPay'||map[name]==='blockBreaker'||map[name]==='football'||map[name]==='chessBoys'){
+          launchNebulaApp(map[name]);
+        }else{
+          window.__openAppOriginal(name);
+        }
+      });
+      return;
+    }
+    return window.__openAppOriginal(name);
+  };
+
+  /* Existing Met-Alk message popup gets the default sound. */
+  if(typeof window.showIncomingMessagePopup==='function'){
+    const oldPopup=window.showIncomingMessagePopup;
+    window.showIncomingMessagePopup=function(){
+      window.metxonNotifySound('message');
+      return oldPopup.apply(this,arguments);
+    };
+  }
+
+  /* Existing transaction realtime popup gets the default sound. */
+  if(window.__metxonRealtime){
+    /* Existing channel is recreated by cloudRealtime on login; no action needed here. */
+  }
+
+  /* Refresh installed apps after login/initial page load. */
+  const oldOnLogin=window.onLogin;
+  window.onLogin=function(user){
+    const r=oldOnLogin?oldOnLogin.apply(this,arguments):undefined;
+    setTimeout(()=>renderInstalledApps(),150);
+    return r;
+  };
+
+  /* Make transaction notifications audible by wrapping cloudRealtime once it is rebuilt. */
+  if(window.cloudRealtime && !window.__metxonRealtimeSoundWrapped){
+    const oldRealtime=window.cloudRealtime;
+    window.cloudRealtime=async function(){
+      const r=await oldRealtime.apply(this,arguments);
+      try{
+        /* Replace the notification behavior for future channel events by
+           adding a lightweight second channel only when authenticated. */
+        if(state.currentUser && metxonSupabase && !window.__metxonSoundChannel){
+          const me=await loadCloudAccount(state.currentUser);
+          if(me){
+            window.__metxonSoundChannel=metxonSupabase.channel('user:'+me.id+':notification-sound')
+              .on('postgres_changes',{event:'INSERT',schema:'public',table:'transactions',filter:'user_id=eq.'+me.id},()=>metxonNotifySound('transaction'))
+              .on('postgres_changes',{event:'INSERT',schema:'public',table:'metalk_messages',filter:'recipient_id=eq.'+me.id},()=>metxonNotifySound('message'))
+              .subscribe();
+          }
+        }
+      }catch(e){}
+      return r;
+    };
+    window.__metxonRealtimeSoundWrapped=true;
+  }
+
+  /* Initial rendering. */
+  setTimeout(()=>{renderInstalledApps().catch(()=>{});},500);
+})();
+</script>
+
 </body>
 </html>
