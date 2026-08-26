@@ -3386,7 +3386,7 @@ function chessToFen(st){
         const chosen=sel&&sel[0]===r&&sel[1]===c;
         const move=legal.find(m=>m.to[0]===r&&m.to[1]===c);
         const marker=move?(g.board[r][c]?'●':'•'):'';
-        out+=`<div class="chess-square ${light?'light':'dark'}" data-chess-r="${r}" data-chess-c="${c}" role="button" tabindex="0" style="position:relative;width:min(11vw,64px);height:min(11vw,64px);font-size:min(8vw,42px);cursor:pointer;${chosen?'outline:3px solid var(--cyan);z-index:2;':''}">
+        out+=`<div class="chess-square ${light?'light':'dark'}" data-chess-r="${r}" data-chess-c="${c}" role="button" tabindex="0" style="position:relative;width:min(11vw,64px);height:min(11vw,64px);font-size:min(8vw,42px);cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none;${chosen?'outline:3px solid var(--cyan);z-index:2;':''}">
           <span class="chess-piece ${color(p)==='white'?'white':'black'}">${p?PIECES2[p]:''}</span>
           ${marker?`<span style="position:absolute;font-size:14px;color:${p?'rgba(0,0,0,.55)':'rgba(0,0,0,.38)'};left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;">${marker}</span>`:''}
         </div>`;
@@ -3412,9 +3412,15 @@ function chessToFen(st){
     // Inline handlers could resolve to the multiplayer handler and silently return.
     wrap.querySelectorAll('[data-chess-r][data-chess-c]').forEach(el=>{
       const r=Number(el.dataset.chessR),c=Number(el.dataset.chessC);
-      const handler=()=>window.chessSquareClick(r,c);
-      el.addEventListener('click',handler);
-      el.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();handler();}});
+      const handler=ev=>{
+        if(ev){ev.preventDefault();ev.stopPropagation();}
+        window.chessSquareClick(r,c);
+      };
+      // pointerdown works reliably on mouse, touch and pen and avoids a second
+      // event being swallowed by a surrounding control.
+      el.addEventListener('pointerdown',handler,{passive:false});
+      el.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();},{passive:false});
+      el.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){handler(ev);}});
     });
   }
 
@@ -3807,14 +3813,39 @@ function chessToFen(st){
 
   window.__metxonBotClick=async function(r,c){
     const bg=window.__metxonBotGame,I=window.__metxonChessInternals;
-    if(!bg||!I||!chessState||chessState.meta.status!=='active'||chessState.game.turn!=='white')return;
+    if(!bg||!I||!chessState||!chessState.game||chessState.meta?.status!=='active')return;
     const g=chessState.game;
+    // The human is always White in local bot games.
+    if(g.turn!=='white'||bg.thinking)return;
+
+    // Recalculate legal moves from the current position every time. This avoids
+    // stale/empty cached move lists after a board repaint and makes bot clicks
+    // independent of the multiplayer chess handler.
+    const legalAll=I.allLegalMoves(g,'white');
+
     if(chessState.selected){
-      const mv=(chessState.legal||[]).find(m=>m.to[0]===r&&m.to[1]===c);
+      const [sr,sc]=chessState.selected;
+
+      // Clicking the same square deselects it.
+      if(sr===r&&sc===c){
+        chessState.selected=null;
+        chessState.legal=[];
+        I.renderChessBoard();
+        return;
+      }
+
+      const mv=legalAll.find(m=>m.from[0]===sr&&m.from[1]===sc&&m.to[0]===r&&m.to[1]===c);
       if(mv){
-        const next=I.applyMove(g,mv,mv.promotion?'Q':null);
-        bg.positions.push({fen:chessToFen(next),label:`After ${bg.positions.length}. ${squareName(mv.from[0],mv.from[1])}-${squareName(mv.to[0],mv.to[1])}`});
-        chessState.game=next;chessState.selected=null;chessState.legal=[];
+        const promotion=mv.promotion?'Q':null;
+        const next=I.applyMove(g,mv,promotion);
+        bg.positions.push({
+          fen:chessToFen(next),
+          label:`After ${bg.positions.length}. ${squareName(mv.from[0],mv.from[1])}-${squareName(mv.to[0],mv.to[1])}`
+        });
+        chessState.game=next;
+        chessState.selected=null;
+        chessState.legal=[];
+
         const replies=I.allLegalMoves(next,'black');
         if(!replies.length){
           chessState.meta.status=I.inCheck(next,'black')?'checkmate':'stalemate';
@@ -3823,16 +3854,35 @@ function chessToFen(st){
           showChessFinishModal(null,chessState.meta.status==='stalemate'?'draw':'white_win',chessState.meta);
           return;
         }
+
         I.renderChessBoard();
-        bg.thinking=false;
-        setTimeout(window.__metxonBotMove,250);return;
+        // Let the browser paint the human move before Stockfish starts.
+        setTimeout(()=>window.__metxonBotMove(),180);
+        return;
       }
-      const own=g.board[r][c]&&I.color(g.board[r][c])==='white';
-      if(own){chessState.selected=[r,c];chessState.legal=I.legalMovesForSquare(g,r,c);I.renderChessBoard();return;}
-      chessState.selected=null;chessState.legal=[];I.renderChessBoard();return;
+
+      // If the user clicked another White piece, switch selection immediately.
+      const clicked=g.board[r][c];
+      if(clicked&&I.color(clicked)==='white'){
+        chessState.selected=[r,c];
+        chessState.legal=legalAll.filter(m=>m.from[0]===r&&m.from[1]===c);
+        I.renderChessBoard();
+        return;
+      }
+
+      // Illegal destination: keep the current piece selected.
+      chessState.legal=legalAll.filter(m=>m.from[0]===sr&&m.from[1]===sc);
+      I.renderChessBoard();
+      return;
     }
-    const own=g.board[r][c]&&I.color(g.board[r][c])==='white';
-    if(own){chessState.selected=[r,c];chessState.legal=I.legalMovesForSquare(g,r,c);I.renderChessBoard();}
+
+    // First click: select a White piece and show its legal destinations.
+    const piece=g.board[r][c];
+    if(piece&&I.color(piece)==='white'){
+      chessState.selected=[r,c];
+      chessState.legal=legalAll.filter(m=>m.from[0]===r&&m.from[1]===c);
+      I.renderChessBoard();
+    }
   };
 
   window.__metxonBotMove=async function(){
