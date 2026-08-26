@@ -3255,6 +3255,19 @@ function chessToFen(st){
 
         <div id="chessLobbyStatus" style="margin-top:12px;"></div>
         <div id="chessMatchStatus" style="margin-top:10px;color:var(--cyan);"></div>
+
+        <div id="chessBotsPanel" class="card" style="margin-top:16px;background:rgba(0,0,0,.18);">
+          <h3 style="margin-bottom:6px;">Play with Bots</h3>
+          <p style="color:var(--muted);margin-bottom:12px;">Play against Stockfish by choosing the bot's ELO. Higher ELO means a stronger opponent.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn" data-chess-bot="800">800 ELO · Beginner</button>
+            <button class="btn" data-chess-bot="1100">1100 ELO · Easy</button>
+            <button class="btn" data-chess-bot="1400">1400 ELO · Intermediate</button>
+            <button class="btn" data-chess-bot="1700">1700 ELO · Advanced</button>
+            <button class="btn btn-primary" data-chess-bot="2000">2000 ELO · Expert</button>
+          </div>
+          <div style="font-size:.78rem;color:var(--muted);margin-top:10px;">Stockfish runs locally in your browser. Game Review becomes available only after the bot game ends.</div>
+        </div>
       </div>
 
       <div id="chessBoardWrap" style="margin-top:16px;text-align:center;"></div>
@@ -3274,6 +3287,14 @@ function chessToFen(st){
       document.getElementById('chessChallengePanel').style.display='none';
       document.getElementById('chessRandomPanel').style.display='block';
     };
+
+    document.querySelectorAll('[data-chess-bot]').forEach(btn=>{
+      btn.onclick=()=>{
+        const elo=Number(btn.getAttribute('data-chess-bot'));
+        if(typeof window.startStockfishBotGame==='function') window.startStockfishBotGame(elo);
+        else alert('Stockfish bot is still loading. Please try again in a moment.');
+      };
+    });
 
     loadChessLobby();
     chessChallengeTimer=setInterval(loadChessLobby,2500);
@@ -3847,22 +3868,7 @@ function chessToFen(st){
     return originalReview(gameId||chessState?.gameId);
   };
 
-  /* Bot choices shown directly under player matchmaking. */
-  function addBotPanel(){
-    if(document.getElementById('chessBotsPanel'))return;
-    const area=document.getElementById('gameArea');if(!area)return;
-    const p=document.createElement('div');p.id='chessBotsPanel';p.className='card';p.style.marginTop='16px';
-    p.innerHTML=`<h3>Play with Bots</h3><p style="color:var(--muted)">Stockfish bots use different ELO/difficulty levels.</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn" data-b="800">800 ELO · Beginner</button>
-      <button class="btn" data-b="1100">1100 ELO · Easy</button>
-      <button class="btn" data-b="1400">1400 ELO · Intermediate</button>
-      <button class="btn" data-b="1700">1700 ELO · Advanced</button>
-      <button class="btn btn-primary" data-b="2000">2000 ELO · Expert</button></div>`;
-    p.querySelectorAll('[data-b]').forEach(b=>b.onclick=()=>startStockfishBotGame(Number(b.dataset.b)));
-    area.appendChild(p);
-  }
-  setTimeout(addBotPanel,700);
+  /* Bot choices are rendered inside startChess() so they survive every lobby render. */
 })();
 </script>
 
