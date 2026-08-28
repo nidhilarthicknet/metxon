@@ -2934,11 +2934,33 @@ function chessToFen(st){
     if(empty)row+=String(empty);
     rows.push(row);
   }
-  const cast=st.castling||{K:true,Q:true,k:true,q:true};
-  const rights=(cast.K?'K':'')+(cast.Q?'Q':'')+(cast.k?'k':'')+(cast.q?'q':'');
+  /*
+   * chess-api.com validates FEN strictly.  Our internal state deliberately
+   * keeps an en-passant target after every two-square pawn move, but FEN may
+   * advertise that square only when the side to move has a pawn which can
+   * actually capture there.  e2-e4 therefore needs "-", not "e3", in the
+   * common opening position.  We also derive castling rights from the pieces
+   * still on their starting squares so stale state can never produce invalid
+   * rights after a king or rook has been captured/moved.
+   */
+  const cast=st.castling||{};
+  const home=(r,c,piece)=>bd[r]?.[c]===piece;
+  const rights=
+    (cast.K&&home(7,4,'K')&&home(7,7,'R')?'K':'')+
+    (cast.Q&&home(7,4,'K')&&home(7,0,'R')?'Q':'')+
+    (cast.k&&home(0,4,'k')&&home(0,7,'r')?'k':'')+
+    (cast.q&&home(0,4,'k')&&home(0,0,'r')?'q':'');
   const castling=rights||'-';
-  const ep=st.enPassant?('abcdefgh'[st.enPassant[1]]+(8-st.enPassant[0])):'-';
   const turn=st.turn==='black'?'b':'w';
+  let ep='-';
+  if(Array.isArray(st.enPassant)&&st.enPassant.length===2){
+    const [er,ec]=st.enPassant;
+    const pawn=turn==='b'?'p':'P';
+    const pawnRow=turn==='b'?er-1:er+1;
+    const canCapture=ec>=0&&ec<8&&er>=0&&er<8&&
+      bd[er]?.[ec]===''&&[ec-1,ec+1].some(c=>c>=0&&c<8&&bd[pawnRow]?.[c]===pawn);
+    if(canCapture)ep='abcdefgh'[ec]+(8-er);
+  }
   return `${rows.join('/')} ${turn} ${castling} ${ep} ${st.halfmove||0} ${st.fullmove||1}`;
 }
 
@@ -3585,7 +3607,8 @@ function chessToFen(st){
           fen,
           depth:safeDepth,
           variants:1,
-          maxThinkingTime:Math.max(50,Math.min(1000,350))
+          // The public chess-api.com endpoint accepts a maximum of 100 ms.
+          maxThinkingTime:100
         }),
         signal:controller.signal
       });
