@@ -4451,7 +4451,11 @@ window.metxonNotifySound=function(kind='default'){
    $('mailSend').onclick=()=>save('Sent');$('mailDraft').onclick=()=>save('Drafts');
   };
  }
- window.openMetAil=()=>mail('Inbox');\n window.openMetxonCare=()=>care();\n window.openMetCloud=()=>cloud();\n window.openMetNa=()=>metna();\n async function care(){
+ window.openMetAil=()=>mail('Inbox');
+ window.openMetxonCare=()=>care();
+ window.openMetCloud=()=>cloud();
+ window.openMetNa=()=>metna();
+ async function care(){
   const p=await profile();show('Metxon Care','<div class="card"><h2 style="color:var(--cyan);margin:0">Metxon Care</h2><p style="color:var(--muted)">Tell us the problems. Support replies are asynchronous; this is not instant live chat.</p><input id="careSub" placeholder="Subject" style="width:100%;margin:6px 0"><textarea id="careMsg" rows="4" placeholder="Tell the problems…" style="width:100%;margin:6px 0"></textarea><button class="btn btn-primary" id="careSend">Submit ticket</button></div><div id="careList" class="card" style="margin-top:12px">Loading…</div>');
   $('careSend').onclick=async()=>{const message=$('careMsg').value.trim();if(!message)return alert('Describe the problem first.');const t=await metxonSupabase.from('metxon_care_tickets').insert({user_id:p.id,subject:$('careSub').value.trim()||'Support request'}).select('id').single();if(t.error)return alert(t.error.message);const m=await metxonSupabase.from('metxon_care_messages').insert({ticket_id:t.data.id,author_id:p.id,author_role:'customer',message});if(m.error)return alert(m.error.message);$('careMsg').value='';$('careSub').value='';await load();alert('Ticket submitted. Check here later for a reply.');};
   async function load(){const box=$('careList'),r=await metxonSupabase.from('metxon_care_tickets').select('*').eq('user_id',p.id).order('created_at',{ascending:false});if(r.error){box.textContent=r.error.message;return;}if(!r.data?.length){box.innerHTML='<h3>Your tickets</h3><p>No tickets yet.</p>';return;}const ids=r.data.map(x=>x.id),m=await metxonSupabase.from('metxon_care_messages').select('*').in('ticket_id',ids).order('created_at',{ascending:true});box.innerHTML='<h3>Your tickets</h3>'+r.data.map(t=>'<section style="padding:12px 0;border-top:1px solid var(--border)"><b>'+safe(t.subject)+'</b> · '+safe(t.status)+((m.data||[]).filter(x=>x.ticket_id===t.id).map(x=>'<p><b>'+(x.author_role==='support'?'Metxon Support':'You')+':</b> '+safe(x.message)+'</p>').join(''))+'</section>').join('');}await load();
