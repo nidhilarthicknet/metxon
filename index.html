@@ -4452,6 +4452,11 @@ window.metxonNotifySound=function(kind='default'){
   };
  }
  window.openMetAil=()=>mail('Inbox');
+ // Compatibility aliases: older Nebula Store launch handlers may call Mail/mail by name.
+ window.Mail=window.openMetAil;
+ window.mail=window.openMetAil;
+ window.openMetail=window.openMetAil;
+
  window.openMetxonCare=()=>care();
  window.openMetCloud=()=>cloud();
  window.openMetNa=()=>metna();
