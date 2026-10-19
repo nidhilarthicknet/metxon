@@ -4673,7 +4673,7 @@ window.metCountCurrencyChanged=async function(currency){const box=document.getEl
   if(k==='metxoncare')return window.openMetxonCare?window.openMetxonCare():alert('Metxon Care is not ready yet. Refresh the page.');
   if(k==='metcloud')return window.openMetCloud?window.openMetCloud():alert('Met-Cloud is not ready yet. Refresh the page.');
   if(k==='metna'||k==='metxonarena')return window.openMetNa?window.openMetNa():alert('Met-Na is not ready yet. Refresh the page.');
-  if(k==='nebulastore'||k==='appstore')return window.renderNebulaStore?window.renderNebulaStore():alert('Nebula Store is not ready yet. Refresh the page.');
+  if(k==='nebulastore'||k==='appstore'){const w=document.getElementById('appWorkspace'),t=document.getElementById('appTitle');if(w)w.style.display='block';if(t)t.textContent='Nebula Store';if(w)w.scrollIntoView({behavior:'smooth'});return window.renderNebulaStore?window.renderNebulaStore():alert('Nebula Store is not ready yet. Refresh the page.');}
   if(typeof previous==='function')return previous.apply(this,arguments);
  };
  window.Mail=window.mail=window.openMetAil;
