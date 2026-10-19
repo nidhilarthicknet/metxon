@@ -303,6 +303,10 @@ tr:hover { background: rgba(255,255,255,0.03); }
 </style>
 
 <style>.mp-processing{display:inline-flex;align-items:center;gap:9px;font-weight:600}.mp-spinner{width:16px;height:16px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;display:inline-block;animation:mpSpin .7s linear infinite}@keyframes mpSpin{to{transform:rotate(360deg)}}</style>
+
+<style>
+.metcloud-progress{display:inline-flex;align-items:center;gap:8px}.metcloud-spinner{width:14px;height:14px;border:2px solid currentColor;border-left-color:transparent;border-radius:50%;display:inline-block;animation:metcloudspin .7s linear infinite}@keyframes metcloudspin{to{transform:rotate(360deg)}}
+</style>
 </head>
 <body>
 
@@ -4222,8 +4226,8 @@ window.showIncomingMessagePopup=function(username,message){
 
   function metPayShell(){return `
     <div class="card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><h2 style="color:var(--cyan);margin:0">MetPay</h2><span style="color:var(--muted);font-size:.78rem">Created by Metxon Corporate</span></div><span class="nebula-installed">INSTALLED</span></div>
-      <div class="metpay-tabs"><button class="btn active" data-mp-tab="pay">Transaction</button><button class="btn" data-mp-tab="chat">Chat</button><button class="btn" data-mp-tab="scan">Scan</button><button class="btn" data-mp-tab="contacts">Contacts</button></div>
-      <div id="mp-pay" class="metpay-panel active"></div><div id="mp-chat" class="metpay-panel"></div><div id="mp-scan" class="metpay-panel"></div><div id="mp-contacts" class="metpay-panel"></div>
+      <div class="metpay-tabs"><button class="btn active" data-mp-tab="pay">Transaction</button><button class="btn" data-mp-tab="chat">Chat</button><button class="btn" data-mp-tab="scan">Scan</button><button class="btn" data-mp-tab="contacts">Contacts</button><button class="btn" data-mp-tab="cloud">Recharge cloud</button></div>
+      <div id="mp-pay" class="metpay-panel active"></div><div id="mp-chat" class="metpay-panel"></div><div id="mp-scan" class="metpay-panel"></div><div id="mp-contacts" class="metpay-panel"></div><div id="mp-cloud" class="metpay-panel"><h3>Met-Cloud</h3><p>Choose Recharge cloud to manage your ecosystem storage.</p><button class="btn btn-primary" id="mpOpenCloud">Open Met-Cloud</button></div>
     </div>`;}
 
   async function loadMetPayContacts(){
@@ -4289,7 +4293,7 @@ window.showIncomingMessagePopup=function(username,message){
   window.renderMetPayApp=async function(area){
     area.innerHTML=metPayShell();
     const tabs=area.querySelectorAll('[data-mp-tab]');
-    tabs.forEach(tab=>tab.onclick=async()=>{tabs.forEach(x=>x.classList.remove('active'));tab.classList.add('active');area.querySelectorAll('.metpay-panel').forEach(x=>x.classList.remove('active'));const panel=area.querySelector('#mp-'+tab.dataset.mpTab);panel.classList.add('active');if(tab.dataset.mpTab==='pay')await renderPayPanel();if(tab.dataset.mpTab==='chat')await renderChatPanel();if(tab.dataset.mpTab==='scan')renderScanPanel();if(tab.dataset.mpTab==='contacts')await renderContactsPanel();});
+    tabs.forEach(tab=>tab.onclick=async()=>{tabs.forEach(x=>x.classList.remove('active'));tab.classList.add('active');area.querySelectorAll('.metpay-panel').forEach(x=>x.classList.remove('active'));const panel=area.querySelector('#mp-'+tab.dataset.mpTab);panel.classList.add('active');if(tab.dataset.mpTab==='pay')await renderPayPanel();if(tab.dataset.mpTab==='chat')await renderChatPanel();if(tab.dataset.mpTab==='scan')renderScanPanel();if(tab.dataset.mpTab==='contacts')await renderContactsPanel();if(tab.dataset.mpTab==='cloud'){const b=document.getElementById('mpOpenCloud');if(b)b.onclick=()=>window.launchNebulaApp('metCloud');}});
     await renderPayPanel();
   };
 
