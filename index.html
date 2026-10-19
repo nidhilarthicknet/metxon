@@ -4397,7 +4397,7 @@ window.metxonNotifySound=function(kind='default'){
  window.NEBULA_APPS=APPS;
  const $=id=>document.getElementById(id);
  const safe=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- async function profile(){if(!state.currentUser)throw Error('Please sign in to your Metxon account first.');const p=await loadCloudAccount(state.currentUser);if(!p||!p.id)throw Error('Your Metxon profile could not be loaded. Sign out and sign in again.');return p;}
+ async function profile(){if(!state.currentUser)throw Error('Please sign in to your Metxon account first.');const {data:sessionData,error:sessionError}=await metxonSupabase.auth.getSession();if(sessionError||!sessionData?.session)throw Error('Your secure Metxon session has expired. Please sign out and sign back in.');const p=await loadCloudAccount(state.currentUser);if(!p||!p.id||p.id!==sessionData.session.user.id)throw Error('Your Metxon profile could not be verified against the active session. Please sign out and sign back in.');return p;}
  function show(title,html){const w=$('appWorkspace'),t=$('appTitle'),c=$('appContent');if(!c)throw Error('App workspace was not found in this page.');if(w)w.style.display='block';if(t)t.textContent=title;c.innerHTML=html;if(w)w.scrollIntoView({behavior:'smooth',block:'start'});return c;}
  async function installedIds(){
   // Use the same lookup pattern as the original Nebula Store. A read-policy failure
@@ -4565,8 +4565,10 @@ window.metCountCurrencyChanged=async function(currency){const box=document.getEl
  const newKeys=['metAil','metxonCare','metCloud','metNa'];
  async function userProfile(){
   if(!state.currentUser)throw Error('Please sign in first.');
+  const {data:sessionData,error:sessionError}=await metxonSupabase.auth.getSession();
+  if(sessionError||!sessionData?.session)throw Error('Your secure Metxon session has expired. Please sign out and sign back in to install or open apps.');
   const r=await loadCloudAccount(state.currentUser);
-  if(!r||!r.id)throw Error('Could not load your Metxon profile. Please sign out and sign back in.');
+  if(!r||!r.id||r.id!==sessionData.session.user.id)throw Error('Could not verify your Metxon profile. Please sign out and sign back in.');
   return r;
  }
  async function getInstalled(){
