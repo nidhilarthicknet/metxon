@@ -4518,14 +4518,14 @@ window.metCountCurrencyChanged=async function(currency){const box=document.getEl
   const c=$('appContent');if(!c)return;
   const cards=Object.keys(registry).map(k=>{
    const a=registry[k];const fresh=newKeys.includes(k);
-   return '<div class="nebula-app-card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><h3>'+esc(a.name)+'</h3><span class="nebula-installed" data-status="'+esc(a.id)+'" style="display:none">INSTALLED</span></div><p style="color:var(--muted);min-height:42px">'+esc(a.desc||'Metxon ecosystem app')+'</p><div class="nebula-price">'+(Number(a.price)===0?'Free':'₹'+Number(a.price).toLocaleString('en-IN')+' one-time')+'</div><button class="btn btn-primary" style="margin-top:10px" onclick="window.'+(fresh?'installNebulaApp':'installNebulaApp')+'(&quot;'+esc(k)+'&quot;)">'+(Number(a.price)===0?'Install free':'Install · ₹'+Number(a.price).toLocaleString('en-IN'))+'</button></div>';
+   return '<div class="nebula-app-card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><h3>'+esc(a.name)+'</h3><span class="nebula-installed" data-status="'+esc(a.id)+'" style="display:none">INSTALLED</span></div><p style="color:var(--muted);min-height:42px">'+esc(a.desc||'Metxon ecosystem app')+'</p><div class="nebula-price">'+(Number(a.price)===0?'Free':'₹'+Number(a.price).toLocaleString('en-IN')+' one-time')+'</div><button class="btn btn-primary" style="margin-top:10px" data-app-key="'+esc(k)+'" onclick="window.installNebulaApp(&quot;'+esc(k)+'&quot;)">'+(Number(a.price)===0?'Install free':'Install · ₹'+Number(a.price).toLocaleString('en-IN'))+'</button></div>';
   }).join('');
   c.innerHTML='<div class="card"><h3>Nebula Store</h3><p style="color:var(--muted)">Browse apps now. Sign in to install or open them. Met-Ail is internal-only mail; no public domain or Gmail connection is required.</p><p id="nebulaLoadStatus" style="color:var(--muted)">Loading your installation list…</p></div><div class="nebula-store-grid">'+cards+'</div><div id="gameArea" style="margin-top:16px"></div>';
   if(!state.currentUser){$('nebulaLoadStatus').textContent='Sign in to install apps.';return;}
   const set=await getInstalled();
   for(const k of Object.keys(registry)){
    const a=registry[k],yes=set.has(a.id);
-   const b=c.querySelector('[onclick*="installNebulaApp(&quot;'+k+'&quot;)"]');
+   const b=c.querySelector('[data-app-key="'+k+'"]');
    const status=c.querySelector('[data-status="'+a.id+'"]');
    if(status)status.style.display=yes?'inline-block':'none';
    if(b){b.textContent=yes?'Open':Number(a.price)===0?'Install free':'Install · ₹'+Number(a.price).toLocaleString('en-IN');b.classList.toggle('btn-primary',!yes);b.onclick=()=>yes?window.launchNebulaApp(k):window.installNebulaApp(k);}
@@ -4556,7 +4556,6 @@ window.metCountCurrencyChanged=async function(currency){const box=document.getEl
    const p=await userProfile();
    const q=await metxonSupabase.from('metxon_app_installations').select('app_id').eq('user_id',p.id).eq('app_id',registry[key].id).maybeSingle();
    if(q.error)throw q.error;if(!q.data)return alert('Install this app from Nebula Store first.');
-   if(key==='metAil')return window.metxonApps?.mail?.();
    return prevLaunch(key);
   }catch(e){console.error('App launch failed:',e);alert('Could not open app: '+(e.message||'Database error'));}
  };
