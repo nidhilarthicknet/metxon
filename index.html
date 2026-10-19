@@ -4440,8 +4440,19 @@ window.metxonNotifySound=function(kind='default'){
  window.launchNebulaApp=async function(key){
   if(!['metAil','metxonCare','metCloud','metNa'].includes(key))return typeof originalLaunch==='function'?originalLaunch(key):window.openApp?.(key);
   if(!state.currentUser){if(typeof openAuth==='function')return openAuth();return alert('Please sign in first.');}
-  try{const set=await installedIds();if(!set.has(APPS[key].id))return alert('Install this app from Nebula Store first.');if(key==='metAil')return window.openMetAil();if(key==='metxonCare')return window.openMetxonCare();if(key==='metCloud')return window.openMetCloud();return window.openMetNa();}
-  catch(e){console.error('Launch app:',e);alert('Could not open app: '+(e.message||'Unknown error'));}
+  try{
+   const {data:sessionData,error:sessionError}=await metxonSupabase.auth.getSession();
+   if(sessionError||!sessionData?.session)throw Error('Your secure Metxon session has expired. Please sign out and sign back in.');
+   const p=await loadCloudAccount(state.currentUser);
+   if(!p?.id||p.id!==sessionData.session.user.id)throw Error('Your Metxon profile could not be verified. Please sign out and sign back in.');
+   const q=await metxonSupabase.from('metxon_app_installations').select('app_id').eq('user_id',p.id).eq('app_id',APPS[key].id).maybeSingle();
+   if(q.error)throw q.error;
+   if(!q.data)return alert('Install this app from Nebula Store first.');
+   if(key==='metAil')return window.openMetAil();
+   if(key==='metxonCare')return window.openMetxonCare();
+   if(key==='metCloud')return window.openMetCloud();
+   return window.openMetNa();
+  }catch(e){console.error('Launch app:',e);alert('Could not open app: '+(e.message||'Unknown error'));}
  };
  let activeMetAilAccountId=null;
  const unlockedMetAilAccountIds=new Set();
