@@ -4298,7 +4298,7 @@ window.showIncomingMessagePopup=function(username,message){
   window.openApp=function(name){
     if(name==='nebulaStore'){
       if(!state.currentUser)return alert('Please login first');
-      const ws=document.getElementById('appWorkspace');ws.style.display='block';document.getElementById('appTitle').textContent='Nebula Store';renderNebulaStore();ws.scrollIntoView({behavior:'smooth'});return;
+      const ws=document.getElementById('appWorkspace');ws.style.display='block';document.getElementById('appTitle').textContent='Nebula Store';window.renderNebulaStore();ws.scrollIntoView({behavior:'smooth'});return;
     }
     if(APPS[name]){
       if(!state.currentUser)return alert('Please login first');
@@ -4398,7 +4398,7 @@ window.launchNebulaApp=async function(key){if(!['metAil','metxonCare','metCloud'
 async function mail(folder='Inbox'){
 const p=await me(),email=(p.username||state.currentUser)+'@metail.com';
 const c=workspace('Met-Ail','<div class="card"><h2 style="margin:0;color:var(--cyan)">Met-Ail</h2><p style="color:var(--muted)">Internal mail · '+safe(email)+'</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-f="Inbox">Inbox</button><button class="btn" data-f="Sent">Sent</button><button class="btn" data-f="Drafts">Drafts</button><button class="btn btn-primary" id="mailCompose">Compose</button></div><details style="margin-top:12px"><summary style="cursor:pointer">Account & storage</summary><p>Current internal address: <b>'+safe(email)+'</b></p><p id="mailStorage">Checking linked Met-Cloud capacity…</p><p style="color:var(--muted)">Multiple addresses can be added when they are registered to your Metxon login.</p></details></div><div id="mailBody" class="card" style="margin-top:12px">Loading…</div>');
-c.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>mail(b.dataset.f));$('mailSidebarToggle').onclick=()=>{const f=$('mailFolders');f.style.display=f.style.display==='none'?'flex':'none';};
+c.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>mail(b.dataset.f));if($('mailSidebarToggle'))$('mailSidebarToggle').onclick=()=>{const f=$('mailFolders');if(f)f.style.display=f.style.display==='none'?'flex':'none';};
 const quota=await metxonSupabase.from('metcloud_entitlements').select('capacity_gb').eq('user_id',p.id).maybeSingle();const mq=$('mailStorage');if(mq)mq.textContent='Linked Met-Cloud capacity: '+(quota.data?.capacity_gb||15)+' GB.';
 const body=$('mailBody'),r=await metxonSupabase.from('metmail_messages').select('*').eq('owner_id',p.id).eq('folder',folder).order('created_at',{ascending:false}).limit(100);if(r.error){body.textContent=r.error.message;return;}
 let notice='';if(folder==='Inbox'){const n=await metxonSupabase.from('metxon_app_notifications').select('*').eq('user_id',p.id).order('created_at',{ascending:false}).limit(30);notice=(n.data||[]).map(x=>'<article style="border-top:1px solid var(--border);padding:10px 0"><b>🔔 '+safe(x.title)+'</b><div style="color:var(--muted)">'+safe(x.app_name)+' · '+new Date(x.created_at).toLocaleString()+'</div>'+safe(x.message)+'</article>').join('');}
