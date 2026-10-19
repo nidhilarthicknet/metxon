@@ -4496,6 +4496,7 @@ window.metxonNotifySound=function(kind='default'){
   }
   $('naPublish').onclick=async()=>{const body=$('naPost').value.trim();if(!body)return alert('Write something first.');const z=await metxonSupabase.from('metna_posts').insert({user_id:p.id,username,body:body.slice(0,1000)});if(z.error)return alert(z.error.message);$('naPost').value='';await feed();};await feed();
  }
+ window.openMetNa=()=>metna();window.metNa=window.openMetNa;
 })();
 </script>
 
