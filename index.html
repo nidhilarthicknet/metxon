@@ -1179,7 +1179,10 @@ function updateMcUI() {
   } else {
     html = 'Subscribe to see multi-currency view';
   }
-  currBox.innerHTML = html + ` <br>INR: ₹${Number(acc.balance||0).toLocaleString('en-IN',{maximumFractionDigits:2})} | USD: ${(Number(acc.balance||0)*RATES.USD).toFixed(2)} | JP: ${(Number(acc.balance||0)*RATES.USD*100).toFixed(0)} JP (display conversion)`;
+  const inrAmount=Number(acc.balance||0), usdAmount=inrAmount*RATES.USD, jpAmount=Number(acc.jpBalance||0);
+  currBox.innerHTML = html + '<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border)"><label for="mcCurrencyChoice">Currency view</label> <select id="mcCurrencyChoice" class="input" style="max-width:180px"><option value="INR">INR · Indian Rupee</option><option value="USD">USD · US Dollar</option><option value="JP">JP · Jurassic Points</option></select><p id="mcCurrencyValue" style="font-weight:700;margin:8px 0 0"></p><small style="color:var(--muted)">JP is an internal Metxon ecosystem balance. INR/USD is a display conversion from the existing balance; JP is shown as a separate wallet.</small></div>';
+  const currencyChoice=document.getElementById('mcCurrencyChoice'),currencyValue=document.getElementById('mcCurrencyValue');
+  const showCurrency=()=>{if(!currencyChoice||!currencyValue)return;const c=currencyChoice.value;currencyValue.textContent=c==='INR'?'₹'+inrAmount.toLocaleString('en-IN',{maximumFractionDigits:2}):c==='USD'?'
 
   // Transactions
   const txBox = document.getElementById('txHistory');
@@ -2448,6 +2451,3462 @@ function syncProfileToLegacy(profile) {
   const a=state.accounts[u];
   a.name=profile.display_name||u;
   a.balance=Number(profile.balance||0);
+  a.jpBalance=Number(profile.jp_balance||0);
+  a.sub=profile.subscription_tier||'None';
+  a.subUntil=profile.subscription_until ? new Date(profile.subscription_until).getTime() : 0;
+  a.phone=profile.phone||a.phone||'';
+  a.dob=profile.dob||a.dob||'';
+  a.addr=profile.address||a.addr||'';
+  a.txs=a.txs||[]; a.portfolio=a.portfolio||{}; a.messages=a.messages||[]; a.cart=a.cart||[];
+}
+
+async function loadCloudAccount(username){
+  const {data,error}=await metxonSupabase.from('profiles').select('*').ilike('username',username).maybeSingle();
+  if(error) throw error;
+  if(data) syncProfileToLegacy(data);
+  return data;
+}
+
+async function refreshCloudAccount(){
+  if(!state.currentUser) return null;
+  try{
+    const p=await loadCloudAccount(state.currentUser);
+    if(p){ syncProfileToLegacy(p); save(); renderMetcart(); renderMolecule(); renderSMEs(); if(typeof renderMetCount==='function')updateMcUI(); }
+    return p;
+  }catch(e){ console.warn('Metxon cloud refresh:',e); return null; }
+}
+
+async function cloudLoadTransactions(){
+  if(!state.currentUser)return;
+  const p=await loadCloudAccount(state.currentUser); if(!p)return;
+  const {data,error}=await metxonSupabase.from('transactions').select('*').eq('user_id',p.id).order('created_at',{ascending:false}).limit(100);
+  if(error) return console.warn(error);
+  state.accounts[state.currentUser].txs=(data||[]).map(t=>({date:t.created_at,type:t.type,amount:Number(t.amount),note:t.note||''}));
+  save();
+}
+
+async function cloudLoadHoldings(){
+  if(!state.currentUser)return;
+  const p=await loadCloudAccount(state.currentUser); if(!p)return;
+  const {data,error}=await metxonSupabase.from('portfolio_holdings').select('*').eq('user_id',p.id);
+  if(error)return console.warn(error);
+  state.accounts[state.currentUser].portfolio={};
+  (data||[]).forEach(h=>state.accounts[state.currentUser].portfolio[h.ticker]=Number(h.shares));
+  save();
+}
+
+async function cloudLoadCart(){
+  if(!state.currentUser)return;
+  const p=await loadCloudAccount(state.currentUser); if(!p)return;
+  const {data,error}=await metxonSupabase.from('orders').select('*').eq('user_id',p.id).order('created_at',{ascending:false}).limit(100);
+  if(error)return console.warn(error);
+  state.accounts[state.currentUser].cloudOrders=data||[];
+}
+
+async function cloudTransfer(recipient, amount){
+  const {data,error}=await metxonSupabase.rpc('metxon_transfer',{recipient_username:recipient,transfer_amount:amount});
+  if(error)throw error;
+  await refreshCloudAccount(); await cloudLoadTransactions();
+  return data;
+}
+
+async function cloudBuyStock(ticker, price){
+  const {data,error}=await metxonSupabase.rpc('metxon_buy_stock',{stock_ticker:ticker,share_price:price});
+  if(error)throw error;
+  await refreshCloudAccount(); await cloudLoadHoldings(); await cloudLoadTransactions();
+  return data;
+}
+
+async function cloudSellStock(ticker, price){
+  const {data,error}=await metxonSupabase.rpc('metxon_sell_stock',{stock_ticker:ticker,share_price:price});
+  if(error)throw error;
+  await refreshCloudAccount(); await cloudLoadHoldings(); await cloudLoadTransactions();
+  return data;
+}
+
+async function cloudSubscribe(tier, price){
+  const {data,error}=await metxonSupabase.rpc('metxon_buy_subscription',{tier_name:tier,tier_price:price});
+  if(error)throw error;
+  await refreshCloudAccount(); await cloudLoadTransactions();
+  return data;
+}
+
+async function cloudLoadMessages(otherUsername){
+  const me=await loadCloudAccount(state.currentUser), other=await loadCloudAccount(otherUsername.toLowerCase());
+  if(!me||!other)return [];
+  const {data,error}=await metxonSupabase.from('metalk_messages').select('*').or(`and(sender_id.eq.${me.id},recipient_id.eq.${other.id}),and(sender_id.eq.${other.id},recipient_id.eq.${me.id})`).order('created_at',{ascending:true});
+  if(error)throw error; return data||[];
+}
+
+async function cloudSendMessage(otherUsername,msg){
+  const me=await loadCloudAccount(state.currentUser), other=await loadCloudAccount(otherUsername.toLowerCase());
+  if(!me)throw new Error('Your account is not synchronized yet');
+  if(!other)throw new Error('Recipient not found');
+  const {data,error}=await metxonSupabase.from('metalk_messages').insert({sender_id:me.id,recipient_id:other.id,message:msg}).select().single();
+  if(error)throw error; return data;
+}
+
+async function cloudRealtime(){
+  if(!state.currentUser)return;
+  const me=await loadCloudAccount(state.currentUser); if(!me)return;
+  if(window.__metxonRealtime){ try{await metxonSupabase.removeChannel(window.__metxonRealtime)}catch(e){} }
+  window.__metxonRealtime=metxonSupabase.channel('user:'+me.id+':metxon')
+    .on('postgres_changes',{event:'*',schema:'public',table:'profiles',filter:'id=eq.'+me.id},()=>refreshCloudAccount())
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'transactions',filter:'user_id=eq.'+me.id},payload=>{cloudLoadTransactions();const n=document.createElement('div');n.style.cssText='position:fixed;right:18px;bottom:18px;z-index:100000';n.innerHTML=`<div class="card"><strong>Transaction</strong><p>${String(payload.new.type||'')}</p><b>${Number(payload.new.amount||0).toLocaleString('en-IN')}</b></div>`;document.body.appendChild(n);setTimeout(()=>n.remove(),5000)})
+    .on('postgres_changes',{event:'*',schema:'public',table:'portfolio_holdings',filter:'user_id=eq.'+me.id},()=>cloudLoadHoldings())
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'metalk_messages',filter:'recipient_id=eq.'+me.id},()=>{ if(typeof sendAlk==='function')try{sendAlk(true)}catch(e){} })
+    .subscribe();
+}
+
+/* Replace browser-only auth with centralized Supabase Auth. */
+const __legacyHandleAuth=handleAuth;
+handleAuth=async function(){
+  const user=(document.getElementById('authUser').value||'').trim().toLowerCase();
+  const pass=document.getElementById('authPass').value||'';
+  if(!user||!pass)return alert('Username and password required');
+  try{
+    if(window._authMode==='existing'){
+      const result=await metxonAuthRequest('login',{username:user,password:pass});
+      if(result.session) await metxonSupabase.auth.setSession({access_token:result.session.access_token,refresh_token:result.session.refresh_token});
+      syncProfileToLegacy(result.profile); state.currentUser=user; save(); closeAuth(); onLogin(user);
+      await cloudLoadTransactions(); await cloudLoadHoldings(); await cloudLoadCart(); await cloudRealtime(); if(typeof renderInstalledApps==='function')await renderInstalledApps();
+      return;
+    }
+    const result=await metxonAuthRequest('signup',{username:user,password:pass,display_name:document.getElementById('authName').value||user,dob:document.getElementById('authDob').value,address:document.getElementById('authAddr').value,phone:document.getElementById('authPhone').value});
+    if(result.session) await metxonSupabase.auth.setSession({access_token:result.session.access_token,refresh_token:result.session.refresh_token});
+    syncProfileToLegacy(result.profile); state.currentUser=user; save(); closeAuth(); onLogin(user);
+    await cloudLoadTransactions(); await cloudLoadHoldings(); await cloudLoadCart(); await cloudRealtime();
+  }catch(e){ alert(e.message||'Unable to connect to Metxon account service'); }
+};
+
+/* Transfer: use the database transaction, so a phone-created username is visible everywhere. */
+const __legacyDoTransfer=doTransfer;
+doTransfer=async function(){
+  const to=(document.getElementById('transferTo').value||'').trim();
+  const amt=parseFloat(document.getElementById('transferAmt').value);
+  if(!to)return alert('Please enter a recipient username.');
+  if(!amt||amt<=0)return alert('Please enter a valid amount.');
+  try{ await cloudTransfer(to,amt); alert('Transferred ₹'+amt.toLocaleString('en-IN')+' to '+to+'.'); if(typeof renderMetCount==='function')updateMcUI(); }
+  catch(e){ alert(e.message||'Transfer failed'); }
+};
+
+/* Stock buy/sell: database becomes the source of truth. */
+buyStock=async function(ticker,price){
+  try{await cloudBuyStock(ticker,price); alert('Bought 1 share of '+ticker+' for ₹'+Number(price).toFixed(2)+'.'); searchStock();}
+  catch(e){alert(e.message||'Stock purchase failed');}
+};
+sellStock=async function(ticker,price){
+  try{await cloudSellStock(ticker,price); alert('Sold 1 share of '+ticker+' for ₹'+Number(price).toFixed(2)+'.'); searchStock();}
+  catch(e){alert(e.message||'Stock sale failed');}
+};
+
+/* Make subscription purchases persistent across devices. */
+if(typeof subscribeTier==='function'){
+  const __legacySubscribeTier=subscribeTier;
+  subscribeTier=async function(tier,price){
+    try{await cloudSubscribe(tier,price);alert('Subscribed to '+tier+'.');if(typeof renderMetCount==='function')updateMcUI();}
+    catch(e){alert(e.message||'Subscription failed');}
+  };
+}
+
+/* Met-Alk cloud send helper. The existing UI remains intact. */
+window.metxonCloudSendAlk=async function(){
+  const to=(document.getElementById('alkTo')||{}).value||'';
+  const box=document.getElementById('alkMsg');
+  const msg=box?box.value.trim():'';
+  if(!to||!msg)return alert('Enter recipient username and message.');
+  try{await cloudSendMessage(to,msg); if(box)box.value=''; alert('Message sent.');}
+  catch(e){alert(e.message||'Message failed');}
+};
+
+/* Make the existing Met-Alk Send button use the cloud database. */
+sendAlk=async function(){
+  const to=(document.getElementById('alkTo').value||'').trim();
+  const msg=(document.getElementById('alkMsg').value||'').trim();
+  if(!to||!msg)return;
+  try{
+    await cloudSendMessage(to,msg);
+    document.getElementById('alkMsg').value='';
+    const log=document.getElementById('alkLog');
+    const rows=await cloudLoadMessages(to);
+    if(log)log.innerHTML=(rows||[]).slice(-20).reverse().map(m=>`<div><strong>${m.sender_id===((state.accounts[state.currentUser]||{}).id||'')?'You':to} → ${m.recipient_id?'': ''}</strong> ${m.message} <span style=\"color:var(--muted);font-size:.75rem\">(${new Date(m.created_at).toLocaleString()})</span></div>`).join('')||'No messages yet.';
+  }catch(e){alert(e.message||'Message failed');}
+};
+
+/* Subscription buttons are backed by the atomic database purchase function. */
+const __legacyBuySub=buySub;
+buySub=async function(tier,price){
+  try{await cloudSubscribe(tier,price);alert(`Subscribed to ${tier} for ₹${Number(price).toLocaleString('en-IN')}/week`);updateMcUI();}
+  catch(e){alert(e.message||'Subscription failed');}
+};
+
+/* MetCount password re-authentication is always performed by Supabase Auth. */
+window.__METXON_SECURE_VERIFY_METCOUNT=secureMetCountUnlock;
+
+/* Cloud Chess Boys: keep the existing board UI/rules, but persist games in Supabase. */
+async function cloudChessIdentity(username){ return await loadCloudAccount(username.toLowerCase()); }
+async function cloudChessRefresh(gameId){
+  const {data,error}=await metxonSupabase.from('chess_games').select('*').eq('id',gameId).single();
+  if(error||!data||!chessState)return;
+  chessState.game={board:data.board_state,turn:data.turn,white:state.accounts[state.currentUser].chessWhite||chessState.game.white,black:state.accounts[state.currentUser].chessBlack||chessState.game.black};
+  renderChess();
+}
+const __legacyInitChess=initChess;
+initChess=async function(){
+  const opp=(document.getElementById('chessOpp').value||'').trim().toLowerCase();
+  if(!opp)return alert('Enter opponent username');
+  try{
+    const me=await cloudChessIdentity(state.currentUser), other=await cloudChessIdentity(opp);
+    if(!me||!other)return alert('Both players must have Metxon accounts.');
+    const {data:games,error}=await metxonSupabase.from('chess_games').select('*').or(`and(white_player.eq.${me.id},black_player.eq.${other.id}),and(white_player.eq.${other.id},black_player.eq.${me.id})`).order('created_at',{ascending:false}).limit(1);
+    if(error)throw error;
+    let g=games&&games[0];
+    if(!g){
+      const white=me.id < other.id ? me.id : other.id;
+      const black=white===me.id?other.id:me.id;
+      const board=[['r','n','b','q','k','b','n','r'],['p','p','p','p','p','p','p','p'],['','','','','','','',''],['','','','','','','',''],['','','','','','','',''],['','','','','','','',''],['P','P','P','P','P','P','P','P'],['R','N','B','Q','K','B','N','R']];
+      const created=await metxonSupabase.from('chess_games').insert({white_player:white,black_player:black,board_state:board,turn:'white',status:'active'}).select().single();
+      if(created.error)throw created.error; g=created.data;
+    }
+    state.accounts[state.currentUser].chessWhite=g.white_player===me.id?'white':'black';
+    state.accounts[state.currentUser].chessBlack=opp;
+    chessState={gameId:g.id,game:{board:g.board_state,turn:g.turn,white:g.white_player===me.id?state.currentUser:opp,black:g.black_player===me.id?state.currentUser:opp},selected:null};
+    renderChess();
+    if(window.__metxonChessRealtime)await metxonSupabase.removeChannel(window.__metxonChessRealtime);
+    window.__metxonChessRealtime=metxonSupabase.channel('chess:'+g.id).on('postgres_changes',{event:'UPDATE',schema:'public',table:'chess_games',filter:'id=eq.'+g.id},payload=>{if(chessState&&payload.new){chessState.game={board:payload.new.board_state,turn:payload.new.turn,white:payload.new.white_player===me.id?state.currentUser:opp,black:payload.new.black_player===me.id?state.currentUser:opp};chessState.selected=null;renderChess();}}).subscribe();
+  }catch(e){alert(e.message||'Could not start Chess Boys game');}
+};
+const __legacyChessClick=chessClick;
+chessClick=async function(r,c){
+  const g=chessState&&chessState.game;if(!g||!chessState.gameId)return __legacyChessClick(r,c);
+  const myColor=(g.white===state.currentUser)?'white':'black';if(g.turn!==myColor)return alert('Not your turn');
+  const piece=g.board[r][c],isWhitePiece=piece&&piece===piece.toUpperCase(),isMyPiece=(myColor==='white'&&isWhitePiece)||(myColor==='black'&&piece&&!isWhitePiece);
+  if(chessState.selected){const [sr,sc]=chessState.selected;if(sr===r&&sc===c){chessState.selected=null;renderChess();return;}g.board[r][c]=g.board[sr][sc];g.board[sr][sc]='';g.turn=g.turn==='white'?'black':'white';chessState.selected=null;try{const {error}=await metxonSupabase.from('chess_games').update({board_state:g.board,turn:g.turn,updated_at:new Date().toISOString()}).eq('id',chessState.gameId);if(error)throw error;renderChess();}catch(e){alert(e.message||'Move could not be saved');}}else if(isMyPiece){chessState.selected=[r,c];renderChess();}
+};
+
+/* On an existing Supabase session, restore the account on any device. */
+(async function bootstrapMetxonCloud(){
+  try{
+    const {data}=await metxonSupabase.auth.getSession();
+    if(data.session){
+      const {data:p}=await metxonSupabase.from('profiles').select('*').eq('id',data.session.user.id).single();
+      if(p){syncProfileToLegacy(p);state.currentUser=p.username.toLowerCase();save();onLogin(state.currentUser);await cloudLoadTransactions();await cloudLoadHoldings();await cloudLoadCart();await cloudRealtime();}
+    }
+  }catch(e){console.warn('Supabase bootstrap:',e)}
+})();
+</script>
+
+<script>
+/* ===================== METXON SECURITY HARDENING =====================
+   Passwords are never stored in localStorage and never validated in
+   client-side code. Supabase Auth is the source of truth for credentials.
+   Existing legacy accounts are migrated once, on the user's next login.
+======================================================================= */
+
+async function secureProfileLookup(username){
+  const {data,error}=await metxonSupabase.rpc('metxon_find_profile',{p_username:String(username||'').trim().toLowerCase()});
+  if(error) throw error;
+  return data && data[0] ? data[0] : null;
+}
+
+function stripLocalPassword(username){
+  const u=String(username||'').trim().toLowerCase();
+  if(state.accounts[u] && Object.prototype.hasOwnProperty.call(state.accounts[u],'pass')){
+    delete state.accounts[u].pass;
+  }
+  try{ localStorage.setItem(KEY,JSON.stringify(state)); }catch(e){}
+}
+
+async function secureMigrateLegacyAccount(username, password){
+  const local=state.accounts[username];
+  if(!local || !local.pass) throw new Error('This account has not been migrated. Sign in from the device where it was originally created once.');
+  const result=await metxonAuthRequest('migrate',{
+    username,
+    password,
+    display_name:local.name||username,
+    dob:local.dob||'',
+    address:local.addr||'',
+    phone:local.phone||'',
+    balance:Number(local.balance||50000),
+    sub:local.sub||'None',
+    subUntil:Number(local.subUntil||0),
+    txs:Array.isArray(local.txs)?local.txs:[],
+    portfolio:local.portfolio||{}
+  });
+  if(result.session){
+    await metxonSupabase.auth.setSession({
+      access_token:result.session.access_token,
+      refresh_token:result.session.refresh_token
+    });
+  }
+  syncProfileToLegacy(result.profile);
+  stripLocalPassword(username);
+  return result;
+}
+
+const __secureLegacyHandleAuth = handleAuth;
+window.__METXON_SECURE_HANDLE_AUTH = async function(){
+  const user=(document.getElementById('authUser').value||'').trim().toLowerCase();
+  const pass=(document.getElementById('authPass').value||'');
+  if(!user || !pass) return alert('Username and password required');
+
+  try{
+    if(window._authMode==='existing'){
+      let result;
+      try{
+        result=await metxonAuthRequest('login',{username:user,password:pass});
+      }catch(firstError){
+        const local=state.accounts[user];
+        if(!local || !local.pass) throw firstError;
+        result=await secureMigrateLegacyAccount(user,pass);
+      }
+
+      if(result.session){
+        await metxonSupabase.auth.setSession({
+          access_token:result.session.access_token,
+          refresh_token:result.session.refresh_token
+        });
+      }
+
+      syncProfileToLegacy(result.profile);
+      state.currentUser=user;
+      stripLocalPassword(user);
+      save();
+      closeAuth();
+      onLogin(user);
+      await cloudLoadTransactions();
+      await cloudLoadHoldings();
+      await cloudLoadCart();
+      await cloudRealtime();
+      return;
+    }
+
+    const result=await metxonAuthRequest('signup',{
+      username:user,
+      password:pass,
+      display_name:document.getElementById('authName').value||user,
+      dob:document.getElementById('authDob').value,
+      address:document.getElementById('authAddr').value,
+      phone:document.getElementById('authPhone').value
+    });
+
+    if(result.session){
+      await metxonSupabase.auth.setSession({
+        access_token:result.session.access_token,
+        refresh_token:result.session.refresh_token
+      });
+    }
+
+    syncProfileToLegacy(result.profile);
+    state.currentUser=user;
+    stripLocalPassword(user);
+    save();
+    closeAuth();
+    onLogin(user);
+    await cloudLoadTransactions();
+    await cloudLoadHoldings();
+    await cloudLoadCart();
+    await cloudRealtime();
+  }catch(e){
+    alert(e.message||'Unable to connect to Metxon account service');
+  }
+};
+
+/* Supabase session restores login across devices; localStorage is only a UI cache. */
+(async function restoreSecureSession(){
+  try{
+    const {data}=await metxonSupabase.auth.getSession();
+    if(!data.session)return;
+    const result=await metxonSupabase.auth.getUser();
+    const username=String(result.data.user?.user_metadata?.username||'').toLowerCase();
+    if(!username)return;
+    const profile=await loadCloudAccount(username);
+    if(profile){
+      syncProfileToLegacy(profile);
+      state.currentUser=username;
+      stripLocalPassword(username);
+      onLogin(username);
+      await cloudLoadTransactions();
+      await cloudLoadHoldings();
+      await cloudLoadCart();
+      await cloudRealtime();
+    }
+  }catch(e){
+    console.warn('Secure session restore failed',e);
+  }
+})();
+
+/* Secure MetCount re-authentication. Owner password is checked server-side. */
+window.__METXON_SECURE_VERIFY_METCOUNT=secureMetCountUnlock;
+
+/* Secure Met-Pay: re-authenticate server-side, then perform an atomic RPC. */
+executePay=async function(){
+  if(!state.currentUser || !currentCheckout)return openAuth();
+  const pass=(document.getElementById('payPass').value||'').trim();
+  if(!pass)return alert('Enter your account password.');
+  try{
+    const result=await metxonAuthRequest('login',{username:state.currentUser,password:pass});
+    if(result.session){
+      await metxonSupabase.auth.setSession({
+        access_token:result.session.access_token,
+        refresh_token:result.session.refresh_token
+      });
+    }
+    const quantity=currentCheckout.isCart && Array.isArray(state.accounts[state.currentUser]?.cart) && state.accounts[state.currentUser].cart.length
+      ? state.accounts[state.currentUser].cart.reduce((s,i)=>s+Number(i.qty||1),0) : 1;
+    const {data,error}=await metxonSupabase.rpc('metxon_purchase_order',{
+      item_name:currentCheckout.name,
+      quantity,
+      unit_price:Number(currentCheckout.price)
+    });
+    if(error)throw error;
+    await refreshCloudAccount();
+    await cloudLoadTransactions();
+    await cloudLoadCart();
+    if(currentCheckout.isCart){
+      state.accounts[state.currentUser].cart=[];
+      updateCartBar();
+      const view=document.getElementById('cartView');
+      if(view)view.style.display='none';
+    }
+    closePay();
+    document.getElementById('payPass').value='';
+    alert(`Payment successful! Order for ${currentCheckout.name} recorded.`);
+    if(document.getElementById('mcDashboard') && document.getElementById('mcDashboard').style.display!=='none')updateMcUI();
+  }catch(e){
+    alert(e.message||'Payment failed');
+  }
+};
+
+/* Recipient/chat/chess directory: only non-sensitive identity is exposed. */
+async function secureOtherProfile(username){
+  return secureProfileLookup(username);
+}
+
+cloudLoadMessages=async function(otherUsername){
+  const me=await loadCloudAccount(state.currentUser), other=await secureOtherProfile(otherUsername);
+  if(!me)throw new Error('Your account is not synchronized.');
+  if(!other)return [];
+  const {data,error}=await metxonSupabase.from('metalk_messages').select('*')
+    .or(`and(sender_id.eq.${me.id},recipient_id.eq.${other.id}),and(sender_id.eq.${other.id},recipient_id.eq.${me.id})`)
+    .order('created_at',{ascending:true});
+  if(error)throw error;
+  return data||[];
+};
+
+cloudSendMessage=async function(otherUsername,msg){
+  const me=await loadCloudAccount(state.currentUser), other=await secureOtherProfile(otherUsername);
+  if(!me)throw new Error('Your account is not synchronized.');
+  if(!other)throw new Error('Recipient not found.');
+  const {data,error}=await metxonSupabase.from('metalk_messages').insert({
+    sender_id:me.id,recipient_id:other.id,message:String(msg)
+  }).select().single();
+  if(error)throw error;
+  return data;
+};
+
+cloudChessIdentity=async function(username){
+  const p=await secureOtherProfile(username);
+  return p;
+};
+
+/* Hide sensitive account fields if somebody inspects localStorage. */
+function scrubAllKnownLocalPasswords(){
+  let changed=false;
+  for(const [u,a] of Object.entries(state.accounts||{})){
+    if(a && Object.prototype.hasOwnProperty.call(a,'pass')){
+      delete a.pass;
+      changed=true;
+    }
+  }
+  if(changed){
+    try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}
+  }
+}
+window.addEventListener('beforeunload',scrubAllKnownLocalPasswords);
+</script>
+
+
+<script>
+
+/* ---------- Chess FEN helper used by review/analysis ---------- */
+function chessToFen(st){
+  const bd=st.board||[], rows=[];
+  for(let r=0;r<8;r++){
+    let row='',empty=0;
+    for(let c=0;c<8;c++){
+      const p=bd[r]?.[c]||'';
+      if(!p){empty++;continue;}
+      if(empty){row+=String(empty);empty=0;}
+      row+=p;
+    }
+    if(empty)row+=String(empty);
+    rows.push(row);
+  }
+  /*
+   * chess-api.com validates FEN strictly.  Our internal state deliberately
+   * keeps an en-passant target after every two-square pawn move, but FEN may
+   * advertise that square only when the side to move has a pawn which can
+   * actually capture there.  e2-e4 therefore needs "-", not "e3", in the
+   * common opening position.  We also derive castling rights from the pieces
+   * still on their starting squares so stale state can never produce invalid
+   * rights after a king or rook has been captured/moved.
+   */
+  const cast=st.castling||{};
+  const home=(r,c,piece)=>bd[r]?.[c]===piece;
+  const rights=
+    (cast.K&&home(7,4,'K')&&home(7,7,'R')?'K':'')+
+    (cast.Q&&home(7,4,'K')&&home(7,0,'R')?'Q':'')+
+    (cast.k&&home(0,4,'k')&&home(0,7,'r')?'k':'')+
+    (cast.q&&home(0,4,'k')&&home(0,0,'r')?'q':'');
+  const castling=rights||'-';
+  const turn=st.turn==='black'?'b':'w';
+  let ep='-';
+  if(Array.isArray(st.enPassant)&&st.enPassant.length===2){
+    const [er,ec]=st.enPassant;
+    const pawn=turn==='b'?'p':'P';
+    const pawnRow=turn==='b'?er-1:er+1;
+    const canCapture=ec>=0&&ec<8&&er>=0&&er<8&&
+      bd[er]?.[ec]===''&&[ec-1,ec+1].some(c=>c>=0&&c<8&&bd[pawnRow]?.[c]===pawn);
+    if(canCapture)ep='abcdefgh'[ec]+(8-er);
+  }
+  return `${rows.join('/')} ${turn} ${castling} ${ep} ${st.halfmove||0} ${st.fullmove||1}`;
+}
+
+/* ===================== CHESS BOYS — STANDARD CHESS + CHALLENGES + RANDOM MATCHMAKING ===================== */
+(function(){
+  let chessPollTimer=null;
+  let chessChallengeTimer=null;
+  let chessFlipped=false;
+
+  const initialBoard=()=>[
+    ['r','n','b','q','k','b','n','r'],
+    ['p','p','p','p','p','p','p','p'],
+    ['','','','','','','',''],
+    ['','','','','','','',''],
+    ['','','','','','','',''],
+    ['','','','','','','',''],
+    ['P','P','P','P','P','P','P','P'],
+    ['R','N','B','Q','K','B','N','R']
+  ];
+
+  function freshState(board){
+    return {
+      board:board||initialBoard(),
+      turn:'white',
+      castling:{K:true,Q:true,k:true,q:true},
+      enPassant:null,
+      halfmove:0,
+      fullmove:1
+    };
+  }
+
+  function normalizeState(raw){
+    if(Array.isArray(raw))return freshState(raw);
+    if(raw&&Array.isArray(raw.board))return {
+      board:raw.board,turn:raw.turn||'white',
+      castling:raw.castling||{K:true,Q:true,k:true,q:true},
+      enPassant:raw.enPassant||null,
+      halfmove:Number(raw.halfmove||0),fullmove:Number(raw.fullmove||1)
+    };
+    return freshState();
+  }
+
+  function inside(r,c){return r>=0&&r<8&&c>=0&&c<8;}
+  function color(piece){return !piece?null:(piece===piece.toUpperCase()?'white':'black');}
+  function enemy(c){return c==='white'?'black':'white';}
+
+  function findKing(bd,side){
+    const k=side==='white'?'K':'k';
+    for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(bd[r][c]===k)return [r,c];
+    return null;
+  }
+
+  function attacked(bd,r,c,by){
+    // Pawns
+    const pr=by==='white'?r+1:r-1, pawn=by==='white'?'P':'p';
+    for(const dc of [-1,1])if(inside(pr,c+dc)&&bd[pr][c+dc]===pawn)return true;
+
+    // Knights
+    const kn=by==='white'?'N':'n';
+    for(const [dr,dc] of [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]])
+      if(inside(r+dr,c+dc)&&bd[r+dr][c+dc]===kn)return true;
+
+    // King
+    const kg=by==='white'?'K':'k';
+    for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){
+      if(!dr&&!dc)continue;
+      if(inside(r+dr,c+dc)&&bd[r+dr][c+dc]===kg)return true;
+    }
+
+    // Sliders
+    const bishop=by==='white'?'B':'b', rook=by==='white'?'R':'r', queen=by==='white'?'Q':'q';
+    for(const [dr,dc,types] of [
+      [-1,-1,[bishop,queen]],[-1,1,[bishop,queen]],[1,-1,[bishop,queen]],[1,1,[bishop,queen]],
+      [-1,0,[rook,queen]],[1,0,[rook,queen]],[0,-1,[rook,queen]],[0,1,[rook,queen]]
+    ]){
+      let rr=r+dr,cc=c+dc;
+      while(inside(rr,cc)){
+        const p=bd[rr][cc];
+        if(p){if(types.includes(p))return true;break;}
+        rr+=dr;cc+=dc;
+      }
+    }
+    return false;
+  }
+
+  function inCheck(s,side){
+    const k=findKing(s.board,side);
+    return !k||attacked(s.board,k[0],k[1],enemy(side));
+  }
+
+  function pseudoMoves(s,r,c){
+    const bd=s.board,p=bd[r][c],side=color(p),moves=[];
+    if(!p)return moves;
+    const add=(rr,cc,extra={})=>{
+      if(!inside(rr,cc))return;
+      const target=bd[rr][cc];
+      if(!target||color(target)!==side)moves.push({from:[r,c],to:[rr,cc],...extra});
+    };
+
+    if(p.toLowerCase()==='p'){
+      const dir=side==='white'?-1:1,start=side==='white'?6:1,last=side==='white'?0:7;
+      if(inside(r+dir,c)&&!bd[r+dir][c]){
+        moves.push({from:[r,c],to:[r+dir,c],promotion:r+dir===last});
+        if(r===start&&!bd[r+2*dir][c])moves.push({from:[r,c],to:[r+2*dir,c],double:true});
+      }
+      for(const dc of [-1,1]){
+        const rr=r+dir,cc=c+dc;
+        if(!inside(rr,cc))continue;
+        if(bd[rr][cc]&&color(bd[rr][cc])===enemy(side))
+          moves.push({from:[r,c],to:[rr,cc],promotion:rr===last});
+        if(s.enPassant&&s.enPassant[0]===rr&&s.enPassant[1]===cc)
+          moves.push({from:[r,c],to:[rr,cc],enPassant:true});
+      }
+    }else if(p.toLowerCase()==='n'){
+      for(const [dr,dc] of [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]])add(r+dr,c+dc);
+    }else if(p.toLowerCase()==='b'||p.toLowerCase()==='r'||p.toLowerCase()==='q'){
+      const dirs=[];
+      if(['b','q'].includes(p.toLowerCase()))dirs.push([-1,-1],[-1,1],[1,-1],[1,1]);
+      if(['r','q'].includes(p.toLowerCase()))dirs.push([-1,0],[1,0],[0,-1],[0,1]);
+      for(const [dr,dc] of dirs){
+        let rr=r+dr,cc=c+dc;
+        while(inside(rr,cc)){
+          const target=bd[rr][cc];
+          if(!target){moves.push({from:[r,c],to:[rr,cc]});}
+          else{if(color(target)!==side)moves.push({from:[r,c],to:[rr,cc]});break;}
+          rr+=dr;cc+=dc;
+        }
+      }
+    }else if(p.toLowerCase()==='k'){
+      for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++)if(dr||dc)add(r+dr,c+dc);
+      if(!inCheck(s,side)){
+        if(side==='white'&&r===7&&c===4&&s.castling.K&&!bd[7][5]&&!bd[7][6]&&!attacked(bd,7,5,'black')&&!attacked(bd,7,6,'black')&&bd[7][7]==='R')
+          moves.push({from:[7,4],to:[7,6],castle:'K'});
+        if(side==='white'&&r===7&&c===4&&s.castling.Q&&!bd[7][1]&&!bd[7][2]&&!bd[7][3]&&!attacked(bd,7,3,'black')&&!attacked(bd,7,2,'black')&&bd[7][0]==='R')
+          moves.push({from:[7,4],to:[7,2],castle:'Q'});
+        if(side==='black'&&r===0&&c===4&&s.castling.k&&!bd[0][5]&&!bd[0][6]&&!attacked(bd,0,5,'white')&&!attacked(bd,0,6,'white')&&bd[0][7]==='r')
+          moves.push({from:[0,4],to:[0,6],castle:'k'});
+        if(side==='black'&&r===0&&c===4&&s.castling.q&&!bd[0][1]&&!bd[0][2]&&!bd[0][3]&&!attacked(bd,0,3,'white')&&!attacked(bd,0,2,'white')&&bd[0][0]==='r')
+          moves.push({from:[0,4],to:[0,2],castle:'q'});
+      }
+    }
+    return moves;
+  }
+
+  function applyMove(s,m,promo){
+    const n=JSON.parse(JSON.stringify(s)),bd=n.board;
+    const [r,c]=m.from,[rr,cc]=m.to,p=bd[r][c],side=color(p);
+    const captured=bd[rr][cc];
+    bd[rr][cc]=p;bd[r][c]='';
+    n.enPassant=null;
+
+    if(m.enPassant){
+      bd[r][cc]='';
+    }
+    if(m.double)n.enPassant=[(r+rr)/2,c];
+
+    if(m.castle==='K'){bd[7][5]=bd[7][7];bd[7][7]='';}
+    if(m.castle==='Q'){bd[7][3]=bd[7][0];bd[7][0]='';}
+    if(m.castle==='k'){bd[0][5]=bd[0][7];bd[0][7]='';}
+    if(m.castle==='q'){bd[0][3]=bd[0][0];bd[0][0]='';}
+
+    // Promotion
+    if(m.promotion){
+      const choice=(promo||'Q').toUpperCase();
+      bd[rr][cc]=side==='white'?choice:choice.toLowerCase();
+    }
+
+    // Castling rights after king/rook moves or rook captures.
+    if(p==='K'){n.castling.K=false;n.castling.Q=false;}
+    if(p==='k'){n.castling.k=false;n.castling.q=false;}
+    if(p==='R'&&r===7&&c===0)n.castling.Q=false;
+    if(p==='R'&&r===7&&c===7)n.castling.K=false;
+    if(p==='r'&&r===0&&c===0)n.castling.q=false;
+    if(p==='r'&&r===0&&c===7)n.castling.k=false;
+    if(captured==='R'&&rr===7&&cc===0)n.castling.Q=false;
+    if(captured==='R'&&rr===7&&cc===7)n.castling.K=false;
+    if(captured==='r'&&rr===0&&cc===0)n.castling.q=false;
+    if(captured==='r'&&rr===0&&cc===7)n.castling.k=false;
+
+    n.turn=enemy(side);
+    n.halfmove=(p.toLowerCase()==='p'||captured||m.enPassant)?0:n.halfmove+1;
+    if(side==='black')n.fullmove++;
+    return n;
+  }
+
+  function legalMovesForSquare(s,r,c){
+    const p=s.board[r][c];if(!p||color(p)!==s.turn)return [];
+    return pseudoMoves(s,r,c).filter(m=>{
+      const promo=m.promotion?'Q':null;
+      return !inCheck(applyMove(s,m,promo),s.turn);
+    });
+  }
+
+  function allLegalMoves(s,side=s.turn){
+    const out=[];
+    for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+      const p=s.board[r][c];if(color(p)!==side)continue;
+      out.push(...pseudoMoves(s,r,c).filter(m=>!inCheck(applyMove(s,m,m.promotion?'Q':null),side)));
+    }
+    return out;
+  }
+
+  function squareName(r,c){return 'abcdefgh'[c]+(8-r);}
+  const PIECES2={K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙',k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟'};
+
+  function gameUsers(){
+    const g=chessState?.meta;
+    return {white:g?.white_username||'',black:g?.black_username||''};
+  }
+
+  async function chessOpenGame(gameId){
+    const {data:g,error}=await metxonSupabase.from('chess_games').select('*').eq('id',gameId).single();
+    if(error||!g)throw(error||new Error('Game not found'));
+    const users={white:g.white_player,black:g.black_player};
+    const [wp,bp]=await Promise.all([
+      metxonSupabase.from('profiles').select('username,display_name').eq('id',g.white_player).single(),
+      metxonSupabase.from('profiles').select('username,display_name').eq('id',g.black_player).single()
+    ]);
+    const s=normalizeState(g.board_state);
+    chessState={
+      gameId:g.id,game:s,meta:{
+        white:g.white_player,black:g.black_player,
+        white_username:wp.data?.username||'White',
+        black_username:bp.data?.username||'Black',
+        status:g.status,winner:g.winner,
+        lastMove:g.last_move
+      },
+      selected:null,
+      legal:[]
+    };
+    renderChessBoard();
+    subscribeChessGame(g.id);
+  }
+
+  async function subscribeChessGame(gameId){
+    try{
+      if(window.__metxonChessRealtime)await metxonSupabase.removeChannel(window.__metxonChessRealtime);
+      window.__metxonChessRealtime=metxonSupabase.channel('chess-match-'+gameId)
+        .on('postgres_changes',{event:'UPDATE',schema:'public',table:'chess_games',filter:'id=eq.'+gameId},
+          async payload=>{
+            if(!chessState||chessState.gameId!==gameId)return;
+            const g=payload.new;
+            chessState.game=normalizeState(g.board_state);
+            chessState.meta.status=g.status;
+            chessState.meta.winner=g.winner;
+            chessState.meta.lastMove=g.last_move;
+            chessState.selected=null;chessState.legal=[];
+            renderChessBoard();
+          }).subscribe();
+    }catch(e){/* polling fallback below */}
+  }
+
+  function stopChessPoll(){
+    if(chessPollTimer){clearInterval(chessPollTimer);chessPollTimer=null;}
+    if(chessChallengeTimer){clearInterval(chessChallengeTimer);chessChallengeTimer=null;}
+  }
+
+  async function loadChessLobby(){
+    const me=await loadCloudAccount(state.currentUser);if(!me)return;
+    const incoming=await metxonSupabase.from('chess_challenges').select('*').eq('challenged_id',me.id).eq('status','pending').order('created_at',{ascending:false});
+    const outgoing=await metxonSupabase.from('chess_challenges').select('*').eq('challenger_id',me.id).eq('status','pending').order('created_at',{ascending:false});
+    const box=document.getElementById('chessLobbyStatus');if(!box)return;
+    const incomingRows=incoming.data||[],outgoingRows=outgoing.data||[];
+    let names={};
+    const ids=[...incomingRows.map(x=>x.challenger_id),...outgoingRows.map(x=>x.challenged_id)];
+    if(ids.length){
+      const pr=await metxonSupabase.from('profiles').select('id,username').in('id',ids);
+      (pr.data||[]).forEach(p=>names[p.id]=p.username);
+    }
+    box.innerHTML=`
+      ${incomingRows.length?`<div style="margin-top:10px;"><b>Incoming challenges</b>${incomingRows.map(x=>`
+        <div class="card" style="margin-top:6px;display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;">
+          <span>${names[x.challenger_id]||'Opponent'} challenged you</span>
+          <span><button class="btn btn-primary" onclick="acceptChessChallenge('${x.id}')">Accept</button>
+          <button class="btn" onclick="declineChessChallenge('${x.id}')">Decline</button></span>
+        </div>`).join('')}</div>`:''}
+      ${outgoingRows.length?`<div style="margin-top:10px;"><b>Pending sent challenges</b>${outgoingRows.map(x=>`<div class="card" style="margin-top:6px;">Waiting for ${names[x.challenged_id]||'opponent'}…</div>`).join('')}</div>`:''}
+      ${!incomingRows.length&&!outgoingRows.length?'<span style="color:var(--muted)">No pending challenges.</span>':''}
+    `;
+  }
+
+  startChess=function(){
+    stopChessPoll();
+    const area=document.getElementById('gameArea');if(!area)return;
+    area.innerHTML=`
+      <div class="card">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-primary" id="chessChallengeTab">Challenge Username</button>
+          <button class="btn" id="chessRandomTab">Random Matchmaking</button>
+        </div>
+        <div id="chessBotsPanel" class="card" style="margin-top:14px;">
+          <h3 style="margin:0 0 6px;">Play with Bots</h3>
+          <p style="color:var(--muted);margin:0 0 10px;">
+            Play against Stockfish. Choose the bot's difficulty/ELO.
+          </p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn" onclick="startStockfishBotGame(800)">800 ELO · Beginner</button>
+            <button class="btn" onclick="startStockfishBotGame(1100)">1100 ELO · Easy</button>
+            <button class="btn" onclick="startStockfishBotGame(1400)">1400 ELO · Intermediate</button>
+            <button class="btn" onclick="startStockfishBotGame(1700)">1700 ELO · Advanced</button>
+            <button class="btn btn-primary" onclick="startStockfishBotGame(2000)">2000 ELO · Expert</button>
+          </div>
+        </div>
+
+
+        <div id="chessChallengePanel" style="margin-top:12px;">
+          <p style="color:var(--muted);margin:0 0 8px;">Challenge another Metxon username to a standard chess game.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <input id="chessOpp" placeholder="Opponent username" style="flex:1;min-width:220px;">
+            <button class="btn btn-primary" onclick="sendChessChallenge()">Send Challenge</button>
+          </div>
+        </div>
+
+        <div id="chessRandomPanel" style="display:none;margin-top:12px;">
+          <p style="color:var(--muted);margin:0 0 8px;">Join the standard-chess queue. When another player joins the same queue, you are matched automatically.</p>
+          <button class="btn btn-primary" onclick="joinRandomChess()">Find Random Opponent</button>
+          <button class="btn" onclick="leaveRandomChess()">Leave Queue</button>
+        </div>
+
+        <div id="chessLobbyStatus" style="margin-top:12px;"></div>
+        <div id="chessMatchStatus" style="margin-top:10px;color:var(--cyan);"></div>
+      </div>
+
+      <div id="chessBoardWrap" style="margin-top:16px;text-align:center;"></div>
+      <div id="chessStatus" style="text-align:center;margin-top:8px;color:var(--muted);"></div>
+      <div id="chessControls" style="display:none;text-align:center;margin-top:10px;">
+        <button class="btn" onclick="flipChessBoard()">Flip Board</button>
+        <button class="btn" onclick="resignChessGame()">Resign</button>
+        <button class="btn" onclick="startChess()">New Game</button>
+      </div>
+    `;
+
+    document.getElementById('chessChallengeTab').onclick=()=>{
+      document.getElementById('chessChallengePanel').style.display='block';
+      document.getElementById('chessRandomPanel').style.display='none';
+    };
+    document.getElementById('chessRandomTab').onclick=()=>{
+      document.getElementById('chessChallengePanel').style.display='none';
+      document.getElementById('chessRandomPanel').style.display='block';
+    };
+
+    loadChessLobby();
+    chessChallengeTimer=setInterval(loadChessLobby,2500);
+  };
+
+  sendChessChallenge=async function(){
+    const opp=(document.getElementById('chessOpp').value||'').trim().toLowerCase();
+    if(!opp)return alert('Enter an opponent username');
+    if(opp===String(state.currentUser).toLowerCase())return alert('You cannot challenge yourself.');
+    try{
+      const me=await loadCloudAccount(state.currentUser),other=await secureOtherProfile(opp);
+      if(!me||!other)throw new Error('Opponent account not found.');
+      const pending=await metxonSupabase.from('chess_challenges').select('id').eq('challenger_id',me.id).eq('challenged_id',other.id).eq('status','pending').maybeSingle();
+      if(pending.data)return alert('You already have a pending challenge to this user.');
+      const {error}=await metxonSupabase.from('chess_challenges').insert({challenger_id:me.id,challenged_id:other.id});
+      if(error)throw error;
+      alert('Challenge sent.');
+      loadChessLobby();
+    }catch(e){alert(e.message||'Could not send challenge');}
+  };
+
+  acceptChessChallenge=async function(id){
+    try{
+      const {data,error}=await metxonSupabase.rpc('metxon_chess_accept_challenge',{challenge_id:id});
+      if(error)throw error;
+      await chessOpenGame(data.game_id);
+      const controls=document.getElementById('chessControls');if(controls)controls.style.display='block';
+      const ms=document.getElementById('chessMatchStatus');if(ms)ms.textContent='Challenge accepted — game started.';
+    }catch(e){alert(e.message||'Could not accept challenge');}
+  };
+
+  declineChessChallenge=async function(id){
+    const {error}=await metxonSupabase.from('chess_challenges').update({status:'declined',responded_at:new Date().toISOString()}).eq('id',id);
+    if(error)alert(error.message);else loadChessLobby();
+  };
+
+  joinRandomChess=async function(){
+    try{
+      const {data,error}=await metxonSupabase.rpc('metxon_chess_random_match');
+      if(error)throw error;
+      if(data?.matched){
+        await chessOpenGame(data.game_id);
+        const controls=document.getElementById('chessControls');if(controls)controls.style.display='block';
+        const ms=document.getElementById('chessMatchStatus');if(ms)ms.textContent='Matched! Your random opponent has been found.';
+      }else{
+        const ms=document.getElementById('chessMatchStatus');if(ms)ms.textContent='Waiting for another player to join Random Matchmaking…';
+        if(chessPollTimer)clearInterval(chessPollTimer);
+        chessPollTimer=setInterval(checkRandomMatch,2200);
+      }
+    }catch(e){alert(e.message||'Could not join random matchmaking');}
+  };
+
+  async function checkRandomMatch(){
+    try{
+      const me=await loadCloudAccount(state.currentUser);if(!me)return;
+      const {data,error}=await metxonSupabase.from('chess_matchmaking').select('*').eq('user_id',me.id).maybeSingle();
+      if(error)throw error;
+      if(data?.status==='matched'&&data.game_id){
+        stopChessPoll();
+        await chessOpenGame(data.game_id);
+        const controls=document.getElementById('chessControls');if(controls)controls.style.display='block';
+        const ms=document.getElementById('chessMatchStatus');if(ms)ms.textContent='Matched! Game ready.';
+      }
+    }catch(e){console.warn('Chess matchmaking poll:',e);}
+  }
+
+  leaveRandomChess=async function(){
+    try{
+      const me=await loadCloudAccount(state.currentUser);if(!me)return;
+      await metxonSupabase.from('chess_matchmaking').update({status:'cancelled',updated_at:new Date().toISOString()}).eq('user_id',me.id).eq('status','waiting');
+      if(chessPollTimer)clearInterval(chessPollTimer);
+      const ms=document.getElementById('chessMatchStatus');if(ms)ms.textContent='Left the matchmaking queue.';
+    }catch(e){alert(e.message||'Could not leave queue');}
+  };
+
+  function renderChessBoard(){
+    const wrap=document.getElementById('chessBoardWrap'),status=document.getElementById('chessStatus');if(!wrap||!chessState)return;
+    const g=chessState.game,meta=chessState.meta,myColor=meta.white===state.accounts[state.currentUser]?.id?'white':'black';
+    const orient=chessFlipped?(myColor==='white'?'black':'white'):myColor;
+    const rows=orient==='white'?[0,1,2,3,4,5,6,7]:[7,6,5,4,3,2,1,0];
+    const cols=orient==='white'?[0,1,2,3,4,5,6,7]:[7,6,5,4,3,2,1,0];
+    const sel=chessState.selected, legal=chessState.legal||[];
+    let out=`<div style="display:inline-block;border:3px solid var(--border);border-radius:8px;overflow:hidden;box-shadow:0 12px 28px rgba(0,0,0,.28);">`;
+    for(const r of rows){
+      out+='<div style="display:flex;">';
+      for(const c of cols){
+        const light=(r+c)%2===0,p=g.board[r][c];
+        const chosen=sel&&sel[0]===r&&sel[1]===c;
+        const move=legal.find(m=>m.to[0]===r&&m.to[1]===c);
+        const marker=move?(g.board[r][c]?'●':'•'):'';
+        out+=`<div class="chess-square ${light?'light':'dark'}" style="position:relative;width:min(11vw,64px);height:min(11vw,64px);font-size:min(8vw,42px);${chosen?'outline:3px solid var(--cyan);z-index:2;':''}" onclick="chessSquareClick(${r},${c})">
+          <span class="chess-piece ${color(p)==='white'?'white':'black'}">${p?PIECES2[p]:''}</span>
+          ${marker?`<span style="position:absolute;font-size:14px;color:${p?'rgba(0,0,0,.55)':'rgba(0,0,0,.38)'};left:50%;top:50%;transform:translate(-50%,-50%);">${marker}</span>`:''}
+        </div>`;
+      }
+      out+='</div>';
+    }
+    out+='</div>';
+
+    const check=inCheck(g,g.turn);
+    const moves=allLegalMoves(g,g.turn);
+    let statusText=g.turn==='white'?'White to move':'Black to move';
+    if(meta.status==='checkmate')statusText=`Checkmate — ${meta.winner===meta.white?meta.white_username:meta.black_username} wins.`;
+    else if(meta.status==='stalemate')statusText='Stalemate — draw.';
+    else if(meta.status==='resigned')statusText=`Game ended by resignation — ${meta.winner===meta.white?meta.white_username:meta.black_username} wins.`;
+    else if(check&&moves.length)statusText+=' — CHECK';
+    else if(!moves.length)statusText='Draw — no legal moves.';
+    status.innerHTML=`${statusText}<br><span style="font-size:.82rem;">White: <b>${meta.white_username||'White'}</b> · Black: <b>${meta.black_username||'Black'}</b></span>`;
+
+    wrap.innerHTML=out;
+  }
+
+  window.flipChessBoard=function(){chessFlipped=!chessFlipped;renderChessBoard();};
+
+  window.chessSquareClick=async function(r,c){
+    if(!chessState||!chessState.gameId)return;
+    const g=chessState.game,meta=chessState.meta;
+    if(meta.status!=='active')return;
+    const me=await loadCloudAccount(state.currentUser);
+    const mySide=meta.white===me.id?'white':'black';
+    if(g.turn!==mySide)return alert('Not your turn.');
+
+    if(chessState.selected){
+      const move=chessState.legal.find(m=>m.to[0]===r&&m.to[1]===c);
+      if(move){
+        let promotion='Q';
+        if(move.promotion){
+          const pick=(prompt('Promote to: Q, R, B or N','Q')||'Q').trim().toUpperCase();
+          promotion=['Q','R','B','N'].includes(pick)?pick:'Q';
+        }
+        const next=applyMove(g,move,promotion);
+        const nextMoves=allLegalMoves(next,next.turn);
+        const nextCheck=inCheck(next,next.turn);
+        let status='active',winner=null;
+        if(!nextMoves.length){
+          if(nextCheck){status='checkmate';winner=me.id;}
+          else status='stalemate';
+        }
+
+        const hist=Array.isArray(g.move_history)?g.move_history.slice():[];
+        // Human-readable coordinate move, with promotion/castling.
+        hist.push({
+          move:`${squareName(move.from[0],move.from[1])}-${squareName(move.to[0],move.to[1])}${move.promotion?'='+promotion:''}`,
+          by:me.id,at:new Date().toISOString()
+        });
+
+        const existingHistory=Array.isArray(g.position_history)?g.position_history.slice():[];
+        if(!existingHistory.length) existingHistory.push({fen:chessToFen(g),label:'Initial position'});
+        existingHistory.push({fen:chessToFen(next),label:`After ${hist.length}. ${squareName(move.from[0],move.from[1])}-${squareName(move.to[0],move.to[1])}`,move_index:hist.length});
+        const {error}=await metxonSupabase.from('chess_games').update({
+          board_state:next,
+          turn:next.turn,
+          move_history:hist,
+          position_history:existingHistory,
+          last_move:{...move,promotion:move.promotion?promotion:null},
+          status,
+          winner,
+          updated_at:new Date().toISOString()
+        }).eq('id',chessState.gameId).eq('status','active');
+        if(error){alert(error.message||'Move could not be saved');return;}
+        chessState.game=next;chessState.meta.status=status;chessState.meta.winner=winner;
+        chessState.selected=null;chessState.legal=[];renderChessBoard();
+        return;
+      }
+      // Select a different own piece instead of silently clearing.
+      const piece=g.board[r][c];
+      const myPiece=piece&&color(piece)===mySide;
+      if(myPiece){chessState.selected=[r,c];chessState.legal=legalMovesForSquare(g,r,c);renderChessBoard();return;}
+      chessState.selected=null;chessState.legal=[];renderChessBoard();return;
+    }
+
+    const piece=g.board[r][c];
+    if(piece&&color(piece)===mySide){
+      chessState.selected=[r,c];
+      chessState.legal=legalMovesForSquare(g,r,c);
+      renderChessBoard();
+    }
+  };
+
+  window.resignChessGame=async function(){
+    if(!chessState?.gameId)return;
+    const ok=confirm('Resign this game?');if(!ok)return;
+    const me=await loadCloudAccount(state.currentUser);if(!me)return;
+    const g=chessState.game,meta=chessState.meta;
+    const winner=meta.white===me.id?meta.black:meta.white;
+    const {error}=await metxonSupabase.from('chess_games').update({status:'resigned',winner,updated_at:new Date().toISOString()}).eq('id',chessState.gameId).eq('status','active');
+    if(error)alert(error.message);else{chessState.meta.status='resigned';chessState.meta.winner=winner;renderChessBoard();}
+  };
+
+  // Aliases used by older UI code.
+  window.startChess=startChess;
+  window.initChess=async()=>{};
+  window.__metxonChessInternals={initialBoard,freshState,applyMove,allLegalMoves,legalMovesForSquare,inCheck,color,renderChessBoard};
+})();
+</script>
+
+
+<script>
+/* ===================== CHESS CHAT + STOCKFISH REVIEW ===================== */
+(function(){
+  let chatTimer=null, reviewRunning=false, sfWorker=null, sfReady=false;
+
+  async function loadChessChat(){
+    const log=document.getElementById('chessChatLog');
+    if(!log || !chessState?.gameId)return;
+    try{
+      const {data,error}=await metxonSupabase.from('chess_chat_messages')
+        .select('id,sender_id,message,created_at')
+        .eq('game_id',chessState.gameId)
+        .order('created_at',{ascending:true}).limit(200);
+      if(error)throw error;
+      const me=await loadCloudAccount(state.currentUser);
+      const esc=s=>String(s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+      log.innerHTML=(data||[]).map(m=>{
+        const mine=me&&m.sender_id===me.id;
+        return `<div style="padding:6px 8px;margin:4px 0;border-radius:8px;${mine?'background:rgba(0,210,255,.08);margin-left:18%;':'background:rgba(148,163,184,.08);margin-right:18%;'}">
+          <div style="font-size:.72rem;color:var(--muted);">${mine?'You':'Opponent'} · ${new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div>
+          <div style="word-break:break-word;">${esc(m.message)}</div>
+        </div>`;
+      }).join('')||'<div style="color:var(--muted);font-size:.82rem;">No messages yet.</div>';
+      log.scrollTop=log.scrollHeight;
+    }catch(e){console.warn('Chess chat load',e);}
+  }
+
+  window.sendChessChat=async function(){
+    const input=document.getElementById('chessChatInput');
+    if(!input || !chessState?.gameId)return alert('Start or open a chess game first.');
+    const msg=input.value.trim();
+    if(!msg)return;
+    if(msg.length>1000)return alert('Message is limited to 1000 characters.');
+    try{
+      const me=await loadCloudAccount(state.currentUser);
+      if(!me)throw new Error('Account not synchronized.');
+      const {error}=await metxonSupabase.from('chess_chat_messages').insert({game_id:chessState.gameId,sender_id:me.id,message:msg});
+      if(error)throw error;
+      input.value='';
+      await loadChessChat();
+    }catch(e){alert(e.message||'Could not send message.');}
+  };
+
+  function startChat(){
+    if(chatTimer)clearInterval(chatTimer);
+    loadChessChat();
+    chatTimer=setInterval(loadChessChat,1800);
+  }
+
+  function addTools(){
+    const area=document.getElementById('gameArea');
+    if(!area || document.getElementById('chessToolsPanel'))return;
+
+    const controls=document.getElementById('chessControls');
+    if(controls){
+      if(!controls.innerHTML.includes('Review Game')){
+        controls.insertAdjacentHTML('beforeend',`
+        `);
+      }
+    }
+
+    area.insertAdjacentHTML('beforeend',`
+      <div id="chessToolsPanel" style="margin-top:16px;">
+        <div class="card">
+          <h3 style="margin-bottom:8px;">Game Chat</h3>
+          <div id="chessChatLog" style="max-height:220px;overflow:auto;padding:4px;border:1px solid var(--border);border-radius:8px;background:var(--bg);"></div>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <input id="chessChatInput" maxlength="1000" placeholder="Message your opponent…" style="flex:1;">
+            <button class="btn btn-primary" onclick="sendChessChat()">Send</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:10px;">
+          <h3 style="margin-bottom:6px;">Chess Engine Review</h3>
+          <p style="color:var(--muted);font-size:.82rem;margin-bottom:8px;">
+            Local Stockfish 18 lite analysis runs in your browser. No OpenAI key is needed for chess review.
+          </p>
+          <div id="chessReviewStatus" style="color:var(--cyan);font-size:.85rem;">Engine idle.</div>
+          <div id="chessReviewOutput" style="margin-top:10px;"></div>
+        </div>
+      </div>
+    `);
+
+    const input=document.getElementById('chessChatInput');
+    if(input)input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();sendChessChat();}});
+    startChat();
+  }
+
+  const STOCKFISH_API='https://chess-api.com/v1';
+
+  async function engineAnalyze(fen,depth=12){
+    const safeDepth=Math.max(6,Math.min(18,Number(depth)||12));
+    const status=document.getElementById('chessBotInfo');
+    if(status){
+      status.textContent='Stockfish is calculating…';
+      status.style.color='var(--muted)';
+    }
+
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),15000);
+
+    try{
+      const response=await fetch(STOCKFISH_API,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          fen,
+          depth:safeDepth,
+          variants:1,
+          // The public chess-api.com endpoint accepts a maximum of 100 ms.
+          maxThinkingTime:100
+        }),
+        signal:controller.signal
+      });
+
+      if(!response.ok)throw new Error(`Stockfish API returned HTTP ${response.status}.`);
+      const data=await response.json();
+
+      if(data.type==='error'||data.error) {
+        throw new Error(data.error||data.text||'Stockfish API returned an error.');
+      }
+
+      const bestmove=String(data.move||data.lan||'').trim();
+      if(!bestmove)throw new Error('Stockfish API returned no move.');
+
+      if(status){
+        status.textContent='Stockfish ready when you make a move.';
+        status.style.color='var(--green)';
+      }
+
+      const cpRaw = data.centipawns!=null
+        ? Number(data.centipawns)
+        : (data.eval!=null ? Math.round(Number(data.eval)*100) : null);
+
+      return {
+        depth:Number(data.depth||safeDepth),
+        cp:Number.isFinite(cpRaw)?cpRaw:null,
+        mate:data.mate!=null?Number(data.mate):null,
+        bestmove
+      };
+    }catch(e){
+      if(status){
+        status.textContent='Stockfish unavailable. Please try the move again.';
+        status.style.color='var(--red)';
+      }
+      if(e.name==='AbortError')throw new Error('Stockfish request timed out.');
+      throw e;
+    }finally{
+      clearTimeout(timer);
+    }
+  }
+
+  const moveName=u=>u&&u.length>=4?`${u.slice(0,2)} → ${u.slice(2,4)}${u.length>4?'='+u.slice(4).toUpperCase():''}`:'—';
+  const evalText=r=>r?.mate!=null?`Mate in ${Math.abs(r.mate)}`:(r?.cp!=null?`${r.cp>=0?'+':''}${(r.cp/100).toFixed(2)}`:'—');
+
+  window.__metxonEngineAnalyze=engineAnalyze;
+  window.analyzeCurrentChessPosition=async function(){
+    if(!chessState?.game)return alert('Open a chess game first.');
+    const s=document.getElementById('chessReviewStatus'),o=document.getElementById('chessReviewOutput');
+    try{
+      s.textContent='Loading Stockfish…';
+      const r=await engineAnalyze(chessToFen(chessState.game),13);
+      s.textContent='Analysis complete.';
+      o.innerHTML=`<div class="card"><b>Best move:</b> ${moveName(r.bestmove)}<br><b>Evaluation:</b> ${evalText(r)}<br><b>Depth:</b> ${r.depth||13}</div>`;
+    }catch(e){s.textContent='Engine unavailable.';o.innerHTML=`<div class="card"><strong style="color:var(--red)">Stockfish review failed.</strong><br>${String(e.message||e)}</div>`;}
+  };
+
+  window.analyzeChessGame=async function(){
+    if(reviewRunning)return;
+    if(!chessState?.gameId)return alert('Open a chess game first.');
+    reviewRunning=true;
+    const s=document.getElementById('chessReviewStatus'),o=document.getElementById('chessReviewOutput');
+    try{
+      const {data:g,error}=await metxonSupabase.from('chess_games')
+        .select('board_state,turn,status,winner,position_history,move_history')
+        .eq('id',chessState.gameId).single();
+      if(error)throw error;
+
+      const positions=(Array.isArray(g.position_history)&&g.position_history.length)
+        ? g.position_history
+        : [{fen:chessToFen({board:g.board_state,turn:g.turn}),label:'Current position'}];
+
+      const limit=Math.min(positions.length,40);
+      const rows=[];
+      for(let i=0;i<limit;i++){
+        s.textContent=`Reviewing position ${i+1}/${limit} with Stockfish…`;
+        rows.push({...positions[i],...(await engineAnalyze(positions[i].fen,11))});
+      }
+
+      const best=rows.filter(r=>r.bestmove);
+      const outRows=best.map((r,i)=>`<tr>
+        <td style="padding:6px;border-top:1px solid var(--border);">${i+1}. ${r.label||'Position'}</td>
+        <td style="padding:6px;border-top:1px solid var(--border);">${evalText(r)}</td>
+        <td style="padding:6px;border-top:1px solid var(--border);">${moveName(r.bestmove)}</td>
+      </tr>`).join('');
+
+      s.textContent='Review complete.';
+      o.innerHTML=`<div class="card">
+        <h3>Stockfish Game Review</h3>
+        <p style="color:var(--muted);font-size:.82rem;">Stockfish 18 · engine analysis is requested securely from the Stockfish service.</p>
+        <div style="overflow:auto;"><table style="width:100%;border-collapse:collapse;font-size:.84rem;">
+          <thead><tr><th style="text-align:left;padding:6px;">Position</th><th style="text-align:left;padding:6px;">Evaluation</th><th style="text-align:left;padding:6px;">Best move</th></tr></thead>
+          <tbody>${outRows||'<tr><td colspan="3" style="padding:8px;color:var(--muted);">No saved move positions yet. Analyze the current position instead.</td></tr>'}</tbody>
+        </table></div>
+      </div>`;
+    }catch(e){
+      s.textContent='Review failed.';
+      o.innerHTML=`<div class="card"><strong style="color:var(--red)">Review failed.</strong><br>${String(e.message||e)}</div>`;
+    }finally{reviewRunning=false;}
+  };
+
+  const originalStart=window.startChess;
+  window.startChess=function(){
+    if(chatTimer){clearInterval(chatTimer);chatTimer=null;}
+    originalStart();
+    setTimeout(addTools,80);
+  };
+
+  window.addEventListener('beforeunload',()=>{if(chatTimer)clearInterval(chatTimer);});
+})();
+</script>
+
+
+<script>
+/* ===== CHESS BOYS: POST-GAME RESULT + STOCKFISH BOTS ===== */
+(function(){
+  let finishShownFor=null;
+  const esc=s=>String(s??'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+
+  window.showChessFinishModal=function(gameId,result,metaOverride){
+    if(window.__metxonBotGame)saveCompletedBotGame();
+    const meta=metaOverride||chessState?.meta||{};
+    const winner=result==='draw'?'Draw':
+      result==='white_win'?(meta.white_username||'White'):
+      result==='black_win'?(meta.black_username||'Black'):'Winner';
+    document.getElementById('chessFinishModal')?.remove();
+    const o=document.createElement('div');
+    o.id='chessFinishModal';
+    o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.76);display:flex;align-items:center;justify-content:center;z-index:100000;padding:18px;';
+    o.innerHTML=`<div class="card" style="width:min(560px,100%);text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.65)">
+      <div style="font-size:2.4rem">♛</div>
+      <h2 style="margin:4px 0 8px;color:var(--cyan)">${esc(winner)}${result==='draw'?'':' wins'}</h2>
+      <p style="color:var(--muted);margin-bottom:18px">The game is over.</p>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-primary" id="finishReview">Game Review with Stockfish</button>
+        <button class="btn" id="finishNew">New Game</button>
+        <button class="btn" id="finishRematch">Rematch</button>
+        <button class="btn" id="finishSave">Save Game</button>
+      </div></div>`;
+    document.body.appendChild(o);
+    document.getElementById('finishReview').onclick=async()=>{
+      o.remove();
+      if(typeof window.addChessReviewPanel==='function')window.addChessReviewPanel();
+      await window.analyzeChessGame(gameId);
+    };
+    document.getElementById('finishNew').onclick=()=>{o.remove();window.__metxonBotGame=null;startChess();};
+    document.getElementById('finishRematch').onclick=()=>{
+      o.remove();
+      if(window.__metxonBotGame){startStockfishBotGame(window.__metxonBotGame.elo);return;}
+      startChess();
+    };
+    document.getElementById('finishSave').onclick=()=>{
+      if(gameId)localStorage.setItem('metxon_saved_chess_'+gameId,JSON.stringify({gameId,savedAt:new Date().toISOString()}));
+      o.remove();alert('Game saved.');
+    };
+  };
+
+  window.__metxonMaybeChessFinish=function(){
+    const m=chessState?.meta;
+    if(!m||m.status==='active'||!chessState.gameId||finishShownFor===chessState.gameId)return;
+    finishShownFor=chessState.gameId;
+    const result=m.status==='stalemate'?'draw':(m.winner===m.white?'white_win':m.winner===m.black?'black_win':'draw');
+    setTimeout(()=>showChessFinishModal(chessState.gameId,result,m),80);
+  };
+
+  /* ---------- Local Stockfish bot game ---------- */
+  const botSquareName=(r,c)=>'abcdefgh'[c]+(8-r);
+
+  window.startStockfishBotGame=function(elo){
+    window.__metxonBotGame=null;
+    const I=window.__metxonChessInternals, me=state.accounts[state.currentUser];
+    if(!I)return alert('Chess engine is not ready. Please reload the page.');
+    if(!me)return openAuth();
+    const rating=Number(elo)||1200;
+    localStorage.removeItem('metxon_bot_game_latest_'+String(me.id));
+    window.__metxonBotGame={elo:rating,humanId:me.id,humanUsername:state.currentUser,positions:[]};
+    const game=I.freshState(I.initialBoard());
+    chessState={gameId:null,game,meta:{
+      white:me.id,black:'stockfish-'+rating,
+      white_username:state.currentUser,black_username:'Stockfish '+rating,
+      white_rating:me.chess_rating||1200,black_rating:rating,status:'active',winner:null
+    },selected:null,legal:[]};
+    const area=document.getElementById('gameArea');
+    if(area)area.innerHTML=`<div class="card">
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <strong>${esc(state.currentUser)} · ELO ${me.chess_rating||1200}</strong>
+        <strong>Stockfish ${rating}</strong>
+      </div>
+      <div id="chessBoardWrap" style="display:flex;justify-content:center;margin-top:12px"></div>
+      <div id="chessStatus" style="text-align:center;margin-top:8px;color:var(--muted)"></div>
+      <div id="chessBotControllerStatus" style="text-align:center;color:var(--green);font-size:.78rem;margin-top:4px">Bot controls ready · click a white piece, then a highlighted square.</div>
+      <div id="chessToolsPanel" style="margin-top:16px"></div>
+    </div>`;
+    if(!I.__botRenderWrapped){
+      const originalRender=I.renderChessBoard;
+      I.renderChessBoard=function(){
+        originalRender();
+        const wrap=document.getElementById('chessBoardWrap');
+        if(wrap){
+          wrap.querySelectorAll('.chess-square').forEach((sq)=>{
+            const handler=sq.getAttribute('onclick')||'';
+            const m=handler.match(/chessSquareClick\((\d+),(\d+)\)/);
+            if(m){
+              sq.setAttribute('data-bot-r',m[1]);
+              sq.setAttribute('data-bot-c',m[2]);
+            }
+          });
+        }
+        setTimeout(bindBotBoardFallback,0);
+      };
+      I.__botRenderWrapped=true;
+    }
+    I.renderChessBoard();
+    window.__metxonBotGame.positions=[{fen:chessToFen(game),label:'Initial position'}];
+    addChessReviewPanel();
+  };
+
+  function addChessReviewPanel(){
+    const p=document.getElementById('chessToolsPanel');
+    if(!p)return;
+    if(document.getElementById('chessReviewStatus'))return;
+    p.innerHTML=`<div class="card"><h3>Game Review</h3>
+      <div id="chessReviewStatus" style="color:var(--cyan)">Review becomes available after the game ends.</div>
+      <div id="chessReviewOutput" style="margin-top:8px"></div></div>`;
+  }
+  window.addChessReviewPanel=addChessReviewPanel;
+
+  function saveCompletedBotGame(){
+    try{
+      const bg=window.__metxonBotGame;
+      if(!bg||!chessState)return;
+      const payload={
+        savedAt:new Date().toISOString(),
+        elo:bg.elo,
+        humanId:bg.humanId,
+        humanUsername:bg.humanUsername,
+        status:chessState.meta.status,
+        winner:chessState.meta.winner,
+        positions:bg.positions||[],
+        finalFen:chessToFen(chessState.game)
+      };
+      localStorage.setItem('metxon_bot_game_latest_'+String(bg.humanId),JSON.stringify(payload));
+    }catch(e){console.warn('Could not save bot game',e);}
+  }
+
+  function loadSavedBotGame(){
+    try{
+      const me=state.accounts[state.currentUser];
+      if(!me)return null;
+      const raw=localStorage.getItem('metxon_bot_game_latest_'+String(me.id));
+      return raw?JSON.parse(raw):null;
+    }catch(e){return null;}
+  }
+
+  const uciCoords=u=>{
+    if(!u||u.length<4)return null;
+    return {from:[8-Number(u[1]),u.charCodeAt(0)-97],to:[8-Number(u[3]),u.charCodeAt(2)-97],promotion:u[4]?u[4].toUpperCase():null};
+  };
+
+
+
+  function bindBotBoardFallback(){
+    const wrap=document.getElementById('chessBoardWrap');
+    if(!wrap)return;
+    const squares=[...wrap.querySelectorAll('.chess-square')];
+    squares.forEach((sq,i)=>{
+      if(!sq.hasAttribute('data-bot-r')){
+        const row=Math.floor(i/8),col=i%8;
+        sq.setAttribute('data-bot-r',String(row));
+        sq.setAttribute('data-bot-c',String(col));
+      }
+    });
+    bindBotBoard();
+  }
+
+  function bindBotBoard(){
+    const wrap=document.getElementById('chessBoardWrap');
+    if(!wrap)return;
+    wrap.querySelectorAll('.chess-square').forEach(square=>{
+      square.onclick=null;
+      if(square.__metBotBound)return;
+      square.__metBotBound=true;
+      square.addEventListener('click',function(ev){
+        ev.preventDefault();
+        ev.stopPropagation();
+        const r=Number(this.getAttribute('data-bot-r'));
+        const c=Number(this.getAttribute('data-bot-c'));
+        if(Number.isInteger(r)&&Number.isInteger(c))window.__metxonBotClick(r,c);
+      });
+      square.addEventListener('pointerup',function(ev){
+        ev.preventDefault();
+      });
+    });
+  }
+
+  window.__metxonBotClick=async function(r,c){
+    const bg=window.__metxonBotGame, I=window.__metxonChessInternals;
+    if(!bg||!I||!chessState||chessState.meta.status!=='active')return;
+    if(chessState.game.turn!=='white')return;
+
+    const g=chessState.game;
+
+    if(chessState.selected){
+      const mv=(chessState.legal||[]).find(m=>m.to[0]===r&&m.to[1]===c);
+      if(mv){
+        let promotion=null;
+        if(mv.promotion){
+          const pick=(prompt('Promote to: Q, R, B or N','Q')||'Q').trim().toUpperCase();
+          promotion=['Q','R','B','N'].includes(pick)?pick:'Q';
+        }
+
+        const next=I.applyMove(g,mv,promotion);
+        bg.positions=Array.isArray(bg.positions)?bg.positions:[];
+        bg.positions.push({
+          fen:chessToFen(next),
+          label:`After ${bg.positions.length}. ${botSquareName(mv.from[0],mv.from[1])}-${botSquareName(mv.to[0],mv.to[1])}${mv.promotion?'='+promotion:''}`
+        });
+
+        chessState.game=next;
+        chessState.selected=null;
+        chessState.legal=[];
+
+        const replies=I.allLegalMoves(next,'black');
+        if(!replies.length){
+          chessState.meta.status=I.inCheck(next,'black')?'checkmate':'stalemate';
+          chessState.meta.winner=chessState.meta.status==='checkmate'?bg.humanId:null;
+          I.renderChessBoard();
+          saveCompletedBotGame();
+          setTimeout(()=>showChessFinishModal(null,chessState.meta.status==='stalemate'?'draw':'white_win',chessState.meta),80);
+          return;
+        }
+
+        I.renderChessBoard();
+        setTimeout(window.__metxonBotMove,350);
+        return;
+      }
+
+      const own=g.board[r][c]&&I.color(g.board[r][c])==='white';
+      if(own){
+        chessState.selected=[r,c];
+        chessState.legal=I.legalMovesForSquare(g,r,c);
+        I.renderChessBoard();
+        return;
+      }
+
+      chessState.selected=null;
+      chessState.legal=[];
+      I.renderChessBoard();
+      return;
+    }
+
+    const own=g.board[r][c]&&I.color(g.board[r][c])==='white';
+    if(own){
+      chessState.selected=[r,c];
+      chessState.legal=I.legalMovesForSquare(g,r,c);
+      I.renderChessBoard();
+    }
+  };
+
+  window.__metxonBotMove=async function(){
+    const bg=window.__metxonBotGame, I=window.__metxonChessInternals;
+    if(!bg||!I||!chessState||chessState.meta.status!=='active'||chessState.game.turn!=='black')return;
+    try{
+      const depth=bg.elo<=800?7:bg.elo<=1100?8:bg.elo<=1400?10:bg.elo<=1700?12:14;
+      const r=await window.__metxonEngineAnalyze(chessToFen(chessState.game),depth);
+      const u=uciCoords(r.bestmove);
+      if(!u)throw new Error('Stockfish did not return a move.');
+      const legal=I.allLegalMoves(chessState.game,'black');
+      const mv=legal.find(m=>m.from[0]===u.from[0]&&m.from[1]===u.from[1]&&m.to[0]===u.to[0]&&m.to[1]===u.to[1]);
+      if(!mv)throw new Error('Stockfish returned a move that is not legal for the current position.');
+
+      const next=I.applyMove(chessState.game,mv,u.promotion||null);
+      bg.positions=Array.isArray(bg.positions)?bg.positions:[];
+      bg.positions.push({
+        fen:chessToFen(next),
+        label:`After ${bg.positions.length}. ${botSquareName(mv.from[0],mv.from[1])}-${botSquareName(mv.to[0],mv.to[1])}${mv.promotion?'='+String(u.promotion||'Q').toUpperCase():''}`
+      });
+
+      chessState.game=next;
+      chessState.selected=null;
+      chessState.legal=[];
+
+      const replies=I.allLegalMoves(next,'white');
+      if(!replies.length){
+        chessState.meta.status=I.inCheck(next,'white')?'checkmate':'stalemate';
+        chessState.meta.winner=chessState.meta.status==='checkmate'?'stockfish-'+bg.elo:null;
+      }
+
+      I.renderChessBoard();
+
+      if(chessState.meta.status!=='active'){
+        saveCompletedBotGame();
+        setTimeout(()=>showChessFinishModal(null,chessState.meta.status==='stalemate'?'draw':'black_win',chessState.meta),80);
+      }
+    }catch(e){
+      console.warn('Stockfish bot move failed:',e);
+      alert(e.message||'Stockfish could not move.');
+    }
+  };
+
+  const originalClick=window.chessSquareClick;
+  window.chessSquareClick=function(r,c){
+    if(window.__metxonBotGame)return window.__metxonBotClick(r,c);
+    return originalClick(r,c);
+  };
+
+  const originalReview=window.analyzeChessGame;
+  window.analyzeChessGame=async function(gameId){
+    if(window.__metxonBotGame&&chessState?.gameId===null&&chessState.meta?.status!=='active'){
+      const s=document.getElementById('chessReviewStatus'),o=document.getElementById('chessReviewOutput');
+      if(!s||!o)return;
+      s.textContent='Reviewing the completed game with Stockfish…';
+      try{
+        const saved=window.__metxonBotGame||loadSavedBotGame();
+        const rows=[];
+        for(const pos of (saved?.positions||[]).slice(0,40))
+          rows.push({...pos,...(await window.__metxonEngineAnalyze(pos.fen,11))});
+        o.innerHTML=`<div style="overflow:auto"><table style="width:100%;border-collapse:collapse"><thead><tr><th>Position</th><th>Evaluation</th><th>Best move</th></tr></thead><tbody>${
+          rows.map((x,i)=>`<tr><td>${i+1}. ${esc(x.label)}</td><td>${x.mate!=null?'Mate in '+Math.abs(x.mate):(x.cp!=null?(x.cp>=0?'+':'')+(x.cp/100).toFixed(2):'—')}</td><td>${esc(x.bestmove||'—')}</td></tr>`).join('')
+        }</tbody></table></div>`;
+        s.textContent='Review complete.';
+      }catch(e){s.textContent='Review failed.';o.innerHTML=`<div class="card">${esc(e.message||e)}</div>`;}
+      return;
+    }
+    return originalReview(gameId||chessState?.gameId);
+  };
+  })();
+</script>
+
+<script>
+window.metxonAddFriend=async function(username){
+  try{
+    const {error}=await metxonSupabase.rpc('metalk_add_friend',{friend_username:String(username||'').trim()});
+    if(error)throw error;
+    if(typeof renderMetalkFriends==='function')await renderMetalkFriends();
+    alert('Added to your friend list.');
+  }catch(e){alert(e.message||'Could not add friend.');}
+};
+window.loadMetalkFriends=async function(){
+  const me=await loadCloudAccount(state.currentUser);if(!me)return[];
+  const {data,error}=await metxonSupabase.from('metalk_friends')
+    .select('friend_id,profiles!metalk_friends_friend_id_fkey(username,display_name)')
+    .eq('user_id',me.id).order('created_at',{ascending:true});
+  if(error){console.warn(error);return[]}
+  return data||[];
+};
+window.renderMetalkFriends=async function(){
+  const box=document.getElementById('metalkFriends');if(!box)return;
+  const rows=await loadMetalkFriends();
+  box.innerHTML=rows.length?rows.map(r=>{
+    const u=r.profiles?.username||'';
+    return `<button class="btn" style="margin:3px" data-friend="${String(u).replace(/"/g,'&quot;')}">${String(u)}</button>`;
+  }).join(''):'<span style="color:var(--muted);font-size:.82rem">No friends yet.</span>';
+  box.querySelectorAll('[data-friend]').forEach(b=>b.onclick=()=>{document.getElementById('alkTo').value=b.dataset.friend;renderAlkLog()});
+};
+window.showIncomingMessagePopup=function(username,message){
+  const old=document.getElementById('metalkIncomingPopup');if(old)old.remove();
+  const box=document.createElement('div');box.id='metalkIncomingPopup';
+  box.style.cssText='position:fixed;right:18px;bottom:18px;z-index:100001;width:min(390px,calc(100vw - 36px))';
+  box.innerHTML=`<div class="card"><strong>New Met-Alk message</strong><p style="margin:8px 0">${String(message||'').replace(/[&<>]/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[x]))}</p>
+    <div style="display:flex;gap:8px"><button class="btn btn-primary" id="addMsgFriend">Add to friend list</button><button class="btn" id="closeMsg">Close</button></div></div>`;
+  document.body.appendChild(box);
+  document.getElementById('addMsgFriend').onclick=async()=>{
+    try{
+      const p=await metxonSupabase.from('profiles').select('username').eq('id',username).maybeSingle();
+      if(p.data?.username)await metxonAddFriend(p.data.username);
+      box.remove();
+    }catch(e){alert(e.message||'Could not add friend.');}
+  };
+  document.getElementById('closeMsg').onclick=()=>box.remove();
+};
+</script>
+
+<script>
+/* ===================== NEBULA STORE INSTALLS + METPAY ===================== */
+(function(){
+  const APPS={
+    metDevelop:{id:'met_develop',name:'MetDevelop',price:20000,desc:'Development workspace, MetLang/Atbash tools, SME development and cloud saving.'},
+    culeIn:{id:'cule_in',name:'Cule-In',price:1000,desc:'Natural-language product and device search.'},
+    nebulaAI:{id:'nebula_ai',name:'Nebula AI',price:10000,desc:'Nebula AI assistant terminal.'},
+    metAlk:{id:'met_alk',name:'Met-Alk',price:15000,desc:'Username-based messaging, friends and cloud chat.'},
+    blockBreaker:{id:'block_breaker',name:'Block Breaker',price:500,desc:'Arcade brick breaker with lives, extra balls and power bricks.'},
+    football:{id:'football',name:'Football',price:200,desc:'One-player football/soccer challenge with touch and keyboard controls.'},
+    chessBoys:{id:'chess_boys',name:'Chess Boys',price:10000,desc:'Chess matchmaking, chat and post-game Stockfish review.'},
+    metPay:{id:'metpay',name:'MetPay',price:1000,desc:'Metxon payments, cash chat, QR scanning and payment contacts.'}
+  };
+  window.NEBULA_APPS=APPS;
+
+  function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  async function currentCloudProfile(){return state.currentUser?await loadCloudAccount(state.currentUser):null;}
+
+  async function installedSet(){
+    const me=await currentCloudProfile(); if(!me)return new Set();
+    try{
+      const {data,error}=await metxonSupabase.from('metxon_app_installations').select('app_id').eq('user_id',me.id);
+      if(!error)return new Set((data||[]).map(x=>x.app_id));
+    }catch(e){}
+    return new Set();
+  }
+  window.nebulaIsInstalled=async id=>(await installedSet()).has(id);
+
+  async function refreshInstalledApps(){
+    try{
+      if(typeof renderInstalledApps==='function')await renderInstalledApps();
+    }catch(e){console.warn(e);}
+  }
+
+  window.installNebulaApp=async function(key){
+    const app=APPS[key]; if(!app)return;
+    if(!state.currentUser)return openAuth();
+    if(await nebulaIsInstalled(app.id))return launchNebulaApp(key);
+
+    const ok=confirm(
+      `Install ${app.name} for ₹${app.price.toLocaleString('en-IN')}?\n\n`+
+      `This is a ONE-TIME installation payment. The amount is charged from your Metxon balance only after you confirm.`
+    );
+    if(!ok)return;
+
+    try{
+      const {error}=await metxonSupabase.rpc('metxon_install_app',{
+        p_app_id:app.id,p_app_name:app.name,p_price:app.price
+      });
+      if(error)throw error;
+      await refreshCloudAccount();
+      await cloudLoadTransactions();
+      await refreshInstalledApps();
+      await renderNebulaStore();
+      alert(`${app.name} installed successfully. ₹${app.price.toLocaleString('en-IN')} was charged from your Metxon balance.`);
+    }catch(e){
+      alert(e.message||'Installation failed.');
+    }
+  };
+
+  function appCard(key,installed){
+    const a=APPS[key];
+    return `<div class="nebula-app-card">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
+        <div><h3>${esc(a.name)}</h3><span style="color:var(--muted);font-size:.78rem">Created by Metxon Corporate</span></div>
+        ${installed?'<span class="nebula-installed">INSTALLED</span>':''}
+      </div>
+      <p style="color:var(--muted);min-height:44px">${esc(a.desc)}</p>
+      <div class="nebula-price">₹${a.price.toLocaleString('en-IN')} one-time</div>
+      <button class="btn ${installed?'':'btn-primary'}" style="margin-top:10px"
+        onclick="${installed?`launchNebulaApp('${key}')`:`installNebulaApp('${key}')`}">
+        ${installed?'Open':`Install · ₹${a.price.toLocaleString('en-IN')}`}
+      </button>
+    </div>`;
+  }
+
+  window.renderInstalledApps=async function(){
+    const box=document.getElementById('installedAppsGrid');
+    if(!box)return;
+    if(!state.currentUser){
+      box.innerHTML='<div class="card"><span style="color:var(--muted)">Sign in to see installed apps.</span></div>';
+      return;
+    }
+    const installed=await installedSet();
+    const keys=Object.keys(APPS).filter(k=>installed.has(APPS[k].id));
+    box.innerHTML=keys.length
+      ? keys.map(k=>`<div class="card" style="cursor:pointer" onclick="launchNebulaApp('${k}')">
+          <h3>${esc(APPS[k].name)}</h3>
+          <p style="color:var(--muted)">Installed · one-time purchase</p>
+          <button class="btn btn-primary" onclick="event.stopPropagation();launchNebulaApp('${k}')">Open</button>
+        </div>`).join('')
+      : '<div class="card"><span style="color:var(--muted)">No apps installed yet. Open Nebula Store to install one.</span></div>';
+  };
+
+  window.renderNebulaStore=async function(){
+    const content=document.getElementById('appContent'); if(!content)return;
+    const installed=await installedSet();
+    content.innerHTML=`
+      <div class="card" style="margin-bottom:16px">
+        <h3>Nebula Store</h3>
+        <p style="color:var(--muted)">Install an app before using it. Every installation is a one-time payment from your Metxon balance and requires confirmation.</p>
+      </div>
+      <h3>Apps & Games</h3>
+      <div class="nebula-store-grid">${Object.keys(APPS).map(k=>appCard(k,installed.has(APPS[k].id))).join('')}</div>
+      <div class="card" style="margin-top:16px">
+        <strong>One-time installation prices</strong>
+        <p style="color:var(--muted);margin-bottom:0">
+          MetDevelop ₹20,000 · Cule-In ₹1,000 · Nebula AI ₹10,000 · Met-Alk ₹15,000 ·
+          Block Breaker ₹500 · Football ₹200 · Chess Boys ₹10,000 · MetPay ₹1,000
+        </p>
+      </div>
+      <div id="gameArea" style="margin-top:16px"></div>`;
+  };
+
+  window.launchNebulaApp=async function(key){
+    const app=APPS[key]; if(!app)return;
+    if(!(await nebulaIsInstalled(app.id)))return alert(`Please install ${app.name} from the Nebula Store first.`);
+
+    const ws=document.getElementById('appWorkspace');
+    const title=document.getElementById('appTitle');
+    const content=document.getElementById('appContent');
+    if(ws)ws.style.display='block';
+    if(title)title.textContent=app.name;
+
+    if(key==='blockBreaker'){content.innerHTML='<div id="gameArea"></div>';startBlockBreaker();return;}
+    if(key==='football'){content.innerHTML='<div id="gameArea"></div>';startSoccerGame();return;}
+    if(key==='chessBoys'){content.innerHTML='<div id="gameArea"></div>';startChess();return;}
+    if(key==='metPay'){content.innerHTML='<div id="gameArea"></div>';renderMetPayApp(document.getElementById('gameArea'));return;}
+
+    /* Preserve the original full app implementations. */
+    const original=window.__metxonOriginalOpenApp||window.openApp;
+    if(typeof original==='function'){
+      original(key);
+      await refreshInstalledApps();
+    }
+  };
+
+
+  function metPayShell(){return `
+    <div class="card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><h2 style="color:var(--cyan);margin:0">MetPay</h2><span style="color:var(--muted);font-size:.78rem">Created by Metxon Corporate</span></div><span class="nebula-installed">INSTALLED</span></div>
+      <div class="metpay-tabs"><button class="btn active" data-mp-tab="pay">Transaction</button><button class="btn" data-mp-tab="chat">Chat</button><button class="btn" data-mp-tab="scan">Scan</button><button class="btn" data-mp-tab="contacts">Contacts</button><button class="btn" data-mp-tab="cloud">Recharge cloud</button></div>
+      <div id="mp-pay" class="metpay-panel active"></div><div id="mp-chat" class="metpay-panel"></div><div id="mp-scan" class="metpay-panel"></div><div id="mp-contacts" class="metpay-panel"></div><div id="mp-cloud" class="metpay-panel"><h3>Met-Cloud</h3><p>Choose Recharge cloud to manage your ecosystem storage.</p><button class="btn btn-primary" id="mpOpenCloud">Open Met-Cloud</button></div>
+    </div>`;}
+
+  async function loadMetPayContacts(){
+    const me=await currentCloudProfile(); if(!me)return[];
+    const {data,error}=await metxonSupabase.from('metpay_contacts').select('contact_id,created_at').eq('user_id',me.id).order('created_at',{ascending:true});
+    if(error){console.warn(error);return[];} const ids=(data||[]).map(x=>x.contact_id); if(!ids.length)return[];
+    const {data:profiles,error:e2}=await metxonSupabase.from('profiles').select('id,username,display_name').in('id',ids);
+    if(e2){console.warn(e2);return[];} return profiles||[];
+  }
+  async function addMetPayContact(username){
+    const u=String(username||'').trim(); if(!u)return;
+    const {error}=await metxonSupabase.rpc('metpay_add_contact',{p_username:u}); if(error)throw error;
+  }
+  window.metpayAddContact=addMetPayContact;
+
+  async function renderPayPanel(){
+    const p=document.getElementById('mp-pay');if(!p)return;
+    const contacts=await loadMetPayContacts();
+    p.innerHTML=`<h3>Send / Receive Cash</h3><p style="color:var(--muted)">Enter a Metxon username and amount to transfer money.</p><div class="form-group"><input id="mpTo" placeholder="Recipient username"></div><div class="form-group"><input id="mpAmount" type="number" min="1" step="0.01" placeholder="Amount (₹)"></div><button class="btn btn-primary" id="mpSend">Send ₹</button><button class="btn" id="mpAdd">Add Contact</button><button class="btn" id="mpRechargeCloud">Recharge cloud</button><div class="metpay-contacts" id="mpPayContacts"></div><div class="metpay-status" id="mpPayStatus"></div>`;
+    const cb=document.getElementById('mpPayContacts');cb.innerHTML=contacts.length?contacts.map(c=>`<button class="btn metpay-contact" data-u="${esc(c.username)}">${esc(c.username)}</button>`).join(''):'<span style="color:var(--muted)">No contacts yet.</span>';
+    cb.querySelectorAll('[data-u]').forEach(b=>b.onclick=()=>document.getElementById('mpTo').value=b.dataset.u);
+    document.getElementById('mpAdd').onclick=async()=>{try{await addMetPayContact(document.getElementById('mpTo').value);await renderPayPanel();await renderContactsPanel();}catch(e){alert(e.message||'Could not add contact.')}};
+    document.getElementById('mpRechargeCloud').onclick=()=>window.launchNebulaApp('metCloud');
+    document.getElementById('mpSend').onclick=async()=>{
+      const to=document.getElementById('mpTo').value.trim().toLowerCase(), amount=Number(document.getElementById('mpAmount').value), status=document.getElementById('mpPayStatus');
+      if(!to||!Number.isFinite(amount)||amount<=0)return alert('Enter a valid username and amount.');
+      const ok=confirm(`Send ₹${amount.toLocaleString('en-IN')} to ${to}?`);if(!ok)return;
+      try{status.innerHTML='<span class="mp-processing"><span class="mp-spinner"></span> Processing transaction…</span>';await cloudTransfer(to,amount);try{await addMetPayContact(to)}catch{}status.textContent=`Sent ₹${amount.toLocaleString('en-IN')} to ${to}.`;document.getElementById('mpAmount').value='';await renderContactsPanel();}
+      catch(e){status.textContent='';alert(e.message||'Transfer failed.');}
+    };
+  }
+
+  async function renderChatPanel(){
+    const p=document.getElementById('mp-chat');if(!p)return;
+    const contacts=await loadMetPayContacts();
+    p.innerHTML=`<h3>Cash Chat</h3><p style="color:var(--muted)">Discuss sending or receiving cash with a username.</p><div class="form-group"><input id="mpChatTo" placeholder="Username"></div><div class="metpay-contacts">${contacts.map(c=>`<button class="btn metpay-contact" data-u="${esc(c.username)}">${esc(c.username)}</button>`).join('')}</div><div id="mpChatLog" class="terminal" style="margin-top:10px;max-height:260px;overflow:auto"></div><div style="display:flex;gap:8px;margin-top:8px"><input id="mpChatMsg" placeholder="Message about the payment…" style="flex:1"><button class="btn btn-primary" id="mpChatSend">Send</button></div>`;
+    p.querySelectorAll('[data-u]').forEach(b=>b.onclick=()=>{document.getElementById('mpChatTo').value=b.dataset.u;loadMpChat();});
+    async function loadMpChat(){const to=document.getElementById('mpChatTo').value.trim().toLowerCase();if(!to)return;try{const rows=await cloudLoadMessages(to);const log=document.getElementById('mpChatLog');log.innerHTML=rows.map(m=>`<div style="margin:5px 0"><strong>${m.sender_id===m.recipient_id?'':' '}</strong>${esc(m.message)} <span style="color:var(--muted);font-size:.72rem">${new Date(m.created_at).toLocaleTimeString()}</span></div>`).join('')||'<span style="color:var(--muted)">No messages yet.</span>';log.scrollTop=log.scrollHeight;}catch(e){console.warn(e);}}
+    document.getElementById('mpChatSend').onclick=async()=>{const to=document.getElementById('mpChatTo').value.trim().toLowerCase(),msg=document.getElementById('mpChatMsg').value.trim();if(!to||!msg)return;try{await cloudSendMessage(to,msg);document.getElementById('mpChatMsg').value='';await loadMpChat();}catch(e){alert(e.message||'Could not send message.')}};
+  }
+
+  function renderScanPanel(){
+    const p=document.getElementById('mp-scan');if(!p)return;
+    p.innerHTML=`<h3>Scan to Pay</h3><p style="color:var(--muted)">Show your QR to someone, or scan a MetPay QR with your camera.</p><div style="text-align:center"><div id="mpQrBox"></div><small style="color:var(--muted)">Your payment QR contains your Metxon username.</small></div><button class="btn btn-primary" id="mpStartScan">Start Camera Scanner</button><button class="btn" id="mpStopScan" style="display:none">Stop Scanner</button><video id="mpVideo" class="metpay-scanner" playsinline style="display:none"></video><div id="mpScanStatus" class="metpay-status">Scanner ready.</div><div class="form-group"><input id="mpQrFallback" placeholder="Or paste a MetPay QR value / username"></div><button class="btn" id="mpUseQr">Use QR Value</button>`;
+    const payload=`metpay://pay?to=${encodeURIComponent(state.currentUser)}`;
+    document.getElementById('mpQrBox').innerHTML=`<img class="metpay-qr" alt="MetPay QR for ${esc(state.currentUser)}" src="https://quickchart.io/qr?size=220&text=${encodeURIComponent(payload)}">`;
+    let stream=null,raf=null;
+    function handleValue(v){try{const u=new URL(v);if(u.protocol==='metpay:'){const to=u.searchParams.get('to');const amount=u.searchParams.get('amount');document.getElementById('mpTo')?.setAttribute('value',to||'');const pay=document.querySelector('[data-mp-tab="pay"]');if(pay)pay.click();if(to)document.getElementById('mpTo').value=to;if(amount)document.getElementById('mpAmount').value=amount;document.getElementById('mpScanStatus').textContent=`QR loaded for ${to||'user'}${amount?' · ₹'+amount:''}`;return true;}}catch{} if(v){const pay=document.querySelector('[data-mp-tab="pay"]');if(pay)pay.click();if(document.getElementById('mpTo'))document.getElementById('mpTo').value=v.trim();document.getElementById('mpScanStatus').textContent=`Username loaded: ${v.trim()}`;return true;}return false;}
+    document.getElementById('mpUseQr').onclick=()=>handleValue(document.getElementById('mpQrFallback').value);
+    document.getElementById('mpStartScan').onclick=async()=>{const status=document.getElementById('mpScanStatus'),video=document.getElementById('mpVideo');try{if(!('BarcodeDetector' in window))throw new Error('This browser does not provide QR camera scanning. Use the paste fallback below.');const detector=new BarcodeDetector({formats:['qr_code']});stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}});video.srcObject=stream;video.style.display='block';document.getElementById('mpStartScan').style.display='none';document.getElementById('mpStopScan').style.display='inline-block';await video.play();const scan=async()=>{if(!stream)return;try{const codes=await detector.detect(video);if(codes[0]?.rawValue){handleValue(codes[0].rawValue);stop();return;}}catch(e){}raf=requestAnimationFrame(scan)};scan();status.textContent='Point the camera at a MetPay QR.';}catch(e){status.textContent=e.message||'Camera access failed.';}};
+    function stop(){if(raf)cancelAnimationFrame(raf);raf=null;if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}const v=document.getElementById('mpVideo');if(v){v.srcObject=null;v.style.display='none';}const s=document.getElementById('mpStartScan'),st=document.getElementById('mpStopScan');if(s)s.style.display='inline-block';if(st)st.style.display='none';}
+    document.getElementById('mpStopScan').onclick=()=>{stop();document.getElementById('mpScanStatus').textContent='Scanner stopped.'};
+  }
+
+  async function renderContactsPanel(){
+    const p=document.getElementById('mp-contacts');if(!p)return;const contacts=await loadMetPayContacts();
+    p.innerHTML=`<h3>Contacts</h3><p style="color:var(--muted)">People you have paid or added to your MetPay contacts appear here.</p><div class="form-group"><input id="mpNewContact" placeholder="Username to add"></div><button class="btn btn-primary" id="mpAddContact2">Add Contact</button><div class="nebula-store-grid" style="margin-top:12px">${contacts.length?contacts.map(c=>`<div class="card"><strong>${esc(c.display_name||c.username)}</strong><p style="color:var(--muted);margin:3px 0">@${esc(c.username)}</p><button class="btn" data-payto="${esc(c.username)}">Pay</button><button class="btn" data-chatto="${esc(c.username)}">Chat</button></div>`).join(''):'<div class="card"><span style="color:var(--muted)">No contacts yet.</span></div>'}</div>`;
+    document.getElementById('mpAddContact2').onclick=async()=>{try{await addMetPayContact(document.getElementById('mpNewContact').value);await renderContactsPanel();}catch(e){alert(e.message||'Could not add contact.')}};
+    p.querySelectorAll('[data-payto]').forEach(b=>b.onclick=()=>{document.querySelector('[data-mp-tab="pay"]').click();document.getElementById('mpTo').value=b.dataset.payto;});
+    p.querySelectorAll('[data-chatto]').forEach(b=>b.onclick=()=>{document.querySelector('[data-mp-tab="chat"]').click();setTimeout(()=>{document.getElementById('mpChatTo').value=b.dataset.chatto;},50);});
+  }
+
+  window.renderMetPayApp=async function(area){
+    area.innerHTML=metPayShell();
+    const tabs=area.querySelectorAll('[data-mp-tab]');
+    tabs.forEach(tab=>tab.onclick=async()=>{tabs.forEach(x=>x.classList.remove('active'));tab.classList.add('active');area.querySelectorAll('.metpay-panel').forEach(x=>x.classList.remove('active'));const panel=area.querySelector('#mp-'+tab.dataset.mpTab);panel.classList.add('active');if(tab.dataset.mpTab==='pay')await renderPayPanel();if(tab.dataset.mpTab==='chat')await renderChatPanel();if(tab.dataset.mpTab==='scan')renderScanPanel();if(tab.dataset.mpTab==='contacts')await renderContactsPanel();if(tab.dataset.mpTab==='cloud'){const b=document.getElementById('mpOpenCloud');if(b)b.onclick=()=>window.launchNebulaApp('metCloud');}});
+    await renderPayPanel();
+  };
+
+  if(!window.__metxonOriginalOpenApp)window.__metxonOriginalOpenApp=window.__openAppOriginal || window.openApp;
+  const baseOpen=window.__metxonOriginalOpenApp;
+  window.openApp=function(name){
+    if(name==='nebulaStore'){
+      if(!state.currentUser)return alert('Please login first');
+      const ws=document.getElementById('appWorkspace');ws.style.display='block';document.getElementById('appTitle').textContent='Nebula Store';window.renderNebulaStore();ws.scrollIntoView({behavior:'smooth'});return;
+    }
+    if(APPS[name]){
+      if(!state.currentUser)return alert('Please login first');
+      nebulaIsInstalled(APPS[name].id).then(ok=>{
+        if(!ok)return alert(`Install ${APPS[name].name} from the Nebula Store first.`);
+        launchNebulaApp(name);
+        document.getElementById('appWorkspace')?.scrollIntoView({behavior:'smooth'});
+      });
+      return;
+    }
+    return baseOpen(name);
+  };
+})();
+</script>
+
+<script>
+
+/* ===================== DEFAULT METXON NOTIFICATION SOUND ===================== */
+window.metxonNotifySound=function(kind='default'){
+  try{
+    const C=window.AudioContext||window.webkitAudioContext;if(!C)return;
+    const ctx=new C(),now=ctx.currentTime;
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.type='sine';
+    o.frequency.setValueAtTime(kind==='message'?880:660,now);
+    o.frequency.exponentialRampToValueAtTime(kind==='message'?1046:880,now+.12);
+    g.gain.setValueAtTime(.0001,now);
+    g.gain.exponentialRampToValueAtTime(.055,now+.012);
+    g.gain.exponentialRampToValueAtTime(.0001,now+.22);
+    o.connect(g);g.connect(ctx.destination);o.start(now);o.stop(now+.23);
+    setTimeout(()=>ctx.close().catch(()=>{}),350);
+  }catch(e){}
+};
+
+</script>
+
+<script>
+/* Visible Play with Bots safety hook */
+(function(){
+  function ensureVisibleBotPanel(){
+    const area=document.getElementById('gameArea');
+    const panel=document.getElementById('chessBotsPanel');
+    if(!area || panel || !window.startStockfishBotGame)return;
+    const candidate=document.querySelector('#chessChallengePanel')||area.firstElementChild;
+    if(!candidate)return;
+    const p=document.createElement('div');
+    p.id='chessBotsPanel';
+    p.className='card';
+    p.style.margin='14px 0';
+    p.innerHTML=`<h3 style="margin:0 0 6px;">Play with Bots</h3>
+      <p style="color:var(--muted);margin:0 0 10px;">Play against Stockfish. Choose the bot's difficulty/ELO.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn" data-b="800">800 ELO · Beginner</button>
+        <button class="btn" data-b="1100">1100 ELO · Easy</button>
+        <button class="btn" data-b="1400">1400 ELO · Intermediate</button>
+        <button class="btn" data-b="1700">1700 ELO · Advanced</button>
+        <button class="btn btn-primary" data-b="2000">2000 ELO · Expert</button>
+      </div>`;
+    p.querySelectorAll('[data-b]').forEach(b=>b.onclick=()=>window.startStockfishBotGame(Number(b.dataset.b)));
+    candidate.insertAdjacentElement('afterend',p);
+  }
+
+  const oldStart=window.startChess;
+  if(typeof oldStart==='function'){
+    window.startChess=function(){
+      const r=oldStart.apply(this,arguments);
+      setTimeout(ensureVisibleBotPanel,50);
+      return r;
+    };
+  }
+
+  setTimeout(ensureVisibleBotPanel,500);
+})();
+</script>
+
+<script>
+
+/* ===== Metxon internal ecosystem apps v2 ===== */
+(function(){
+ const APPS=window.NEBULA_APPS||{};
+ Object.assign(APPS,{
+  metAil:{id:'met_ail',name:'Met-Ail',price:0,desc:'Internal mail for Metxon and its subsidiaries.'},
+  metxonCare:{id:'metxon_care',name:'Metxon Care',price:0,desc:'Support tickets with replies from the Metxon team.'},
+  metCloud:{id:'met_cloud',name:'Met-Cloud',price:0,desc:'Private cloud storage with QuickUp.'},
+  metNa:{id:'met_na',name:'Met-Na',price:0,desc:'Metxon Arena — share short posts, follow people, like and reply.'}
+ });
+ window.NEBULA_APPS=APPS;
+ const $=id=>document.getElementById(id);
+ const safe=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ async function profile(){if(!state.currentUser)throw Error('Please sign in to your Metxon account first.');const p=await loadCloudAccount(state.currentUser);if(!p||!p.id)throw Error('Your Metxon profile could not be loaded. Sign out and sign in again.');return p;}
+ function show(title,html){const w=$('appWorkspace'),t=$('appTitle'),c=$('appContent');if(!c)throw Error('App workspace was not found in this page.');if(w)w.style.display='block';if(t)t.textContent=title;c.innerHTML=html;if(w)w.scrollIntoView({behavior:'smooth',block:'start'});return c;}
+ async function installedIds(){
+  // Use the same lookup pattern as the original Nebula Store. A read-policy failure
+  // must not crash the entire store; installation will show the actual write error.
+  try{const p=await profile();const {data,error}=await metxonSupabase.from('metxon_app_installations').select('app_id').eq('user_id',p.id);if(error){console.warn('Nebula installation lookup:',error.message);return new Set();}return new Set((data||[]).map(x=>x.app_id));}
+  catch(e){console.warn('Nebula installation lookup:',e.message);return new Set();}
+ }
+ const originalInstall=window.installNebulaApp;
+ window.installNebulaApp=async function(key){
+  const app=APPS[key];if(!app)return;
+  if(app.price>0){if(typeof originalInstall==='function')return originalInstall(key);return alert('The original paid-app installer is unavailable.');}
+  if(!state.currentUser){if(typeof openAuth==='function')return openAuth();return alert('Please sign in first.');}
+  try{
+   const p=await profile(),set=await installedIds();
+   if(set.has(app.id))return window.launchNebulaApp(key);
+   const {error}=await metxonSupabase.from('metxon_app_installations').insert({user_id:p.id,app_id:app.id,app_name:app.name,price:0});
+   if(error){
+    if(/duplicate|unique/i.test(error.message||''))return window.launchNebulaApp(key);
+    throw error;
+   }
+   if(typeof refreshInstalledApps==='function')await refreshInstalledApps();
+   await window.renderNebulaStore();
+   alert(app.name+' installed for free.');
+  }catch(e){console.error('Install app:',e);alert('Could not install '+app.name+': '+(e.message||'Unknown database error'));}
+ };
+ window.renderNebulaStore=async function(){
+  const c=$('appContent');if(!c)return;
+  if(!state.currentUser){c.innerHTML='<div class="card">Please sign in to use Nebula Store.</div>';return;}
+  const keys=Object.keys(APPS);
+  let set=new Set();
+  try{set=await installedIds();}catch(e){console.warn('Installed-app lookup failed',e);}
+  c.innerHTML='<div class="card"><h3>Nebula Store</h3><p style="color:var(--muted)">Free ecosystem apps: Met-Ail, Metxon Care, Met-Cloud and Met-Na. These run inside Metxon and its subsidiaries; no public email domain or Gmail link is needed.</p></div><h3>Apps &amp; Games</h3><div class="nebula-store-grid">'+keys.map(k=>{const a=APPS[k],yes=set.has(a.id);return '<div class="nebula-app-card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><h3>'+safe(a.name)+'</h3>'+(yes?'<span class="nebula-installed">INSTALLED</span>':'')+'</div><p style="color:var(--muted);min-height:44px">'+safe(a.desc)+'</p><div class="nebula-price">'+(Number(a.price)===0?'Free':'₹'+Number(a.price).toLocaleString('en-IN')+' one-time')+'</div><button class="btn '+(yes?'':'btn-primary')+'" style="margin-top:10px" onclick="window.'+(yes?'launchNebulaApp':'installNebulaApp')+'(&quot;'+safe(k)+'&quot;)">'+(yes?'Open':Number(a.price)===0?'Install free':'Install · ₹'+Number(a.price).toLocaleString('en-IN'))+'</button></div>';}).join('')+'</div><div id="gameArea" style="margin-top:16px"></div>';
+ };
+
+ const originalLaunch=window.launchNebulaApp;
+ window.launchNebulaApp=async function(key){
+  if(!['metAil','metxonCare','metCloud','metNa'].includes(key))return typeof originalLaunch==='function'?originalLaunch(key):window.openApp?.(key);
+  if(!state.currentUser){if(typeof openAuth==='function')return openAuth();return alert('Please sign in first.');}
+  try{const set=await installedIds();if(!set.has(APPS[key].id))return alert('Install this app from Nebula Store first.');if(key==='metAil')return window.openMetAil();if(key==='metxonCare')return window.openMetxonCare();if(key==='metCloud')return window.openMetCloud();return window.openMetNa();}
+  catch(e){console.error('Launch app:',e);alert('Could not open app: '+(e.message||'Unknown error'));}
+ };
+ async function mail(folder='Inbox'){
+  const p=await profile();
+  const account=await metxonSupabase.from('metail_accounts').select('*').eq('user_id',p.id).maybeSingle();
+  if(account.error){show('Met-Ail','<div class="card"><h2>Met-Ail setup</h2><p>Could not check your Met-Ail account: '+safe(account.error.message)+'</p><button class="btn" onclick="window.openMetAil()">Try again</button></div>');return;}
+  if(!account.data){
+   show('Create your Met-Ail account','<div class="card"><h2 style="color:var(--cyan);margin-top:0">Welcome to Met-Ail</h2><p>Create your internal Metxon mail identity. This is only for Metxon and its subsidiaries; it does not send to Gmail. Your secure Metxon sign-in is used for the password, so we do not store another password in this app.</p><label for="ailDisplay">Display name</label><input id="ailDisplay" maxlength="60" placeholder="How your name appears" style="width:100%;margin:6px 0 12px"><label for="ailUser">Choose a username</label><input id="ailUser" maxlength="24" placeholder="e.g. Jurassicpark" style="width:100%;margin:6px 0"><p style="color:var(--muted)">Your internal address will be <b id="ailAddressPreview">@metail.com</b>. Use 3–24 letters, numbers or underscores.</p><button class="btn btn-primary" id="ailCreate">Create Met-Ail account</button><p id="ailError" style="color:#e66"></p></div>');
+   $('ailUser').oninput=()=>{$('ailAddressPreview').textContent=($('ailUser').value.trim().replace(/[^a-zA-Z0-9_]/g,'')||'username')+'@metail.com';};
+   $('ailCreate').onclick=async()=>{const display=$('ailDisplay').value.trim(),username=$('ailUser').value.trim();if(display.length<1)return $('ailError').textContent='Enter a display name.';if(!/^[a-zA-Z0-9_]{3,24}$/.test(username))return $('ailError').textContent='Username must be 3–24 letters, numbers or underscores.';const btn=$('ailCreate');btn.disabled=true;btn.textContent='Creating…';const z=await metxonSupabase.from('metail_accounts').insert({user_id:p.id,username,display_name:display});if(z.error){$('ailError').textContent=/unique|duplicate/i.test(z.error.message)?'That username is already taken. Choose another.':z.error.message;btn.disabled=false;btn.textContent='Create Met-Ail account';return;}await mail('Inbox');};
+   return;
+  }
+  const email=account.data.username+'@metail.com';
+  const c=show('Met-Ail','<div class="card"><h2 style="margin:0;color:var(--cyan)">Met-Ail</h2><p style="color:var(--muted)">Internal Metxon mail · '+safe(email)+'</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-f="Inbox">Inbox</button><button class="btn" data-f="Sent">Sent</button><button class="btn" data-f="Drafts">Drafts</button><button class="btn btn-primary" id="mailCompose">Compose</button></div></div><div id="mailBody" class="card" style="margin-top:12px">Loading…</div>');
+  c.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>mail(b.dataset.f));
+  const body=$('mailBody'),r=await metxonSupabase.from('metmail_messages').select('*').eq('owner_id',p.id).eq('folder',folder).order('created_at',{ascending:false}).limit(100);
+  if(r.error){body.innerHTML='<p>Could not load mail: '+safe(r.error.message)+'</p>';return;}
+  let notices='';if(folder==='Inbox'){const n=await metxonSupabase.from('metxon_app_notifications').select('*').eq('user_id',p.id).order('created_at',{ascending:false}).limit(30);if(!n.error)notices=(n.data||[]).map(x=>'<article style="border-top:1px solid var(--border);padding:10px 0"><b>🔔 '+safe(x.title)+'</b><div style="color:var(--muted)">'+safe(x.app_name)+' · '+new Date(x.created_at).toLocaleString()+'</div><p>'+safe(x.message)+'</p></article>').join('');}
+  body.innerHTML='<h3>'+safe(folder)+'</h3>'+notices+((r.data||[]).map(m=>'<article style="border-top:1px solid var(--border);padding:10px 0"><b>'+safe(m.subject||'(No subject)')+'</b><div style="color:var(--muted)">'+(folder==='Sent'?'To: '+safe(m.recipient):'From: '+safe(m.sender))+' · '+new Date(m.created_at).toLocaleString()+'</div><p style="white-space:pre-wrap">'+safe(m.body)+'</p></article>').join('')||'<p style="color:var(--muted)">Nothing here yet.</p>');
+  $('mailCompose').onclick=()=>{body.innerHTML='<h3>Compose internal mail</h3><p style="color:var(--muted)">Only accounts registered in Metxon can receive internal mail.</p><input id="mailTo" placeholder="username@metail.com" style="width:100%;margin:6px 0"><input id="mailSub" placeholder="Subject" style="width:100%;margin:6px 0"><textarea id="mailText" rows="5" placeholder="Message" style="width:100%;margin:6px 0"></textarea><button class="btn btn-primary" id="mailSend">Send</button> <button class="btn" id="mailDraft">Save draft</button>';
+   async function save(folderName){const to=$('mailTo').value.trim().toLowerCase(),subject=$('mailSub').value.trim(),text=$('mailText').value.trim();if(folderName==='Sent'&&!/^[a-z0-9._+-]+@metail\.com$/.test(to))return alert('Enter a valid internal @metail.com address.');if(!subject&&!text)return alert('Add a subject or message.');const r=await metxonSupabase.from('metmail_messages').insert({owner_id:p.id,account_email:email,folder:folderName,sender:email,recipient:to||email,subject,body:text});if(r.error)return alert(r.error.message);if(folderName==='Sent'){const username=to.split('@')[0],target=await metxonSupabase.from('metail_accounts').select('user_id,username').ilike('username',username).maybeSingle();if(target.data?.user_id){const copy=await metxonSupabase.from('metmail_messages').insert({owner_id:target.data.user_id,account_email:to,folder:'Inbox',sender:email,recipient:to,subject,body:text});if(copy.error)return alert('Sent record saved, but inbox delivery failed: '+copy.error.message);}else return alert('No Met-Ail account with that username was found.');}alert(folderName==='Drafts'?'Draft saved.':'Internal message sent.');mail(folderName==='Drafts'?'Drafts':'Sent');}
+   $('mailSend').onclick=()=>save('Sent');$('mailDraft').onclick=()=>save('Drafts');
+  };
+ }
+ window.openMetAil=()=>mail('Inbox');window.Mail=window.openMetAil;window.mail=window.openMetAil;window.openMetail=window.openMetAil;
+ window.mail=window.openMetAil;window.Mail=window.openMetAil;window.openMetail=window.openMetAil;
+ // Compatibility aliases: older Nebula Store launch handlers may call Mail/mail by name.
+ window.Mail=window.openMetAil;
+ window.mail=window.openMetAil;
+ window.openMetail=window.openMetAil;
+
+ window.openMetxonCare=()=>care();
+ window.openMetCloud=()=>cloud();
+ window.cloud=window.openMetCloud;window.metCloud=window.openMetCloud;
+ window.openMetNa=()=>metna();
+ async function care(){
+  const p=await profile();show('Metxon Care','<div class="card"><h2 style="color:var(--cyan);margin:0">Metxon Care</h2><p style="color:var(--muted)">Tell us the problems. Support replies are asynchronous; this is not instant live chat.</p><input id="careSub" placeholder="Subject" style="width:100%;margin:6px 0"><textarea id="careMsg" rows="4" placeholder="Tell the problems…" style="width:100%;margin:6px 0"></textarea><button class="btn btn-primary" id="careSend">Submit ticket</button></div><div id="careList" class="card" style="margin-top:12px">Loading…</div>');
+  $('careSend').onclick=async()=>{const message=$('careMsg').value.trim();if(!message)return alert('Describe the problem first.');const t=await metxonSupabase.from('metxon_care_tickets').insert({user_id:p.id,subject:$('careSub').value.trim()||'Support request'}).select('id').single();if(t.error)return alert(t.error.message);const m=await metxonSupabase.from('metxon_care_messages').insert({ticket_id:t.data.id,author_id:p.id,author_role:'customer',message});if(m.error)return alert(m.error.message);$('careMsg').value='';$('careSub').value='';await load();alert('Ticket submitted. Check here later for a reply.');};
+  async function load(){const box=$('careList'),r=await metxonSupabase.from('metxon_care_tickets').select('*').eq('user_id',p.id).order('created_at',{ascending:false});if(r.error){box.textContent=r.error.message;return;}if(!r.data?.length){box.innerHTML='<h3>Your tickets</h3><p>No tickets yet.</p>';return;}const ids=r.data.map(x=>x.id),m=await metxonSupabase.from('metxon_care_messages').select('*').in('ticket_id',ids).order('created_at',{ascending:true});box.innerHTML='<h3>Your tickets</h3>'+r.data.map(t=>'<section style="padding:12px 0;border-top:1px solid var(--border)"><b>'+safe(t.subject)+'</b> · '+safe(t.status)+((m.data||[]).filter(x=>x.ticket_id===t.id).map(x=>'<p><b>'+(x.author_role==='support'?'Metxon Support':'You')+':</b> '+safe(x.message)+'</p>').join(''))+'</section>').join('');}await load();
+ }
+ async function cloud(){
+  const p=await profile();
+  show('Met-Cloud','<div class="card"><h2 style="color:var(--cyan);margin:0">Met-Cloud</h2><p style="color:var(--muted)">QuickUp · private files · persistent storage</p><div id="cloudQuota">Loading…</div><div id="cloudWallet" style="margin:8px 0">Loading JP balance…</div><input id="cloudFiles" type="file" multiple style="margin:12px 0"><button class="btn btn-primary" id="cloudUpload">QuickUp files</button><h3 style="margin-top:18px">Storage plans</h3><p>Free: 15 GB · 30 GB: 10 JP · 40 GB: 20 JP</p><p style="color:var(--muted)">Paid storage upgrades are one-time purchases and do not reset. Upgrading from 30 GB to 40 GB costs the 10 JP difference.</p><button class="btn" data-plan="15">Free · 15 GB</button> <button class="btn" data-plan="30">Upgrade · 30 GB / 10 JP</button> <button class="btn" data-plan="40">Upgrade · 40 GB / 20 JP</button><p id="cloudPlanStatus" aria-live="polite"></p></div><div id="cloudList" class="card" style="margin-top:12px">Loading files…</div>');
+  async function load(){
+   let e=await metxonSupabase.from('metcloud_entitlements').select('*').eq('user_id',p.id).maybeSingle();
+   if(e.error){$('cloudQuota').textContent='Could not load storage: '+e.error.message;return;}
+   if(!e.data){e=await metxonSupabase.from('metcloud_entitlements').insert({user_id:p.id,capacity_gb:15,plan_name:'Free'}).select('*').single();if(e.error){$('cloudQuota').textContent=e.error.message;return;}}
+   const r=await metxonSupabase.from('metcloud_files').select('*').eq('user_id',p.id).order('created_at',{ascending:false});
+   if(r.error){$('cloudQuota').textContent='Could not load files: '+r.error.message;return;}
+   const wallet=await metxonSupabase.from('profiles').select('jp_balance').eq('id',p.id).maybeSingle();
+   $('cloudWallet').textContent='Available JP: '+Number(wallet.data?.jp_balance||0).toLocaleString('en-IN');
+   const used=(r.data||[]).reduce((n,f)=>n+Number(f.size_bytes||0),0);
+   $('cloudQuota').innerHTML='<b>'+ (used/1024**3).toFixed(3)+' GB used of '+e.data.capacity_gb+' GB</b> · Current plan: '+safe(e.data.plan_name);
+   $('cloudList').innerHTML='<h3>Your files</h3>'+((r.data||[]).map(f=>'<div style="display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid var(--border)"><span>'+safe(f.file_name)+' ('+Math.ceil(f.size_bytes/1024)+' KB)</span><button class="btn" data-del="'+safe(f.id)+'" data-path="'+safe(f.storage_path)+'">Delete</button></div>').join('')||'<p>No files uploaded.</p>');
+   $('cloudList').querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{if(!confirm('Delete this file?'))return;const a=await metxonSupabase.storage.from('metcloud-files').remove([b.dataset.path]);if(a.error)return alert(a.error.message);const d=await metxonSupabase.from('metcloud_files').delete().eq('id',b.dataset.del).eq('user_id',p.id);if(d.error)return alert(d.error.message);await load();});
+  }
+  $('cloudUpload').onclick=async()=>{
+   const files=Array.from($('cloudFiles').files||[]);if(!files.length)return alert('Choose files first.');
+   const e=await metxonSupabase.from('metcloud_entitlements').select('capacity_gb').eq('user_id',p.id).maybeSingle(),r=await metxonSupabase.from('metcloud_files').select('size_bytes').eq('user_id',p.id);
+   if(e.error||r.error)return alert(e.error?.message||r.error?.message);
+   const used=(r.data||[]).reduce((n,f)=>n+Number(f.size_bytes||0),0),total=files.reduce((n,f)=>n+f.size,0);
+   if(total+used>Number(e.data?.capacity_gb||15)*1024**3)return alert('Upload exceeds your storage capacity.');
+   const btn=$('cloudUpload');btn.disabled=true;btn.innerHTML='<span class="metcloud-progress"><span class="metcloud-spinner"></span> Uploading…</span>';
+   try{for(const f of files){const path=p.id+'/'+Date.now()+'-'+crypto.randomUUID()+'-'+f.name.replace(/[^a-zA-Z0-9._-]/g,'_'),u=await metxonSupabase.storage.from('metcloud-files').upload(path,f);if(u.error)throw u.error;const m=await metxonSupabase.from('metcloud_files').insert({user_id:p.id,file_name:f.name,storage_path:path,size_bytes:f.size});if(m.error)throw m.error;}}
+   catch(e){alert('Upload failed: '+e.message);}finally{btn.disabled=false;btn.textContent='QuickUp files';$('cloudFiles').value='';await load();}
+  };
+  document.getElementById('appContent').querySelectorAll('[data-plan]').forEach(b=>b.onclick=async()=>{
+   const gb=Number(b.dataset.plan),status=$('cloudPlanStatus');if(gb===15)return alert('The free 15 GB plan is the default. Your purchased capacity remains until you choose a higher plan.');
+   if(!confirm('Buy the '+gb+' GB Met-Cloud upgrade for '+(gb===30?'10':'20')+' JP (or the 10 JP difference if upgrading from 30 GB)?'))return;
+   status.innerHTML='<span class="metcloud-progress"><span class="metcloud-spinner"></span> Processing secure JP purchase…</span>';document.querySelectorAll('[data-plan]').forEach(x=>x.disabled=true);
+   try{const result=await metxonSupabase.rpc('metxon_purchase_cloud_plan',{p_capacity_gb:gb});if(result.error)throw result.error;status.textContent=result.data?.message||'Storage purchased.';await refreshCloudAccount();await load();if(typeof updateMcUI==='function'&&document.getElementById('currencyView'))updateMcUI();}
+   catch(e){status.textContent='Purchase failed: '+e.message;alert('Met-Cloud purchase failed: '+e.message);}
+   finally{document.querySelectorAll('[data-plan]').forEach(x=>x.disabled=false);}
+  });
+  await load();
+ }
+ async function metna(){
+  const p=await profile(),username=p.username||state.currentUser;
+  show('Met-Na · Metxon Arena','<div class="card"><h2 style="color:var(--cyan);margin:0">Met-Na</h2><p style="color:var(--muted)">Metxon Arena · signed in as @'+safe(username)+'</p><div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0"><button class="btn btn-primary" id="naReadTab">Read</button><button class="btn" id="naCreateTab">Create</button></div><div id="naCreatePanel" style="display:none"><h3>Create a post</h3><textarea id="naPost" rows="3" maxlength="1000" placeholder="What is happening?" style="width:100%;margin:8px 0"></textarea><button class="btn btn-primary" id="naPublish">Post</button></div></div><div id="naReadPanel"><div id="naFeed" style="margin-top:12px">Loading posts…</div></div>');
+  $('naReadTab').onclick=()=>{$('naReadPanel').style.display='block';$('naCreatePanel').style.display='none';$('naReadTab').classList.add('btn-primary');$('naCreateTab').classList.remove('btn-primary');};$('naCreateTab').onclick=()=>{$('naReadPanel').style.display='none';$('naCreatePanel').style.display='block';$('naCreateTab').classList.add('btn-primary');$('naReadTab').classList.remove('btn-primary');};
+  async function feed(){const box=$('naFeed'),r=await metxonSupabase.from('metna_posts').select('*').order('created_at',{ascending:false}).limit(100);if(r.error){box.innerHTML='<div class="card">Could not load Met-Na: '+safe(r.error.message)+'</div>';return;}const ids=(r.data||[]).map(x=>x.id);let likes=[],comments=[];if(ids.length){const l=await metxonSupabase.from('metna_likes').select('post_id,user_id').in('post_id',ids);likes=l.data||[];const cm=await metxonSupabase.from('metna_comments').select('*').in('post_id',ids).order('created_at',{ascending:true});comments=cm.data||[];}
+  const followRows=await metxonSupabase.from('metna_follows').select('followed_id').eq('follower_id',p.id);const following=new Set((followRows.data||[]).map(x=>x.followed_id));
+  box.innerHTML=(r.data||[]).map(post=>'<article class="card" style="margin-bottom:12px"><div style="font-weight:700">@'+safe(post.username)+' <small style="color:var(--muted);font-weight:400">'+new Date(post.created_at).toLocaleString()+'</small></div><p style="white-space:pre-wrap">'+safe(post.body)+'</p><div style="display:flex;gap:8px;flex-wrap:wrap">'+(post.user_id!==p.id?'<button class="btn" data-follow="'+post.user_id+'">'+(following.has(post.user_id)?'Following · Unfollow':'Follow @'+safe(post.username))+'</button>':'')+'<button class="btn" data-like="'+post.id+'">'+(likes.some(l=>l.post_id===post.id&&l.user_id===p.id)?'Unlike':'Like')+' ('+likes.filter(l=>l.post_id===post.id).length+')</button><button class="btn" data-comment="'+post.id+'">Reply ('+comments.filter(x=>x.post_id===post.id).length+')</button>'+(post.user_id===p.id?'<button class="btn" data-delete="'+post.id+'">Delete</button>':'')+'</div><div>'+comments.filter(x=>x.post_id===post.id).map(x=>'<p style="border-top:1px solid var(--border);padding-top:8px"><b>@'+safe(x.username)+':</b> '+safe(x.body)+'</p>').join('')+'</div></article>').join('')||'<div class="card">No posts yet. Be the first to post!</div>';
+  box.querySelectorAll('[data-follow]').forEach(b=>b.onclick=async()=>{const id=b.dataset.follow,has=following.has(id);const q=has?metxonSupabase.from('metna_follows').delete().eq('follower_id',p.id).eq('followed_id',id):metxonSupabase.from('metna_follows').insert({follower_id:p.id,followed_id:id});const z=await q;if(z.error)return alert(z.error.message);await feed();});
+  box.querySelectorAll('[data-like]').forEach(b=>b.onclick=async()=>{const postId=b.dataset.like,liked=likes.some(l=>l.post_id===postId&&l.user_id===p.id);const q=liked?metxonSupabase.from('metna_likes').delete().eq('post_id',postId).eq('user_id',p.id):metxonSupabase.from('metna_likes').insert({post_id:postId,user_id:p.id});const z=await q;if(z.error)return alert(z.error.message);await feed();});
+  box.querySelectorAll('[data-comment]').forEach(b=>b.onclick=async()=>{const body=prompt('Write a reply (max 500 characters):');if(!body||!body.trim())return;const z=await metxonSupabase.from('metna_comments').insert({post_id:b.dataset.comment,user_id:p.id,username,body:body.trim().slice(0,500)});if(z.error)return alert(z.error.message);await feed();});
+  box.querySelectorAll('[data-delete]').forEach(b=>b.onclick=async()=>{if(!confirm('Delete this post?'))return;const z=await metxonSupabase.from('metna_posts').delete().eq('id',b.dataset.delete).eq('user_id',p.id);if(z.error)return alert(z.error.message);await feed();});
+  }
+  $('naPublish').onclick=async()=>{const body=$('naPost').value.trim();if(!body)return alert('Write something first.');const z=await metxonSupabase.from('metna_posts').insert({user_id:p.id,username,body:body.slice(0,1000)});if(z.error)return alert(z.error.message);$('naPost').value='';await feed();};await feed();
+ }
+ window.openMetNa=()=>metna();window.metNa=window.openMetNa;
+
+ const priorOpenAppAliasHandler=window.openApp;
+ window.openApp=function(name){
+  const alias=String(name||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
+  if(alias==='mail'||alias==='metail')return window.openMetAil();
+  if(alias==='metxoncare')return window.openMetxonCare();
+  if(alias==='metcloud')return window.openMetCloud();
+  if(alias==='metna'||alias==='metxonarena')return window.openMetNa();
+  if(alias==='nebulastore'||alias==='appstore')return window.renderNebulaStore();
+  if(typeof priorOpenAppAliasHandler==='function')return priorOpenAppAliasHandler.apply(this,arguments);
+ };
+})();
+</script>
+
+<script>
+window.metCountCurrencyChanged=async function(currency){const box=document.getElementById('metCountSelectedCurrency');if(!box)return;try{const p=state.currentUser?await loadCloudAccount(state.currentUser):null;const acc=state.accounts[state.currentUser]||{balance:0};if(currency==='JP')box.textContent='JP balance: '+Number((p&&p.jp_balance)||0)+' JP';else if(currency==='USD')box.textContent='Balance: $'+(Number(acc.balance||0)*RATES.USD).toFixed(2)+' USD';else box.textContent='Balance: ₹'+Number(acc.balance||0).toLocaleString('en-IN')+' INR';}catch(e){box.textContent='Could not load selected balance.';}};
+</script>
+<script>
+
+/* Fix Nebula Store routing and add Met-Na */
+(function(){
+ const A=window.NEBULA_APPS,$=id=>document.getElementById(id);
+ const h=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ Object.assign(A,{metAil:{id:'met_ail',name:'Met-Ail',price:0,desc:'Internal Metxon mail: Inbox, Sent, Drafts and messages.'},metxonCare:{id:'metxon_care',name:'Metxon Care',price:0,desc:'Support tickets and replies.'},metCloud:{id:'met_cloud',name:'Met-Cloud',price:0,desc:'Private cloud files and QuickUp storage.'},metNa:{id:'met_na',name:'Met-Na',price:0,desc:'Metxon Arena: share short posts with the ecosystem.'}});
+ async function me(){if(!state.currentUser)throw Error('Please sign in first.');const p=await loadCloudAccount(state.currentUser);if(!p?.id)throw Error('Metxon profile not found.');return p;}
+ async function installed(){const p=await me(),r=await metxonSupabase.from('metxon_app_installations').select('app_id').eq('user_id',p.id);if(r.error)throw Error(r.error.message);return new Set((r.data||[]).map(x=>x.app_id));}
+ function screen(title,html){const w=$('appWorkspace'),t=$('appTitle'),c=$('appContent');if(w)w.style.display='block';if(t)t.textContent=title;if(c)c.innerHTML=html;if(w)w.scrollIntoView({behavior:'smooth'});return c;}
+ const prevInstall=window.installNebulaApp;
+ window.installNebulaApp=async function(k){const a=A[k];if(!a)return;if(a.price>0)return prevInstall(k);if(!state.currentUser)return openAuth();try{const p=await me(),set=await installed();if(set.has(a.id))return window.launchNebulaApp(k);const r=await metxonSupabase.from('metxon_app_installations').insert({user_id:p.id,app_id:a.id,app_name:a.name,price:0});if(r.error)throw r.error;await window.renderInstalledApps?.();await window.renderNebulaStore();alert(a.name+' installed for free.');}catch(e){alert('Install error: '+(e.message||e));}};
+ window.renderNebulaStore=async function(){const c=$('appContent');if(!c)return;if(!state.currentUser){c.innerHTML='<div class="card">Please sign in to use Nebula Store.</div>';return;}try{const set=await installed();c.innerHTML='<div class="card"><h3>Nebula Store</h3><p style="color:var(--muted)">Met-Ail, Metxon Care, Met-Cloud and Met-Na are free. These are internal Metxon ecosystem apps.</p></div><div class="nebula-store-grid">'+Object.keys(A).map(k=>{const a=A[k],yes=set.has(a.id);return '<div class="nebula-app-card"><h3>'+h(a.name)+'</h3><p style="color:var(--muted);min-height:40px">'+h(a.desc)+'</p><div class="nebula-price">'+(a.price===0?'Free':'₹'+Number(a.price).toLocaleString('en-IN')+' one-time')+'</div><button class="btn '+(yes?'':'btn-primary')+'" onclick="window.'+(yes?'launchNebulaApp':'installNebulaApp')+'(&quot;'+k+'&quot;)">'+(yes?'Open':a.price===0?'Install free':'Install')+'</button></div>';}).join('')+'</div><div id="gameArea"></div>';}catch(e){c.innerHTML='<div class="card"><h3>Could not load apps</h3><p>'+h(e.message||e)+'</p><button class="btn" onclick="window.renderNebulaStore()">Retry</button></div>';console.error('Nebula Store:',e);}};
+ const oldOpen=window.openApp;window.openApp=function(name){if(name==='nebulaStore'){screen('Nebula Store','<div class="card">Loading apps…</div>');window.renderNebulaStore();return;}return oldOpen(name);};
+ const oldLaunch=window.launchNebulaApp;window.launchNebulaApp=async function(k){if(!['metAil','metxonCare','metCloud','metNa'].includes(k))return oldLaunch(k);if(!state.currentUser)return openAuth();try{if(!(await installed()).has(A[k].id))return alert('Install this app from Nebula Store first.');if(k==='metNa')return na();if(k==='metAil')return mail();if(k==='metxonCare')return care();return cloud();}catch(e){alert(e.message||e);}};
+ async function na(){const p=await me(),u=p.username||state.currentUser;screen('Met-Na · Metxon Arena','<div class="card"><h2 style="color:var(--cyan)">Met-Na</h2><p>Signed in as <b>@'+h(u)+'</b></p><p style="color:var(--muted)">Use your existing Metxon account. No separate password is needed.</p><textarea id="naText" maxlength="500" rows="3" placeholder="What is happening? (500 characters max)" style="width:100%;margin:8px 0"></textarea><div style="display:flex;justify-content:space-between"><small id="naCount">0 / 500</small><button id="naPost" class="btn btn-primary">Post</button></div></div><div id="naFeed" class="card" style="margin-top:12px">Loading feed…</div>');$('naText').oninput=()=>$('naCount').textContent=$('naText').value.length+' / 500';$('naPost').onclick=async()=>{const body=$('naText').value.trim();if(!body)return alert('Write a post first.');const r=await metxonSupabase.from('metna_posts').insert({user_id:p.id,username:u,body});if(r.error)return alert(r.error.message);$('naText').value='';$('naCount').textContent='0 / 500';feed();};async function feed(){const box=$('naFeed'),r=await metxonSupabase.from('metna_posts').select('*').order('created_at',{ascending:false}).limit(100);if(r.error){box.textContent='Feed error: '+r.error.message;return;}box.innerHTML='<h3>Latest posts</h3>'+((r.data||[]).map(x=>'<article style="padding:12px 0;border-top:1px solid var(--border)"><b>@'+h(x.username)+'</b> <small style="color:var(--muted)">'+new Date(x.created_at).toLocaleString()+'</small><p style="white-space:pre-wrap;overflow-wrap:anywhere">'+h(x.body)+'</p>'+(x.user_id===p.id?'<button class="btn" data-del="'+h(x.id)+'">Delete</button>':'')+'</article>').join('')||'<p>No posts yet. Be the first!</p>');box.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{const d=await metxonSupabase.from('metna_posts').delete().eq('id',b.dataset.del).eq('user_id',p.id);if(d.error)return alert(d.error.message);feed();});}await feed();}
+})();
+
+</script>
+<script>
+
+/* ===== Nebula Store recovery patch ===== */
+(function(){
+ const $=id=>document.getElementById(id);
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const registry=window.NEBULA_APPS||{};
+ const newKeys=['metAil','metxonCare','metCloud','metNa'];
+ async function userProfile(){
+  if(!state.currentUser)throw Error('Please sign in first.');
+  const r=await loadCloudAccount(state.currentUser);
+  if(!r||!r.id)throw Error('Could not load your Metxon profile. Please sign out and sign back in.');
+  return r;
+ }
+ async function getInstalled(){
+  if(!state.currentUser)return new Set();
+  try{
+   const p=await userProfile();
+   const r=await metxonSupabase.from('metxon_app_installations').select('app_id').eq('user_id',p.id);
+   if(r.error){console.error('Nebula Store database read:',r.error.message);return new Set();}
+   return new Set((r.data||[]).map(x=>x.app_id));
+  }catch(e){console.error('Nebula Store profile lookup:',e.message);return new Set();}
+ }
+ window.renderNebulaStore=async function(){
+  const c=$('appContent');if(!c)return;
+  const cards=Object.keys(registry).map(k=>{
+   const a=registry[k];const fresh=newKeys.includes(k);
+   return '<div class="nebula-app-card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><h3>'+esc(a.name)+'</h3><span class="nebula-installed" data-status="'+esc(a.id)+'" style="display:none">INSTALLED</span></div><p style="color:var(--muted);min-height:42px">'+esc(a.desc||'Metxon ecosystem app')+'</p><div class="nebula-price">'+(Number(a.price)===0?'Free':'₹'+Number(a.price).toLocaleString('en-IN')+' one-time')+'</div><button class="btn btn-primary" style="margin-top:10px" data-app-key="'+esc(k)+'" onclick="window.installNebulaApp(&quot;'+esc(k)+'&quot;)">'+(Number(a.price)===0?'Install free':'Install · ₹'+Number(a.price).toLocaleString('en-IN'))+'</button></div>';
+  }).join('');
+  c.innerHTML='<div class="card"><h3>Nebula Store</h3><p style="color:var(--muted)">Browse apps now. Sign in to install or open them. Met-Ail is internal-only mail; no public domain or Gmail connection is required.</p><p id="nebulaLoadStatus" style="color:var(--muted)">Loading your installation list…</p></div><div class="nebula-store-grid">'+cards+'</div><div id="gameArea" style="margin-top:16px"></div>';
+  if(!state.currentUser){$('nebulaLoadStatus').textContent='Sign in to install apps.';return;}
+  const set=await getInstalled();
+  for(const k of Object.keys(registry)){
+   const a=registry[k],yes=set.has(a.id);
+   const b=c.querySelector('[data-app-key="'+k+'"]');
+   const status=c.querySelector('[data-status="'+a.id+'"]');
+   if(status)status.style.display=yes?'inline-block':'none';
+   if(b){b.textContent=yes?'Open':Number(a.price)===0?'Install free':'Install · ₹'+Number(a.price).toLocaleString('en-IN');b.classList.toggle('btn-primary',!yes);b.onclick=()=>yes?window.launchNebulaApp(k):window.installNebulaApp(k);}
+  }
+  $('nebulaLoadStatus').textContent='Apps loaded. If an installation check is unavailable, you can still browse the catalogue.';
+ };
+ const prevInstall=window.installNebulaApp;
+ window.installNebulaApp=async function(key){
+  const a=registry[key];if(!a)return;
+  if(Number(a.price)>0)return typeof prevInstall==='function'?prevInstall(key):alert('Installer unavailable.');
+  if(!state.currentUser){if(typeof openAuth==='function')return openAuth();return alert('Please sign in first.');}
+  try{
+   const p=await userProfile();
+   const q=await metxonSupabase.from('metxon_app_installations').select('app_id').eq('user_id',p.id).eq('app_id',a.id).maybeSingle();
+   if(q.error)throw q.error;
+   if(q.data)return window.launchNebulaApp(key);
+   const ins=await metxonSupabase.from('metxon_app_installations').insert({user_id:p.id,app_id:a.id,app_name:a.name,price:0});
+   if(ins.error)throw ins.error;
+   await window.renderNebulaStore();
+   alert(a.name+' installed for free.');
+  }catch(e){console.error('Nebula install failed:',e);alert('Install failed: '+(e.message||'Database error'));}
+ };
+ const prevLaunch=window.launchNebulaApp;
+ window.launchNebulaApp=async function(key){
+  if(!newKeys.includes(key))return prevLaunch(key);
+  if(!state.currentUser){if(typeof openAuth==='function')return openAuth();return alert('Please sign in first.');}
+  try{
+   const p=await userProfile();
+   const q=await metxonSupabase.from('metxon_app_installations').select('app_id').eq('user_id',p.id).eq('app_id',registry[key].id).maybeSingle();
+   if(q.error)throw q.error;if(!q.data)return alert('Install this app from Nebula Store first.');
+   return prevLaunch(key);
+  }catch(e){console.error('App launch failed:',e);alert('Could not open app: '+(e.message||'Database error'));}
+ };
+})();
+
+</script>
+</body>
+</html>
++usdAmount.toLocaleString('en-US',{maximumFractionDigits:2}):jpAmount.toLocaleString('en-IN',{maximumFractionDigits:2})+' JP';};
+  if(currencyChoice)currencyChoice.onchange=showCurrency;showCurrency();
+
+  // Transactions
+  const txBox = document.getElementById('txHistory');
+  txBox.innerHTML = (acc.txs || []).slice().reverse().map(t => 
+    `<div style="padding:6px 0;border-bottom:1px solid var(--border)">${t.date.slice(0,16)} – ${t.type}: <strong style="color:${t.amount>=0? 'var(--green)':'var(--red)'}">${t.amount>=0?'+':''}${t.amount.toLocaleString('en-IN')}</strong> ${t.note||''}</div>`
+  ).join('') || 'No transactions yet.';
+
+  // Portfolio
+  const port = document.getElementById('portfolio');
+  const holdings = Object.entries(acc.portfolio || {});
+  port.innerHTML = holdings.length ? '<strong>Holdings:</strong><br>' + holdings.map(([t,s]) => `${t}: ${s} shares`).join('<br>') : 'No holdings yet.';
+  if(typeof renderMetAiPortfolio==='function')renderMetAiPortfolio();
+}
+
+function buySub(tier, price) {
+  const acc = state.accounts[state.currentUser];
+  if (acc.balance < price) return alert('Insufficient balance');
+  acc.balance -= price;
+  acc.sub = tier;
+  acc.subUntil = Date.now() + 7*86400000;
+  acc.txs.push({date:new Date().toISOString(), type:'Subscription', amount:-price, note:tier+' weekly'});
+  save();
+  updateMcUI();
+  alert(`Subscribed to ${tier} for ₹${price}/week`);
+}
+
+
+/* ===================== METCOUNT PORTFOLIO UNDER MET AI ===================== */
+window.renderMetAiPortfolio=function(){
+  const box=document.getElementById('metAiPortfolio');
+  if(!box)return;
+  const acc=state.accounts[state.currentUser];
+  if(!acc){
+    box.innerHTML='<span style="color:var(--muted)">Sign in to view your portfolio.</span>';
+    return;
+  }
+
+  const holdings=Object.entries(acc.portfolio||{}).filter(([,s])=>Number(s)>0);
+  if(!holdings.length){
+    box.innerHTML='<div class="card"><span style="color:var(--muted)">You have not purchased any stocks yet.</span></div>';
+    return;
+  }
+
+  box.innerHTML=`<div style="overflow:auto">
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr><th>Ticker</th><th>Shares</th><th>Current Price</th><th>Current Value</th></tr></thead>
+      <tbody>${holdings.map(([ticker,shares])=>{
+        const price=typeof stableStockPrice==='function'?stableStockPrice(ticker):0;
+        const currency=['MTX','NEB'].includes(ticker)?'INR':'USD';
+        const fmt=window.metxonMoney||((v,c)=>`${c} ${Number(v).toLocaleString('en-US',{maximumFractionDigits:2})}`);
+        return `<tr><td><strong>${String(ticker)}</strong></td><td>${Number(shares).toLocaleString('en-IN')}</td><td>${fmt(price,currency)}</td><td>${fmt(Number(shares)*price,currency)}</td></tr>`;
+      }).join('')}</tbody>
+    </table>
+  </div>
+  <p style="color:var(--muted);font-size:.8rem;margin-top:8px">This portfolio contains every stock currently held by your Metxon account.</p>`;
+};
+
+
+function searchStock() {
+  const ticker = document.getElementById('stockSearch').value.trim().toUpperCase() || 'MTX';
+  // Simulated price
+  const price = Math.floor(Math.random()*5000)+500;
+  document.getElementById('stockResult').innerHTML = `
+    <div class="card">
+      <strong>${ticker}</strong> – Simulated price: ₹${price.toLocaleString('en-IN')}
+      <div style="margin-top:10px;">
+        <button class="btn btn-primary" onclick="buyStock('${ticker}', ${price})">Buy 1 Share</button>
+        <button class="btn" onclick="sellStock('${ticker}', ${price})">Sell 1 Share</button>
+      </div>
+    </div>
+  `;
+}
+
+function buyStock(ticker, price) {
+  const acc = state.accounts[state.currentUser];
+  if (acc.balance < price) return alert('Insufficient balance');
+  acc.balance -= price;
+  acc.portfolio[ticker] = (acc.portfolio[ticker]||0) + 1;
+  acc.txs.push({date:new Date().toISOString(), type:'Stock Buy', amount:-price, note:ticker});
+  save(); updateMcUI();
+  alert(`Bought 1 share of ${ticker}`);
+}
+
+function sellStock(ticker, price) {
+  const acc = state.accounts[state.currentUser];
+  if (!acc.portfolio[ticker] || acc.portfolio[ticker] < 1) return alert('No shares to sell');
+  acc.balance += price;
+  acc.portfolio[ticker]--;
+  if (acc.portfolio[ticker] === 0) delete acc.portfolio[ticker];
+  acc.txs.push({date:new Date().toISOString(), type:'Stock Sell', amount:price, note:ticker});
+  save(); updateMcUI();
+  alert(`Sold 1 share of ${ticker}`);
+}
+
+function doTransfer() {
+  const to = document.getElementById('transferTo').value.trim().toLowerCase();
+  const amt = parseInt(document.getElementById('transferAmt').value);
+  if (!to || !amt || amt <= 0) return alert('Invalid');
+  const acc = state.accounts[state.currentUser];
+  if (acc.balance < amt) return alert('Insufficient balance');
+  if (!state.accounts[to]) return alert('Recipient not found');
+  acc.balance -= amt;
+  state.accounts[to].balance += amt;
+  acc.txs.push({date:new Date().toISOString(), type:'Transfer Out', amount:-amt, note:'to '+to});
+  state.accounts[to].txs.push({date:new Date().toISOString(), type:'Transfer In', amount:amt, note:'from '+state.currentUser});
+  save(); updateMcUI();
+  alert('Transfer successful');
+}
+
+/* ===================== MET-PAY ===================== */
+function startPay(name, price) {
+  if (!state.currentUser) return openAuth();
+  currentCheckout = {name, price};
+  document.getElementById('payItemInfo').innerHTML = `Purchasing <strong>${name}</strong> for <strong>₹${price.toLocaleString('en-IN')}</strong>`;
+  document.getElementById('payModal').classList.add('show');
+}
+function closePay() { document.getElementById('payModal').classList.remove('show'); }
+function executePay() {
+  alert('Payment is secured by Metxon cloud authentication. Please use the current account session.');
+}
+
+/* ===================== BLOCK BREAKER ===================== */
+function startBlockBreaker() {
+  const area = document.getElementById('gameArea');
+  if (!area) return;
+
+  area.innerHTML = `
+    <div class="game-info" style="display:flex;gap:18px;flex-wrap:wrap;justify-content:center;">
+      <span>Score: <span id="bbScore">0</span></span>
+      <span>Lives: <span id="bbLives">3</span> ❤️</span>
+      <span>Level: <span id="bbLevel">1</span></span>
+      <span>Ball: <span id="bbBalls">1</span></span>
+    </div>
+    <div class="card" style="max-width:480px;margin:10px auto;padding:8px;text-align:center;font-size:.78rem;color:var(--muted)">
+      <b style="color:var(--cyan)">POWER BRICKS:</b>
+      ❤️ +1 life &nbsp; • &nbsp; ★ multi-ball &nbsp; • &nbsp; ↔ wider paddle
+      &nbsp; • &nbsp; ❄ slow ball &nbsp; • &nbsp; 🛡 catch/save ball &nbsp; • &nbsp; + bonus
+    </div>
+    <canvas id="blockCanvas" width="480" height="340"
+      style="width:100%;max-width:480px;background:#070b14;border:1px solid var(--border);border-radius:10px;display:block;margin:auto;touch-action:none;"></canvas>
+    <div id="bbMessage" style="min-height:22px;text-align:center;margin:8px;color:var(--cyan);font-size:.82rem;"></div>
+    <div class="game-touch-controls" id="bbControls" style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;">
+      <button class="btn" data-bb="left">←</button>
+      <button class="btn" data-bb="right">→</button>
+      <button class="btn" data-bb="catch">CATCH</button>
+    </div>
+    <p style="text-align:center;color:var(--muted);font-size:.82rem;margin-top:6px;">
+      Desktop: ← → / A D. Mobile/TV: touch controls or drag on the game.
+    </p>
+  `;
+
+  const canvas = document.getElementById('blockCanvas');
+  const ctx = canvas.getContext('2d');
+
+  const palette = {
+    normal: '#3b82f6',
+    heart: '#ef4444',
+    multi: '#a855f7',
+    expand: '#f59e0b',
+    slow: '#38bdf8',
+    catch: '#22c55e',
+    bonus: '#eab308'
+  };
+
+  const specialLabels = {
+    heart: '❤️',
+    multi: '★',
+    expand: '↔',
+    slow: '❄',
+    catch: '🛡',
+    bonus: '+'
+  };
+
+  const game = {
+    level: 1,
+    score: 0,
+    lives: 3,
+    balls: [],
+    bricks: [],
+    powerups: [],
+    paddle: { x: 200, w: 82, baseW: 82, h: 12, sticky: false },
+    keys: { left: false, right: false },
+    running: true,
+    nextPower: 0,
+    slowUntil: 0,
+    lastTime: performance.now(),
+    raf: null
+  };
+
+  function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  }
+
+  function message(text) {
+    const el = document.getElementById('bbMessage');
+    if (el) el.textContent = text;
+  }
+
+  function createBricks() {
+    const rows = Math.min(9, 5 + Math.floor((game.level - 1) / 2));
+    const cols = 8;
+    const gap = 4;
+    const bw = (canvas.width - gap * (cols + 1)) / cols;
+    const bh = 19;
+    game.bricks = [];
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        let type = 'normal';
+
+        // Normal bricks are most common; special bricks scale modestly with level.
+        const roll = Math.random();
+        const specialChance = Math.min(0.48, 0.23 + game.level * 0.018);
+
+        if (roll < specialChance) {
+          const p = Math.random();
+          if (p < 0.16) type = 'heart';
+          else if (p < 0.33) type = 'multi';
+          else if (p < 0.50) type = 'expand';
+          else if (p < 0.68) type = 'slow';
+          else if (p < 0.84) type = 'catch';
+          else type = 'bonus';
+        }
+
+        game.bricks.push({
+          x: gap + c * (bw + gap),
+          y: 28 + r * (bh + gap),
+          w: bw,
+          h: bh,
+          alive: true,
+          type,
+          color: palette[type]
+        });
+      }
+    }
+
+    const speed = 185 + Math.min(90, (game.level - 1) * 9);
+    game.balls = [{
+      x: canvas.width / 2,
+      y: canvas.height - 52,
+      r: 6,
+      vx: (Math.random() > .5 ? 1 : -1) * speed * .72,
+      vy: -speed,
+      stuck: false
+    }];
+    game.paddle.sticky = false;
+  }
+
+  function newBall(x, y, angle = -Math.PI / 2, speed = 185) {
+    return {
+      x, y, r: 6,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      stuck: false
+    };
+  }
+
+  function spawnPower(type, x, y) {
+    game.powerups.push({
+      type, x, y, w: 18, h: 12,
+      vy: 90
+    });
+  }
+
+  function applyPower(type) {
+    const now = performance.now();
+
+    if (type === 'heart') {
+      game.lives++;
+      message('❤️ Extra life!');
+    } else if (type === 'multi') {
+      const source = game.balls[0] || newBall(game.paddle.x + game.paddle.w / 2, canvas.height - 30);
+      const base = Math.atan2(source.vy, source.vx);
+      game.balls.push(newBall(source.x, source.y, base - 0.42, Math.hypot(source.vx, source.vy)));
+      game.balls.push(newBall(source.x, source.y, base + 0.42, Math.hypot(source.vx, source.vy)));
+      message('★ Multi-ball!');
+    } else if (type === 'expand') {
+      game.paddle.w = Math.min(170, game.paddle.w + 42);
+      message('↔ Paddle expanded!');
+    } else if (type === 'slow') {
+      game.slowUntil = now + 7000;
+      game.balls.forEach(b => { b.vx *= .62; b.vy *= .62; });
+      message('❄ Ball slowed for 7 seconds!');
+    } else if (type === 'catch') {
+      game.paddle.sticky = true;
+      message('🛡 Ball catch ready — hit the paddle to hold it, then press CATCH / Space.');
+    } else if (type === 'bonus') {
+      const bonus = 100 * game.level;
+      game.score += bonus;
+      message('+' + bonus + ' bonus points!');
+    }
+    updateHUD();
+  }
+
+  function releaseCaughtBalls() {
+    for (const b of game.balls) {
+      if (b.stuck) {
+        b.stuck = false;
+        b.vx = 0;
+        b.vy = -(185 + Math.min(90, (game.level - 1) * 9));
+      }
+    }
+    game.paddle.sticky = false;
+  }
+
+  function updateHUD() {
+    setText('bbScore', game.score);
+    setText('bbLives', game.lives);
+    setText('bbLevel', game.level);
+    setText('bbBalls', game.balls.length);
+  }
+
+  function drawRoundedRect(ctx, x, y, w, h, r) {
+    const rr = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rr);
+    ctx.arcTo(x + w, y + h, x, y + h, rr);
+    ctx.arcTo(x, y + h, x, y, rr);
+    ctx.arcTo(x, y, x + w, y, rr);
+    ctx.closePath();
+  }
+
+  function draw() {
+    ctx.fillStyle = '#070b14';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Subtle playfield grid.
+    ctx.strokeStyle = 'rgba(148,163,184,.08)';
+    ctx.lineWidth = 1;
+    for (let y = 0; y < canvas.height; y += 34) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+    }
+
+    // Bricks.
+    for (const b of game.bricks) {
+      if (!b.alive) continue;
+      ctx.fillStyle = b.color;
+      drawRoundedRect(ctx, b.x, b.y, b.w, b.h, 4);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.18)';
+      ctx.fillRect(b.x + 1, b.y + 1, b.w - 2, 3);
+
+      if (b.type !== 'normal') {
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 13px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(specialLabels[b.type], b.x + b.w / 2, b.y + b.h / 2 + 1);
+      }
+    }
+
+    // Falling power-ups.
+    for (const p of game.powerups) {
+      ctx.fillStyle = palette[p.type];
+      drawRoundedRect(ctx, p.x - p.w / 2, p.y - p.h / 2, p.w, p.h, 4);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(specialLabels[p.type], p.x, p.y + 1);
+    }
+
+    // Paddle.
+    ctx.fillStyle = '#00d2ff';
+    drawRoundedRect(ctx, game.paddle.x, canvas.height - 24, game.paddle.w, game.paddle.h, 4);
+    ctx.fill();
+    if (game.paddle.sticky) {
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(game.paddle.x, canvas.height - 24, game.paddle.w, 3);
+    }
+
+    // Balls.
+    for (const b of game.balls) {
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+      ctx.strokeStyle = '#00d2ff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+  }
+
+  function handleBrickHit(ball, brick) {
+    brick.alive = false;
+    // Power bricks drop their pickup; normal bricks simply score.
+    game.score += 10 * game.level;
+    if (brick.type !== 'normal') {
+      spawnPower(brick.type, brick.x + brick.w / 2, brick.y + brick.h / 2);
+    }
+
+    // More interesting higher levels: occasional speed-up.
+    if (game.level >= 3 && Math.random() < 0.14) {
+      ball.vx *= 1.04;
+      ball.vy *= 1.04;
+    }
+  }
+
+  function updatePowerups(dt) {
+    for (let i = game.powerups.length - 1; i >= 0; i--) {
+      const p = game.powerups[i];
+      p.y += p.vy * dt;
+
+      if (p.y + p.h > canvas.height - 30 &&
+          p.x > game.paddle.x && p.x < game.paddle.x + game.paddle.w) {
+        applyPower(p.type);
+        game.powerups.splice(i, 1);
+      } else if (p.y > canvas.height + 20) {
+        game.powerups.splice(i, 1);
+      }
+    }
+  }
+
+  function update(dt) {
+    if (!game.running) return;
+
+    const now = performance.now();
+    const speedScale = now < game.slowUntil ? 0.62 : 1;
+
+    if (game.keys.left) game.paddle.x -= 380 * dt;
+    if (game.keys.right) game.paddle.x += 380 * dt;
+    game.paddle.x = Math.max(0, Math.min(canvas.width - game.paddle.w, game.paddle.x));
+
+    updatePowerups(dt);
+
+    for (let i = game.balls.length - 1; i >= 0; i--) {
+      const ball = game.balls[i];
+
+      if (ball.stuck) {
+        ball.x = game.paddle.x + game.paddle.w / 2;
+        ball.y = canvas.height - 31;
+        continue;
+      }
+
+      ball.x += ball.vx * speedScale * dt;
+      ball.y += ball.vy * speedScale * dt;
+
+      if (ball.x - ball.r <= 0) {
+        ball.x = ball.r;
+        ball.vx = Math.abs(ball.vx);
+      }
+      if (ball.x + ball.r >= canvas.width) {
+        ball.x = canvas.width - ball.r;
+        ball.vx = -Math.abs(ball.vx);
+      }
+      if (ball.y - ball.r <= 0) {
+        ball.y = ball.r;
+        ball.vy = Math.abs(ball.vy);
+      }
+
+      // Paddle collision.
+      const py = canvas.height - 24;
+      if (ball.vy > 0 &&
+          ball.y + ball.r >= py &&
+          ball.y - ball.r <= py + game.paddle.h &&
+          ball.x >= game.paddle.x &&
+          ball.x <= game.paddle.x + game.paddle.w) {
+
+        ball.y = py - ball.r;
+        const hit = (ball.x - (game.paddle.x + game.paddle.w / 2)) / (game.paddle.w / 2);
+        const magnitude = Math.max(160, Math.hypot(ball.vx, ball.vy));
+        ball.vx = hit * magnitude * 0.95;
+        ball.vy = -Math.sqrt(Math.max(12000, magnitude * magnitude - ball.vx * ball.vx));
+
+        if (game.paddle.sticky) {
+          ball.stuck = true;
+          game.paddle.sticky = false;
+          message('🛡 Ball saved! Press CATCH / Space to launch.');
+        }
+      }
+
+      // Brick collision.
+      for (const brick of game.bricks) {
+        if (!brick.alive) continue;
+        if (ball.x + ball.r > brick.x &&
+            ball.x - ball.r < brick.x + brick.w &&
+            ball.y + ball.r > brick.y &&
+            ball.y - ball.r < brick.y + brick.h) {
+
+          const prevX = ball.x - ball.vx * dt;
+          const prevY = ball.y - ball.vy * dt;
+
+          if (prevY + ball.r <= brick.y || prevY - ball.r >= brick.y + brick.h) {
+            ball.vy *= -1;
+          } else {
+            ball.vx *= -1;
+          }
+
+          handleBrickHit(ball, brick);
+          break;
+        }
+      }
+
+      if (ball.y - ball.r > canvas.height + 8) {
+        game.balls.splice(i, 1);
+      }
+    }
+
+    // If every ball is gone, spend one life and relaunch.
+    if (game.balls.length === 0) {
+      game.lives--;
+      if (game.lives <= 0) {
+        game.running = false;
+        message('Game Over — press Restart to play again.');
+        updateHUD();
+        return;
+      }
+
+      game.paddle.w = Math.max(game.paddle.baseW, game.paddle.w - 18);
+      game.balls = [newBall(game.paddle.x + game.paddle.w / 2, canvas.height - 36)];
+    }
+
+    // Endless progression.
+    if (game.bricks.length && game.bricks.every(b => !b.alive)) {
+      game.level++;
+      game.paddle.w = Math.max(game.paddle.baseW, game.paddle.w - 10);
+      message('Level ' + game.level + ' — new board incoming!');
+      createBricks();
+    }
+
+    updateHUD();
+  }
+
+  // Only capture arrow keys while Block Breaker has focus/activity.
+  const keydown = e => {
+    const tag = document.activeElement?.tagName;
+    if (['INPUT','TEXTAREA','SELECT'].includes(tag)) return;
+
+    if (['ArrowLeft','ArrowRight','a','d','A','D',' ','Spacebar'].includes(e.key)) {
+      e.preventDefault();
+    }
+
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') game.keys.left = true;
+    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') game.keys.right = true;
+    if (e.key === ' ' || e.key === 'Spacebar') releaseCaughtBalls();
+  };
+  const keyup = e => {
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') game.keys.left = false;
+    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') game.keys.right = false;
+  };
+
+  window.addEventListener('keydown', keydown, {passive:false});
+  window.addEventListener('keyup', keyup);
+
+  const leftBtn = document.querySelector('#bbControls [data-bb="left"]');
+  const rightBtn = document.querySelector('#bbControls [data-bb="right"]');
+  const catchBtn = document.querySelector('#bbControls [data-bb="catch"]');
+
+  function bindHold(button, prop) {
+    if (!button) return;
+    const on = e => { e.preventDefault(); game.keys[prop] = true; };
+    const off = e => { e.preventDefault(); game.keys[prop] = false; };
+    button.addEventListener('pointerdown', on);
+    button.addEventListener('pointerup', off);
+    button.addEventListener('pointercancel', off);
+    button.addEventListener('pointerleave', off);
+  }
+
+  bindHold(leftBtn, 'left');
+  bindHold(rightBtn, 'right');
+  if (catchBtn) {
+    catchBtn.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      releaseCaughtBalls();
+    });
+  }
+
+  canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    game.paddle.x = (e.clientX - rect.left) * (canvas.width / rect.width) - game.paddle.w / 2;
+    game.paddle.x = Math.max(0, Math.min(canvas.width - game.paddle.w, game.paddle.x));
+  });
+
+  let rafStart = performance.now();
+  function frame(now) {
+    if (!game.running) {
+      draw();
+      return;
+    }
+    const dt = Math.min(0.032, (now - rafStart) / 1000);
+    rafStart = now;
+    update(dt);
+    draw();
+    game.raf = requestAnimationFrame(frame);
+  }
+
+  createBricks();
+  updateHUD();
+  draw();
+  game.raf = requestAnimationFrame(frame);
+
+  // Keep the game reference so cleanup can cancel its RAF.
+  blockGame = game;
+}
+/* ===================== CHESS BOYS ===================== */
+function startChess() {
+  const area = document.getElementById('gameArea');
+  area.innerHTML = `
+    <div class="card">
+      <p>Enter opponent username to start a game (messages via Met-Alk style).</p>
+      <div class="form-group"><input id="chessOpp" placeholder="Opponent username"></div>
+      <button class="btn btn-primary" onclick="initChess()">Start / Resume</button>
+    </div>
+    <div id="chessBoardWrap" style="margin-top:16px;text-align:center;"></div>
+    <div id="chessStatus" style="text-align:center;margin-top:8px;color:var(--muted);"></div>
+  `;
+}
+
+function initChess() {
+  const opp = document.getElementById('chessOpp').value.trim().toLowerCase();
+  if (!opp) return alert('Enter opponent username');
+  // Simple local board (full multiplayer would need backend; we simulate shared state via localStorage key)
+  const gameKey = [state.currentUser, opp].sort().join('_chess_');
+  let game = null;
+  try { game = JSON.parse(localStorage.getItem(gameKey)); } catch(e){}
+  if (!game) {
+    game = {
+      board: [
+        ['r','n','b','q','k','b','n','r'],
+        ['p','p','p','p','p','p','p','p'],
+        ['','','','','','','',''],
+        ['','','','','','','',''],
+        ['','','','','','','',''],
+        ['','','','','','','',''],
+        ['P','P','P','P','P','P','P','P'],
+        ['R','N','B','Q','K','B','N','R']
+      ],
+      turn: 'white',
+      white: state.currentUser,
+      black: opp
+    };
+    localStorage.setItem(gameKey, JSON.stringify(game));
+  }
+  chessState = {gameKey, game, selected: null};
+  renderChess();
+}
+
+const PIECES = {
+  'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙',
+  'k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟'
+};
+
+function renderChess() {
+  const wrap = document.getElementById('chessBoardWrap');
+  const g = chessState.game;
+  let html = '<div style="display:inline-block;border:2px solid var(--border);">';
+  for (let r=0;r<8;r++) {
+    html += '<div style="display:flex;">';
+    for (let c=0;c<8;c++) {
+      const light = (r+c)%2===0;
+      const piece = g.board[r][c];
+      const sel = chessState.selected && chessState.selected[0]===r && chessState.selected[1]===c;
+      let pieceHtml = '';
+      if (piece) {
+        const isWhite = piece === piece.toUpperCase();
+        const cls = isWhite ? 'white' : 'black';
+        pieceHtml = `<span class="chess-piece ${cls}">${PIECES[piece]}</span>`;
+      }
+      html += `<div class="chess-square ${light?'light':'dark'} ${sel?'selected':''}" 
+        onclick="chessClick(${r},${c})" data-r="${r}" data-c="${c}">${pieceHtml}</div>`;
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+  wrap.innerHTML = html;
+  const myColor = (g.white === state.currentUser) ? 'white' : 'black';
+  document.getElementById('chessStatus').textContent = 
+    `You are ${myColor}. Turn: ${g.turn}. Opponent: ${myColor==='white'?g.black:g.white}`;
+}
+
+function chessClick(r, c) {
+  const g = chessState.game;
+  const myColor = (g.white === state.currentUser) ? 'white' : 'black';
+  if (g.turn !== myColor) return alert('Not your turn');
+  const piece = g.board[r][c];
+  const isWhitePiece = piece && piece === piece.toUpperCase();
+  const isMyPiece = (myColor==='white' && isWhitePiece) || (myColor==='black' && piece && !isWhitePiece);
+
+  if (chessState.selected) {
+    const [sr, sc] = chessState.selected;
+    // Simple move (no full chess rules for brevity – basic move allowed)
+    if (sr===r && sc===c) { chessState.selected = null; renderChess(); return; }
+    g.board[r][c] = g.board[sr][sc];
+    g.board[sr][sc] = '';
+    g.turn = g.turn === 'white' ? 'black' : 'white';
+    chessState.selected = null;
+    localStorage.setItem(chessState.gameKey, JSON.stringify(g));
+    renderChess();
+  } else if (isMyPiece) {
+    chessState.selected = [r, c];
+    renderChess();
+  }
+}
+
+/* ===================== INIT ===================== */
+load();
+setTimeout(()=>{if(typeof renderInstalledApps==='function')renderInstalledApps();},600);
+renderMolecule();
+renderMetcart();
+renderSMEs();
+// Initial lock state
+if (!state.currentUser) {
+  ['molecule','mettin','metcount','metcart'].forEach(p => {
+    const lock = document.getElementById(p+'Lock');
+    const content = document.getElementById(p+'Content');
+    if (lock) lock.style.display = 'block';
+    if (content) content.style.display = 'none';
+  });
+}
+
+/* =========================================================
+   FINAL ADDITIVE UPGRADE LAYER
+   Original 1494-line Grok code remains intact above.
+========================================================= */
+
+/* ---------- Jurassic Park owner ---------- */
+const METXON_OWNER_USERNAME='jurassic park';
+const METXON_OWNER_BALANCE=30000000000000; // 30 lakh crores
+
+function ensureJurassicParkOwner(){
+  const old=state.accounts[METXON_OWNER_USERNAME];
+  if(!old){
+    state.accounts[METXON_OWNER_USERNAME]={
+      name:'Jurassic Park',balance:METXON_OWNER_BALANCE,
+      sub:'Elite',subUntil:Date.now()+365*86400000,
+      txs:[{date:new Date().toISOString(),type:'Owner Capital',amount:METXON_OWNER_BALANCE,note:'Metxon Owner — 30 lakh crores'}],
+      portfolio:{},messages:[],smes:[],cart:[]
+    };
+  }else{
+    old.name='Jurassic Park';
+    old.balance=METXON_OWNER_BALANCE;
+    old.sub='Elite';
+    old.subUntil=Date.now()+365*86400000;
+    delete old.pass;
+    old.portfolio=old.portfolio||{};old.messages=old.messages||[];old.smes=old.smes||[];old.cart=old.cart||[];
+  }
+}
+ensureJurassicParkOwner();
+
+
+/* ---------- Enhanced endless Block Breaker ---------- */
+startBlockBreaker=function(){
+  const area=document.getElementById('gameArea');
+  if(!area)return;
+
+  area.innerHTML=`
+    <div class="game-info" style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center;align-items:center;">
+      <span>Score: <b id="bbScore">0</b></span>
+      <span>Lives: <b id="bbLives">3</b> ❤️</span>
+      <span>Level: <b id="bbLevel">1</b></span>
+      <span>Balls: <b id="bbBalls">1</b> ⚪</span>
+      <span id="bbPowerStatus" style="color:var(--cyan);">No active power</span>
+    </div>
+
+    <div class="card" style="max-width:600px;margin:8px auto;padding:9px 12px;font-size:.8rem;color:var(--muted);text-align:center;">
+      <b style="color:var(--cyan);">POWER BRICKS</b>
+      &nbsp; ✚ Extra Life &nbsp; • &nbsp; ⊕ Multi-Ball &nbsp; • &nbsp; ↔ Wide Paddle
+      &nbsp; • &nbsp; 🐢 Slow Ball &nbsp; • &nbsp; 🛡 Save/Catch &nbsp; • &nbsp; + Bonus
+    </div>
+
+    <div class="game-upgrade-wrap">
+      <canvas id="blockCanvas" class="game-upgrade-canvas" width="480" height="540"></canvas>
+      <div class="game-touch-controls" id="bbControls">
+        <button class="left" data-bb="left">←</button>
+        <button class="right" data-bb="right">→</button>
+        <button class="action" data-bb="release">RELEASE</button>
+      </div>
+      <div id="bbMessage" style="min-height:24px;text-align:center;color:var(--cyan);font-size:.82rem;"></div>
+      <p style="color:var(--muted);font-size:.82rem;text-align:center;margin:4px 0 0;">
+        Desktop: ← → / A D. Mobile/TV: use touch buttons or drag the paddle.
+      </p>
+    </div>
+  `;
+
+  const c=document.getElementById('blockCanvas'),ctx=c.getContext('2d');
+
+  const COLORS={
+    normal:'#4285f4',
+    life:'#ef4444',
+    multi:'#a855f7',
+    wide:'#fbbc05',
+    slow:'#38bdf8',
+    shield:'#34a853',
+    bonus:'#00d2ff'
+  };
+  const LABELS={life:'✚',multi:'⊕',wide:'↔',slow:'🐢',shield:'🛡',bonus:'+'};
+
+  const G={
+    score:0,lives:3,level:1,running:true,
+    paddle:{x:200,w:78,base:78,h:12,shield:false,wideUntil:0},
+    balls:[],bricks:[],drops:[],
+    keys:{left:false,right:false},
+    slowUntil:0,ballSpeedBoost:0,raf:0,
+    last:performance.now()
+  };
+
+  function txt(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
+  function message(v){const e=document.getElementById('bbMessage');if(e)e.textContent=v;}
+  function powerText(){
+    const now=performance.now(), parts=[];
+    if(G.paddle.wideUntil>now)parts.push('↔ Wide');
+    if(G.slowUntil>now)parts.push('🐢 Slow');
+    if(G.paddle.shield)parts.push('🛡 Catch-ready');
+    txt('bbPowerStatus',parts.length?parts.join(' · '):'No active power');
+  }
+
+  function rounded(x,y,w,h,r=4){
+    const rr=Math.min(r,w/2,h/2);
+    ctx.beginPath();ctx.moveTo(x+rr,y);
+    ctx.arcTo(x+w,y,x+w,y+h,rr);ctx.arcTo(x+w,y+h,x,y+h,rr);
+    ctx.arcTo(x,y+h,x,y,rr);ctx.arcTo(x,y,x+w,y,rr);ctx.closePath();
+  }
+
+  function newBall(x,y,angle,speed){
+    return {x,y,r:6,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,stuck:false};
+  }
+
+  function buildLevel(){
+    const rows=Math.min(10,5+Math.floor((G.level-1)/2)),cols=8,gap=5;
+    const bw=(c.width-gap*(cols+1))/cols,bh=20;
+    G.bricks=[];
+    for(let r=0;r<rows;r++){
+      for(let col=0;col<cols;col++){
+        let type='normal';
+        const chance=Math.min(.5,.24+G.level*.018);
+        if(Math.random()<chance){
+          const p=Math.random();
+          if(p<.17)type='life';
+          else if(p<.34)type='multi';
+          else if(p<.51)type='wide';
+          else if(p<.68)type='slow';
+          else if(p<.84)type='shield';
+          else type='bonus';
+        }
+        G.bricks.push({
+          x:gap+col*(bw+gap),y:28+r*(bh+gap),w:bw,h:bh,
+          type,alive:true
+        });
+      }
+    }
+    const speed=185+Math.min(115,(G.level-1)*8);
+    G.balls=[newBall(G.paddle.x+G.paddle.w/2,c.height-36,-Math.PI/2+(Math.random()-.5)*.35,speed)];
+    G.drops=[];
+    G.paddle.w=Math.max(G.paddle.base,G.paddle.w-6);
+    G.paddle.shield=false;
+    message(`Level ${G.level}: clear all bricks. Special bricks drop powers.`);
+  }
+
+  function applyPower(type){
+    const now=performance.now();
+    if(type==='life'){G.lives++;message('✚ Extra life!');}
+    if(type==='multi'){
+      const src=G.balls[0]||newBall(G.paddle.x+G.paddle.w/2,c.height-34,-Math.PI/2,190);
+      const base=Math.atan2(src.vy,src.vx),spd=Math.max(165,Math.hypot(src.vx,src.vy));
+      G.balls.push(newBall(src.x,src.y,base-.45,spd),newBall(src.x,src.y,base+.45,spd));
+      message('⊕ Multi-ball! Three or more balls are now active.');
+    }
+    if(type==='wide'){G.paddle.w=Math.min(175,G.paddle.w+48);G.paddle.wideUntil=now+12000;message('↔ Wide paddle for 12 seconds!');}
+    if(type==='slow'){
+      G.slowUntil=now+8000;
+      G.balls.forEach(b=>{b.vx*=.62;b.vy*=.62;});
+      message('🐢 Slow ball for 8 seconds!');
+    }
+    if(type==='shield'){
+      G.paddle.shield=true;message('🛡 Catch-ready! Hit the paddle, then press RELEASE.');
+    }
+    if(type==='bonus'){
+      const n=100*G.level;G.score+=n;message(`+${n} bonus points!`);
+    }
+    powerText();
+  }
+
+  function updateUI(){
+    txt('bbScore',G.score);txt('bbLives',G.lives);txt('bbLevel',G.level);txt('bbBalls',G.balls.length);powerText();
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    ctx.fillStyle='#040912';ctx.fillRect(0,0,c.width,c.height);
+    // subtle grid
+    ctx.strokeStyle='rgba(148,163,184,.07)';ctx.lineWidth=1;
+    for(let y=0;y<c.height;y+=36){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(c.width,y);ctx.stroke();}
+
+    // bricks
+    for(const b of G.bricks){
+      if(!b.alive)continue;
+      ctx.fillStyle=COLORS[b.type];rounded(b.x,b.y,b.w,b.h,4);ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,.2)';ctx.fillRect(b.x+1,b.y+1,b.w-2,3);
+      if(b.type!=='normal'){
+        ctx.fillStyle='#fff';ctx.font='bold 14px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText(LABELS[b.type],b.x+b.w/2,b.y+b.h/2+1);
+      }
+    }
+
+    // power drop boxes
+    for(const d of G.drops){
+      ctx.fillStyle=COLORS[d.type];rounded(d.x-12,d.y-9,24,18,5);ctx.fill();
+      ctx.fillStyle='#fff';ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(LABELS[d.type],d.x,d.y+1);
+    }
+
+    // paddle
+    ctx.fillStyle='#00d2ff';rounded(G.paddle.x,c.height-30,G.paddle.w,G.paddle.h,5);ctx.fill();
+    if(G.paddle.shield){ctx.fillStyle='#34a853';ctx.fillRect(G.paddle.x,c.height-30,G.paddle.w,3);}
+
+    // balls
+    for(const b of G.balls){
+      ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
+      ctx.strokeStyle='#00d2ff';ctx.lineWidth=1.5;ctx.stroke();
+    }
+  }
+
+  function collideBrick(ball,b){
+    if(!b.alive)return false;
+    if(ball.x+ball.r<=b.x||ball.x-ball.r>=b.x+b.w||ball.y+ball.r<=b.y||ball.y-ball.r>=b.y+b.h)return false;
+    const prevX=ball.x-ball.vx*.016,prevY=ball.y-ball.vy*.016;
+    if(prevY+ball.r<=b.y||prevY-ball.r>=b.y+b.h)ball.vy*=-1;else ball.vx*=-1;
+    b.alive=false;G.score+=10*G.level;
+    if(b.type!=='normal')G.drops.push({type:b.type,x:b.x+b.w/2,y:b.y+b.h/2,vy:90});
+    return true;
+  }
+
+  function updateDrops(dt){
+    for(let i=G.drops.length-1;i>=0;i--){
+      const d=G.drops[i];d.y+=d.vy*dt;
+      if(d.y+10>=c.height-36&&d.y-10<=c.height-24&&d.x>=G.paddle.x&&d.x<=G.paddle.x+G.paddle.w){
+        applyPower(d.type);G.drops.splice(i,1);
+      }else if(d.y>c.height+20)G.drops.splice(i,1);
+    }
+  }
+
+  function release(){
+    for(const b of G.balls){
+      if(b.stuck){b.stuck=false;b.vx=(Math.random()-.5)*180;b.vy=-(185+G.level*8);}
+    }
+    G.paddle.shield=false;message('Ball released!');powerText();
+  }
+
+  function update(dt){
+    if(!G.running)return;
+    const now=performance.now();
+    if(G.paddle.wideUntil && now>G.paddle.wideUntil){G.paddle.w=G.paddle.base;G.paddle.wideUntil=0;}
+    const slow=now<G.slowUntil?.62:1;
+
+    if(G.keys.left)G.paddle.x-=400*dt;
+    if(G.keys.right)G.paddle.x+=400*dt;
+    G.paddle.x=Math.max(0,Math.min(c.width-G.paddle.w,G.paddle.x));
+    updateDrops(dt);
+
+    for(let i=G.balls.length-1;i>=0;i--){
+      const b=G.balls[i];
+      if(b.stuck){b.x=G.paddle.x+G.paddle.w/2;b.y=c.height-38;continue;}
+
+      b.x+=b.vx*slow*dt;b.y+=b.vy*slow*dt;
+      if(b.x-b.r<=0){b.x=b.r;b.vx=Math.abs(b.vx);}
+      if(b.x+b.r>=c.width){b.x=c.width-b.r;b.vx=-Math.abs(b.vx);}
+      if(b.y-b.r<=0){b.y=b.r;b.vy=Math.abs(b.vy);}
+
+      const py=c.height-30;
+      if(b.vy>0&&b.y+b.r>=py&&b.y-b.r<=py+G.paddle.h&&b.x>=G.paddle.x&&b.x<=G.paddle.x+G.paddle.w){
+        b.y=py-b.r;
+        const hit=(b.x-(G.paddle.x+G.paddle.w/2))/(G.paddle.w/2);
+        const speed=Math.max(170,Math.hypot(b.vx,b.vy)+(G.level-1)*1.5);
+        b.vx=hit*speed*.95;
+        b.vy=-Math.sqrt(Math.max(12000,speed*speed-b.vx*b.vx));
+        if(G.paddle.shield){b.stuck=true;G.paddle.shield=false;message('🛡 Ball saved! Press RELEASE to launch.');}
+      }
+
+      for(const brick of G.bricks){if(collideBrick(b,brick))break;}
+
+      if(b.y-b.r>c.height+8){
+        G.balls.splice(i,1);
+      }
+    }
+
+    if(G.balls.length===0){
+      G.lives--;
+      if(G.lives<=0){G.running=false;message('Game over — tap Play again to restart.');updateUI();return;}
+      G.balls=[newBall(G.paddle.x+G.paddle.w/2,c.height-38,-Math.PI/2,185+G.level*8)];
+      G.paddle.w=G.paddle.base;
+      message('Life lost. New ball launched.');
+    }
+
+    if(G.bricks.length&&G.bricks.every(b=>!b.alive)){
+      G.level++;
+      G.score+=250*G.level;
+      message(`Level ${G.level}! The bricks return with greater speed.`);
+      buildLevel();
+    }
+    updateUI();
+  }
+
+  function kd(e){
+    const tag=document.activeElement?.tagName;if(['INPUT','TEXTAREA','SELECT'].includes(tag))return;
+    if(['ArrowLeft','ArrowRight','a','A','d','D',' '].includes(e.key))e.preventDefault();
+    if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A')G.keys.left=true;
+    if(e.key==='ArrowRight'||e.key==='d'||e.key==='D')G.keys.right=true;
+    if(e.key===' ')release();
+  }
+  function ku(e){
+    if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A')G.keys.left=false;
+    if(e.key==='ArrowRight'||e.key==='d'||e.key==='D')G.keys.right=false;
+  }
+  window.addEventListener('keydown',kd,{passive:false});
+  window.addEventListener('keyup',ku);
+
+  document.querySelectorAll('#bbControls [data-bb]').forEach(btn=>{
+    const k=btn.dataset.bb;
+    const on=e=>{e.preventDefault();if(k==='release')release();else G.keys[k]=true;};
+    const off=e=>{e.preventDefault();if(k!=='release')G.keys[k]=false;};
+    btn.addEventListener('pointerdown',on);btn.addEventListener('pointerup',off);btn.addEventListener('pointercancel',off);btn.addEventListener('pointerleave',off);
+  });
+  c.addEventListener('pointermove',e=>{
+    const r=c.getBoundingClientRect();
+    G.paddle.x=(e.clientX-r.left)*(c.width/r.width)-G.paddle.w/2;
+    G.paddle.x=Math.max(0,Math.min(c.width-G.paddle.w,G.paddle.x));
+  });
+
+  let previous=performance.now();
+  const loop=(now)=>{
+    if(!G.running){draw();return;}
+    const dt=Math.min(.032,(now-previous)/1000);previous=now;update(dt);draw();G.raf=requestAnimationFrame(loop);
+  };
+  buildLevel();updateUI();draw();G.raf=requestAnimationFrame(loop);
+  blockGame=G;
+};
+
+/* ---------- Soccer ---------- */
+function startSoccerGame(){
+ const area=document.getElementById('gameArea');area.innerHTML=`<div class="game-info"><span>Goals: <span id="socGoals">0</span></span><span>Level: <span id="socLevel">1</span></span></div><div class="game-upgrade-wrap"><canvas id="soccerCanvas" class="game-upgrade-canvas" width="520" height="650"></canvas><div class="game-touch-controls" id="socControls"><button class="up" data-sg="up">↑</button><button class="left" data-sg="left">←</button><button class="down" data-sg="down">↓</button><button class="right" data-sg="right">→</button><button class="action" data-sg="shoot">SHOOT</button></div><p style="color:var(--muted);font-size:.85rem;text-align:center">Desktop: Arrow keys + Space to shoot. Mobile/TV: arrows + SHOOT.</p></div>`;
+ const c=document.getElementById('soccerCanvas'),x=c.getContext('2d'),S={p:{x:260,y:530,r:14},b:{x:260,y:485,r:8,vx:0,vy:0},o:[],g:{x:190,y:25,w:140,h:24},goals:0,level:1,cd:0};for(let i=0;i<5;i++)S.o.push({x:70+i*95,y:180+(i%2)*60,r:13});let keys={},shoot=false,raf;
+ window.addEventListener('keydown',e=>{if(e.key==='ArrowUp')keys.up=true;if(e.key==='ArrowDown')keys.down=true;if(e.key==='ArrowLeft')keys.left=true;if(e.key==='ArrowRight')keys.right=true;if(e.key===' ')shoot=true});window.addEventListener('keyup',e=>{if(e.key==='ArrowUp')keys.up=false;if(e.key==='ArrowDown')keys.down=false;if(e.key==='ArrowLeft')keys.left=false;if(e.key==='ArrowRight')keys.right=false;if(e.key===' ')shoot=false});
+ document.querySelectorAll('#socControls [data-sg]').forEach(b=>{const k=b.dataset.sg,on=e=>{e.preventDefault();k==='shoot'?shoot=true:keys[k]=true},off=e=>{e.preventDefault();k==='shoot'?shoot=false:keys[k]=false};b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointercancel',off)});
+ function loop(){let dx=(keys.right?1:0)-(keys.left?1:0),dy=(keys.down?1:0)-(keys.up?1:0),d=Math.hypot(dx,dy)||1;S.p.x+=dx/d*2.8;S.p.y+=dy/d*2.8;S.p.x=Math.max(20,Math.min(500,S.p.x));S.p.y=Math.max(45,Math.min(625,S.p.y));if(Math.hypot(S.p.x-S.b.x,S.p.y-S.b.y)<35){S.b.vx+=(S.p.x-S.b.x)*.08;S.b.vy+=(S.p.y-S.b.y)*.08}if(shoot&&S.cd<=0&&Math.hypot(S.p.x-S.b.x,S.p.y-S.b.y)<48){S.b.vy=-7;S.b.vx=0;S.cd=.4}S.cd=Math.max(0,S.cd-.016);S.b.x+=S.b.vx;S.b.y+=S.b.vy;S.b.vx*=.985;S.b.vy*=.985;S.o.forEach(o=>{let dx=S.b.x-o.x,dy=S.b.y-o.y,d=Math.hypot(dx,dy)||1;o.x+=dx/d*.75;o.y+=dy/d*.75});if(S.b.y<S.g.y+25&&S.b.x>S.g.x&&S.b.x<S.g.x+S.g.w){S.goals++;S.level++;S.b.x=260;S.b.y=485;S.b.vx=S.b.vy=0}if(S.b.y>638){S.b.x=260;S.b.y=485;S.b.vx=S.b.vy=0}x.fillStyle='#178447';x.fillRect(0,0,c.width,c.height);x.strokeStyle='#fff';x.strokeRect(10,25,500,600);x.strokeRect(S.g.x,S.g.y,S.g.w,S.g.h);x.beginPath();x.moveTo(10,325);x.lineTo(510,325);x.stroke();S.o.forEach(o=>{x.fillStyle='#ef4444';x.beginPath();x.arc(o.x,o.y,o.r,0,Math.PI*2);x.fill()});x.fillStyle='#3b82f6';x.beginPath();x.arc(S.p.x,S.p.y,S.p.r,0,Math.PI*2);x.fill();x.fillStyle='#fff';x.beginPath();x.arc(S.b.x,S.b.y,S.b.r,0,Math.PI*2);x.fill();document.getElementById('socGoals').textContent=S.goals;document.getElementById('socLevel').textContent=S.level;raf=requestAnimationFrame(loop)}loop();
+}
+
+/* ---------- Stock line graph + portfolio analysis ---------- */
+function stableStockPrice(ticker){
+  const t=(ticker||'MTX').toUpperCase(),known={AAPL:224,GOOGL:195,GOOG:196,MSFT:507,NVDA:181,AMZN:231,TSLA:339,META:765,MTX:4820,NEB:3180};
+  const base=known[t]||500+([...t].reduce((a,c)=>a+c.charCodeAt(0),0)%4000);
+  return base*(1+Math.sin(Date.now()/86400000+[...t].reduce((a,c)=>a+c.charCodeAt(0),0))*.025);
+}
+function recordStockPoint(ticker,price){
+  const acc=state.accounts[state.currentUser];if(!acc)return;acc.stockHistory=acc.stockHistory||{};acc.stockHistory[ticker]=acc.stockHistory[ticker]||[];acc.stockHistory[ticker].push({t:Date.now(),p:price});if(acc.stockHistory[ticker].length>80)acc.stockHistory[ticker].splice(0,acc.stockHistory[ticker].length-80);save();
+}
+function drawStockAnalysis(ticker,price,currency='USD'){
+  const acc=state.accounts[state.currentUser];if(!acc)return;recordStockPoint(ticker,price);
+  const hist=(acc.stockHistory[ticker]||[]).map(x=>x.p);const vals=hist.length?hist.slice(-40):[price];while(vals.length<24)vals.unshift(vals[0]);
+  const min=Math.min(...vals),max=Math.max(...vals),range=max-min||1;
+  const old=document.getElementById('stockAnalysisPanel');if(old)old.remove();
+  const panel=document.createElement('div');panel.id='stockAnalysisPanel';panel.className='stock-analysis';panel.innerHTML=`<div class="stock-analysis-grid"><div class="stock-analysis-card"><div class="n">${(window.metxonMoney||((v,c)=>`${c} ${Number(v).toFixed(2)}`))(price,currency)}</div><div>Current</div></div><div class="stock-analysis-card"><div class="n">${acc.portfolio[ticker]||0}</div><div>Shares</div></div><div class="stock-analysis-card"><div class="n">${(window.metxonMoney||((v,c)=>`${c} ${Number(v).toFixed(2)}`))((acc.portfolio[ticker]||0)*price,currency)}</div><div>Current Value</div></div><div class="stock-analysis-card"><div class="n">${acc.sub==='Elite'?'ELITE':'STANDARD'}</div><div>MET AI</div></div></div><canvas id="stockAnalysisCanvas" class="stock-chart" width="900" height="300"></canvas><div id="metAiSummary" class="card" style="margin-top:10px;"></div>`;
+  document.getElementById('stockResult').appendChild(panel);
+  const c=document.getElementById('stockAnalysisCanvas'),x=c.getContext('2d');x.fillStyle='#050a12';x.fillRect(0,0,c.width,c.height);x.strokeStyle='#1c2b46';for(let i=1;i<6;i++){x.beginPath();x.moveTo(0,i*c.height/6);x.lineTo(c.width,i*c.height/6);x.stroke()}x.beginPath();vals.forEach((v,i)=>{const xx=i*(c.width/(vals.length-1)),yy=c.height-25-((v-min)/range)*(c.height-50);i?x.lineTo(xx,yy):x.moveTo(xx,yy)});x.strokeStyle='#00d2ff';x.lineWidth=3;x.stroke();
+  const aiBox=document.getElementById('metAiSummary'); if(aiBox){aiBox.innerHTML=acc.sub==='Elite'?`<strong style="color:var(--purple)">MET AI</strong><br><span style="color:var(--muted)">Use the Elite MET AI section below and click <strong>Analyze with MET AI</strong> to request a summary for ${ticker}.</span>`:`<strong style="color:var(--muted)">MET AI</strong><br><span style="color:var(--muted)">Upgrade to Elite for MET AI stock summaries.</span>`;}
+}
+
+async function analyzeMetAI(){
+  const acc=state.accounts[state.currentUser];
+  if(!acc)return openAuth();
+  if(acc.sub!=='Elite'){
+    if(typeof setMetAITierUI==='function')setMetAITierUI();
+    return alert('MET AI stock analysis requires an Elite subscription.');
+  }
+
+  const input=document.getElementById('metAiStockSearch');
+  const output=document.getElementById('metAiOutput');
+  const ticker=(input?.value||'').trim().toUpperCase();
+
+  if(!ticker){
+    if(output)output.innerHTML='<strong style="color:var(--purple)">MET AI</strong><br><span style="color:var(--muted)">Enter a ticker first.</span>';
+    return;
+  }
+
+  if(output)output.innerHTML=`<strong style="color:var(--purple)">MET AI — ${ticker}</strong><br><span style="color:var(--muted)">Fetching market data and preparing the analysis…</span>`;
+
+  try{
+    const {data:sessionData,error:sessionError}=await metxonSupabase.auth.getSession();
+    if(sessionError || !sessionData.session)throw new Error('Your Metxon session has expired. Please sign in again.');
+
+    const {data,error}=await metxonSupabase.functions.invoke('metxon-market-ai',{body:{ticker}});
+    if(error){
+      // Supabase JS may only expose "non-2xx status code"; preserve the
+      // actual function error if a response body is available.
+      throw error;
+    }
+    if(!data){
+      throw new Error('No response was returned by MET AI.');
+    }
+    if(data.error){
+      if(output)output.innerHTML=`
+        <strong style="color:var(--red)">MET AI could not complete the analysis.</strong>
+        <p style="color:var(--muted);margin-top:8px;">${String(data.error)}</p>
+        <p style="color:var(--muted);font-size:.82rem;margin-top:8px;">The market/AI service is responding, but it could not return usable data for <b>${ticker}</b>.</p>`;
+      return;
+    }
+
+    const m=data.market||{};
+    if(Number.isFinite(Number(m.currentPrice))){
+      const stockInput=document.getElementById('stockSearch');
+      if(stockInput)stockInput.value=ticker;
+      const quoteBox=document.getElementById('stockResult');
+      const fmt=window.metxonMoney||((v,c)=>`${c} ${Number(v).toFixed(2)}`);
+      if(quoteBox){
+        const existing=quoteBox.querySelector('.card');
+        if(existing){
+          const priceNode=existing.querySelector('span');
+          if(priceNode)priceNode.textContent=fmt(Number(m.currentPrice),String(m.currency||'USD').toUpperCase());
+          const text=existing.innerHTML;
+          if(!text.includes(String(m.currency||'USD').toUpperCase())) existing.insertAdjacentHTML('afterbegin',`<span style="display:none">${m.currency}</span>`);
+        }
+      }
+    }
+    const fmt=v=>Number.isFinite(Number(v)) ? (window.metxonMoney||((n,c)=>`${c} ${Number(n).toFixed(2)}`))(v,String(m.currency||'USD').toUpperCase()) : '—';
+    const pct=v=>Number.isFinite(Number(v))
+      ? `${Number(v)>=0?'+':''}${Number(v).toFixed(2)}%`
+      : '—';
+
+    if(Number.isFinite(Number(m.currentPrice))){
+      recordStockPoint(ticker,Number(m.currentPrice));
+    }
+
+    if(output)output.innerHTML=`
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <strong style="color:var(--purple);font-size:1.08rem;">MET AI — ${ticker}</strong>
+        <span class="badge">${data.aiPowered?'AI-POWERED':'MARKET ANALYSIS'}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:12px 0;">
+        <div class="card"><b style="color:var(--cyan)">${fmt(m.currentPrice)}</b><small>Current</small></div>
+        <div class="card"><b>${pct(m.todayChangePct)}</b><small>Today</small></div>
+        <div class="card"><b>${fmt(m.dayHigh)}</b><small>Day high</small></div>
+        <div class="card"><b>${fmt(m.dayLow)}</b><small>Day low</small></div>
+        <div class="card"><b>${pct(m.oneMonthChangePct)}</b><small>1-month</small></div>
+        <div class="card"><b>${m.marketState||'—'}</b><small>Market state</small></div>
+      </div>
+      <div style="padding:12px 14px;border:1px solid var(--border);border-radius:9px;background:var(--bg);">
+        ${String(data.summary||'No analysis returned.').replace(/\n/g,'<br>')}
+      </div>
+      <p style="margin:10px 0 0;color:var(--muted);font-size:.8rem;">
+        Exchange: ${m.exchange||'—'} · Quote currency: ${String(m.currency||'USD').toUpperCase()} · Source: ${data.source||'Market data API'} ·
+        AI provider: ${data.aiProvider||'METXON_RULES_ENGINE'} ·
+        ${data.disclaimer||'Informational analysis only.'}
+      </p>
+    `;
+  }catch(e){
+    if(output)output.innerHTML=`
+      <strong style="color:var(--red)">MET AI could not complete the analysis.</strong>
+      <p style="color:var(--muted);margin-top:8px;">${String(e?.message||e)}</p>
+      <p style="color:var(--muted);font-size:.82rem;margin-top:8px;">Please try again. If the market service is temporarily unavailable, MET AI will fall back to a rules-based market summary.</p>`;
+  }
+}
+
+
+function setMetAITierUI(){
+  const acc=state.accounts[state.currentUser],elite=!!(acc&&acc.sub==='Elite');
+  const badge=document.getElementById('metAiTierBadge'),input=document.getElementById('metAiStockSearch'),btn=document.querySelector('#metAiEliteSection button.btn-primary'),out=document.getElementById('metAiOutput');
+  if(!badge||!input||!btn||!out)return;
+  badge.textContent=elite?'ELITE':'ELITE REQUIRED';
+  input.disabled=!elite;btn.disabled=!elite;
+  if(!elite)out.innerHTML='<strong style="color:var(--purple)">MET AI — Elite</strong><br><span style="color:var(--muted)">Available only with an Elite subscription.</span>';
+}
+
+async function searchStock(){
+  const input=document.getElementById('stockSearch');
+  const ticker=(input?.value||'').trim().toUpperCase();
+  const result=document.getElementById('stockResult');
+  if(!ticker){
+    if(result)result.innerHTML='<div class="card">Enter a stock ticker first.</div>';
+    return;
+  }
+  if(result)result.innerHTML=`<div class="card"><strong>${ticker}</strong> — Fetching live market quote…</div>`;
+
+  try{
+    const {data:sessionData,error:sessionError}=await metxonSupabase.auth.getSession();
+    if(sessionError || !sessionData.session)throw new Error('Your Metxon session has expired. Please sign in again.');
+
+    const {data,error}=await metxonSupabase.functions.invoke('metxon-market-data',{body:{ticker}});
+    if(error)throw error;
+    if(!data || data.error)throw new Error(data?.error||'Market quote unavailable.');
+
+    const m=data.market||{};
+    const price=Number(m.currentPrice);
+    const currency=String(m.currency||'USD').toUpperCase();
+    if(!Number.isFinite(price))throw new Error('Market price unavailable.');
+
+    // Use the same native-currency formatter everywhere.
+    const money=window.metxonMoney||((v,code)=>{
+      const n=Number(v);
+      const symbols={INR:'₹',USD:'$',EUR:'€',GBP:'£',JPY:'¥',KRW:'₩',CAD:'C$',AUD:'A$',CHF:'CHF '};
+      const sym=symbols[code]||`${code} `;
+      return `${sym}${n.toLocaleString('en-US',{maximumFractionDigits:2})}`;
+    });
+    window.metxonMoney=money;
+
+    result.innerHTML=`
+      <div class="card">
+        <strong>${ticker}</strong> — <span style="color:var(--cyan);font-weight:800;">${money(price,currency)}</span>
+        <span style="color:var(--muted);">(${currency})</span>
+        <div style="margin-top:6px;color:var(--muted);font-size:.82rem;">
+          Exchange: ${m.exchange||'—'} · Today: ${Number.isFinite(Number(m.todayChangePct))?(Number(m.todayChangePct)>=0?'+':'')+Number(m.todayChangePct).toFixed(2)+'%':'—'}
+        </div>
+        <div style="margin-top:10px">
+          <button class="btn btn-primary" onclick="buyStock('${ticker}',${price})">Buy 1 Share</button>
+          <button class="btn" onclick="sellStock('${ticker}',${price})">Sell 1 Share</button>
+        </div>
+      </div>`;
+    drawStockAnalysis(ticker,price,currency);
+  }catch(e){
+    if(result)result.innerHTML=`<div class="card"><strong style="color:var(--red)">Stock search failed.</strong><br><span style="color:var(--muted)">${String(e?.message||e)}</span></div>`;
+  }
+};
+
+const __buyStockOriginal=buyStock;buyStock=function(ticker,price){__buyStockOriginal(ticker,price);recordStockPoint(ticker,price);searchStock()};
+const __sellStockOriginal=sellStock;sellStock=function(ticker,price){__sellStockOriginal(ticker,price);recordStockPoint(ticker,price);searchStock()};
+
+/* Store/owner upgrade becomes available after the original page has initialized. */
+(function finalUpgradeInit(){
+  ensureJurassicParkOwner();
+  try{
+    if(state.currentUser && state.accounts[state.currentUser])onLogin(state.currentUser);
+  }catch(e){}
+})();
+
+</script>
+
+<footer style="text-align:center;padding:28px 16px 40px;border-top:1px solid var(--border);margin-top:40px;color:var(--muted);font-size:0.8rem;">
+  <p style="margin-bottom:6px;"><strong style="color:var(--cyan);">METXON CORPORATE</strong></p>
+  <p>© 2024–2026 Metxon Corporate. All rights reserved. · Official Metxon Corporate ecosystem portal.</p>
+  <p style="margin-top:4px;">Molecule · Mettin · MetCount · MetCart — Fictional ecosystem portal.</p>
+  <p style="margin-top:8px;font-size:0.75rem;opacity:0.7;">Owner: Jurassic Park · Metxon Ecosystem</p>
+</footer>
+<script>
+/* ===================== METXON SUPABASE BRIDGE ===================== */
+const METXON_SUPABASE_URL = 'https://brahcvovidgjjzpkxsms.supabase.co';
+const METXON_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_FFhWnTcsx3JflSHkIDaSaQ_Mwhh83up';
+const metxonSupabase = window.supabase.createClient(METXON_SUPABASE_URL, METXON_SUPABASE_PUBLISHABLE_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+});
+const METXON_AUTH_FUNCTION = METXON_SUPABASE_URL + '/functions/v1/metxon-auth-v2';
+window.metxonMoney=window.metxonMoney||function(value,currency){
+  const n=Number(value);
+  const code=String(currency||'USD').toUpperCase();
+  const symbols={INR:'₹',USD:'$',EUR:'€',GBP:'£',JPY:'¥',KRW:'₩',CAD:'C$',AUD:'A$',CHF:'CHF '};
+  const sym=symbols[code]||`${code} `;
+  return `${sym}${n.toLocaleString('en-US',{maximumFractionDigits:2})}`;
+};
+
+
+async function metxonAuthRequest(action, payload) {
+  const res = await fetch(METXON_AUTH_FUNCTION, {
+    method:'POST',
+    headers:{'Content-Type':'application/json','apikey':METXON_SUPABASE_PUBLISHABLE_KEY},
+    body:JSON.stringify({action,...payload})
+  });
+  const data = await res.json().catch(()=>({}));
+  if (!res.ok || data.error) throw new Error(data.error || 'Metxon authentication failed');
+  return data;
+}
+
+function syncProfileToLegacy(profile) {
+  if (!profile) return;
+  const u=(profile.username||'').toLowerCase();
+  state.accounts[u]=state.accounts[u]||{};
+  const a=state.accounts[u];
+  a.name=profile.display_name||u;
+  a.balance=Number(profile.balance||0);
+  a.jpBalance=Number(profile.jp_balance||0);
   a.sub=profile.subscription_tier||'None';
   a.subUntil=profile.subscription_until ? new Date(profile.subscription_until).getTime() : 0;
   a.phone=profile.phone||a.phone||'';
