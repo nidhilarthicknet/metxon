@@ -4418,6 +4418,24 @@ document.querySelectorAll('[data-plan]').forEach(b=>b.onclick=async()=>{const gb
 }
 })();
 
+
+/* ===== Follow-up fixes: store error handling, Met-Ail navigation, Cloud saved messages ===== */
+(function(){
+ const $=id=>document.getElementById(id), safe=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const oldStore=window.renderNebulaStore;
+ window.renderNebulaStore=async function(){
+   const c=$('appContent'); if(!c)return;
+   if(!state.currentUser){c.innerHTML='<div class="card">Please sign in to use Nebula Store.</div>';return;}
+   try { await oldStore(); }
+   catch(e){c.innerHTML='<div class="card"><h3>Nebula Store could not load</h3><p>'+safe(e.message||e)+'</p><button class="btn btn-primary" onclick="renderNebulaStore()">Try again</button></div>';}
+ };
+ const oldLaunch=window.launchNebulaApp;
+ window.launchNebulaApp=async function(key){
+   if(key==='metAil')return oldLaunch(key);
+   return oldLaunch(key);
+ };
+})();
+
 </script>
 </body>
 </html>
