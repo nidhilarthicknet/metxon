@@ -4241,15 +4241,16 @@ window.showIncomingMessagePopup=function(username,message){
   async function renderPayPanel(){
     const p=document.getElementById('mp-pay');if(!p)return;
     const contacts=await loadMetPayContacts();
-    p.innerHTML=`<h3>Send / Receive Cash</h3><p style="color:var(--muted)">Enter a Metxon username and amount to transfer money.</p><div class="form-group"><input id="mpTo" placeholder="Recipient username"></div><div class="form-group"><input id="mpAmount" type="number" min="1" step="0.01" placeholder="Amount (₹)"></div><button class="btn btn-primary" id="mpSend">Send ₹</button><button class="btn" id="mpAdd">Add Contact</button><div class="metpay-contacts" id="mpPayContacts"></div><div class="metpay-status" id="mpPayStatus"></div>`;
+    p.innerHTML=`<h3>Send / Receive Cash</h3><p style="color:var(--muted)">Enter a Metxon username and amount to transfer money.</p><div class="form-group"><input id="mpTo" placeholder="Recipient username"></div><div class="form-group"><input id="mpAmount" type="number" min="1" step="0.01" placeholder="Amount (₹)"></div><button class="btn btn-primary" id="mpSend">Send ₹</button><button class="btn" id="mpAdd">Add Contact</button><button class="btn" id="mpRechargeCloud">Recharge cloud</button><div class="metpay-contacts" id="mpPayContacts"></div><div class="metpay-status" id="mpPayStatus"></div>`;
     const cb=document.getElementById('mpPayContacts');cb.innerHTML=contacts.length?contacts.map(c=>`<button class="btn metpay-contact" data-u="${esc(c.username)}">${esc(c.username)}</button>`).join(''):'<span style="color:var(--muted)">No contacts yet.</span>';
     cb.querySelectorAll('[data-u]').forEach(b=>b.onclick=()=>document.getElementById('mpTo').value=b.dataset.u);
     document.getElementById('mpAdd').onclick=async()=>{try{await addMetPayContact(document.getElementById('mpTo').value);await renderPayPanel();await renderContactsPanel();}catch(e){alert(e.message||'Could not add contact.')}};
+    document.getElementById('mpRechargeCloud').onclick=()=>window.launchNebulaApp('metCloud');
     document.getElementById('mpSend').onclick=async()=>{
       const to=document.getElementById('mpTo').value.trim().toLowerCase(), amount=Number(document.getElementById('mpAmount').value), status=document.getElementById('mpPayStatus');
       if(!to||!Number.isFinite(amount)||amount<=0)return alert('Enter a valid username and amount.');
       const ok=confirm(`Send ₹${amount.toLocaleString('en-IN')} to ${to}?`);if(!ok)return;
-      try{status.textContent='Processing…';await cloudTransfer(to,amount);try{await addMetPayContact(to)}catch{}status.textContent=`Sent ₹${amount.toLocaleString('en-IN')} to ${to}.`;document.getElementById('mpAmount').value='';await renderContactsPanel();}
+      try{status.innerHTML='<span class="mp-processing"><span class="mp-spinner"></span> Processing transaction…</span>';await cloudTransfer(to,amount);try{await addMetPayContact(to)}catch{}status.textContent=`Sent ₹${amount.toLocaleString('en-IN')} to ${to}.`;document.getElementById('mpAmount').value='';await renderContactsPanel();}
       catch(e){status.textContent='';alert(e.message||'Transfer failed.');}
     };
   }
