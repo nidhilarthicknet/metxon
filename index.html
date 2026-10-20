@@ -599,7 +599,7 @@ tr:hover { background: rgba(255,255,255,0.03); }
     <h2>Met-Pay Checkout</h2>
     <p id="payItemInfo"></p>
     <div class="form-group"><label>Password</label><input id="payPass" type="password" placeholder="Confirm with password"></div>
-    <button class="btn btn-primary" style="width:100%;" onclick="executePay()">Pay Now</button>
+    <button class="btn btn-primary" style="width:100%;" onclick="window.executePay()">Pay Now</button>
     <button class="btn" style="width:100%;margin-top:8px;" onclick="closePay()">Cancel</button>
   </div>
 </div>
@@ -1309,7 +1309,11 @@ function startPay(name, price) {
 }
 function closePay() { document.getElementById('payModal').classList.remove('show'); }
 function executePay() {
-  alert('Payment is secured by Metxon cloud authentication. Please use the current account session.');
+  /* Legacy fallback: the full MetPay checkout handler is installed later in this file. */
+  if (typeof window.executePay === 'function' && window.executePay !== executePay) {
+    return window.executePay();
+  }
+  alert('MetPay is still loading. Please wait a moment and try again.');
 }
 
 /* ===================== BLOCK BREAKER ===================== */
