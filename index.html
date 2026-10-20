@@ -4641,10 +4641,11 @@ async function profile(){if(!state.currentUser)throw Error('Please sign in to yo
 
   document.getElementById('appContent').querySelectorAll('[data-plan]').forEach(b=>b.onclick=async()=>{
    const gb=Number(b.dataset.plan),status=$('cloudPlanStatus');if(gb===15)return alert('The free 15 GB plan is the default. Purchased capacity remains permanently.');
+   const mailEmail=await window.metxonRequireMail();if(!mailEmail)return;
    if(!confirm('Buy the '+gb+' GB Met-Cloud upgrade for '+(gb===25?'10':gb===30?'20':'30')+' JP (or 10 JP difference when upgrading from 30 GB)?'))return;
    status.innerHTML='<span class="metcloud-progress"><span class="metcloud-spinner"></span> Processing secure JP purchase…</span>';
    document.querySelectorAll('[data-plan]').forEach(x=>x.disabled=true);
-   try{const result=await metxonSupabase.rpc('metxon_purchase_cloud_plan',{p_capacity_gb:gb});if(result.error)throw result.error;status.textContent=result.data?.message||'Storage purchased.';await refreshCloudAccount();await load();if(typeof updateMcUI==='function'&&document.getElementById('currencyView'))updateMcUI();}
+   try{const result=await metxonSupabase.rpc('metxon_purchase_cloud_plan',{p_capacity_gb:gb});if(result.error)throw result.error;status.textContent=result.data?.message||'Storage purchased.';await refreshCloudAccount();await load();if(typeof updateMcUI==='function'&&document.getElementById('currencyView'))updateMcUI();await window.metxonNotifyTransaction('Met-Cloud storage purchase','Purchased/updated Met-Cloud storage plan to '+gb+' GB. '+(result.data?.message||''));}
    catch(err){status.textContent='Purchase failed: '+err.message;alert('Met-Cloud purchase failed: '+err.message);}
    finally{document.querySelectorAll('[data-plan]').forEach(x=>x.disabled=false);}
   });
@@ -4700,11 +4701,12 @@ window.addEventListener('click',async function(ev){
  const btn=ev.target.closest&&ev.target.closest('#mcConvertBtn');if(!btn)return;
  const input=document.getElementById('mcConvertInr'),status=document.getElementById('mcConvertStatus'),amount=Number(input&&input.value);
  if(!Number.isFinite(amount)||amount<=0){alert('Enter a valid INR amount.');return;}if(!state.currentUser){alert('Sign in to MetCount first.');return;}
+ const mailEmail=await window.metxonRequireMail();if(!mailEmail)return;
  if(!confirm('Convert ₹'+amount.toLocaleString('en-IN',{maximumFractionDigits:2})+' to JP at the configured prototype rate? This moves value from INR to the JP wallet.'))return;
  btn.disabled=true;if(status)status.textContent='Converting…';
  try{const result=await metxonSupabase.rpc('metxon_convert_balance_to_jp',{p_inr_amount:amount});if(result.error)throw result.error;
  if(status)status.textContent='Converted ₹'+Number(result.data.inr_debited).toLocaleString('en-IN')+' to '+Number(result.data.jp_credited).toLocaleString('en-IN')+' JP.';
- if(input)input.value='';await refreshCloudAccount();await cloudLoadTransactions();if(typeof updateMcUI==='function')updateMcUI();
+ if(input)input.value='';await refreshCloudAccount();await cloudLoadTransactions();if(typeof updateMcUI==='function')updateMcUI();await window.metxonNotifyTransaction('MetCount JP conversion','Converted ₹'+Number(result.data.inr_debited).toLocaleString('en-IN')+' into '+Number(result.data.jp_credited).toLocaleString('en-IN')+' JP.');
  }catch(err){if(status)status.textContent='Conversion failed: '+(err.message||err);alert('JP conversion failed: '+(err.message||err));}finally{btn.disabled=false;}
 });
 window.metCountCurrencyChanged=async function(currency){
@@ -4972,6 +4974,28 @@ window.metCountCurrencyChanged=async function(currency){
   const acc=state.accounts[state.currentUser];if(!acc||Number(acc.balance)<Number(price))return originalBuySub(tier,price);
   originalBuySub(tier,price);
   await window.metxonNotifyTransaction('MetCount subscription request',tier+' subscription selected for ₹'+Number(price).toLocaleString('en-IN')+'.');
+ };
+})();
+</script>
+
+<script>
+(function(){
+ const oldBuy=window.buyStock;
+ if(typeof oldBuy==='function')window.buyStock=async function(ticker,price){
+  const email=await window.metxonRequireMail();if(!email)return;
+  const a=state.accounts[state.currentUser];if(!a||Number(a.balance)<Number(price))return oldBuy(ticker,price);
+  oldBuy(ticker,price);await window.metxonNotifyTransaction('MetCount stock purchase','Purchased 1 share of '+ticker+' for ₹'+Number(price).toLocaleString('en-IN')+'.');
+ };
+ const oldSell=window.sellStock;
+ if(typeof oldSell==='function')window.sellStock=async function(ticker,price){
+  const email=await window.metxonRequireMail();if(!email)return;
+  const a=state.accounts[state.currentUser];if(!a||!a.portfolio||Number(a.portfolio[ticker]||0)<1)return oldSell(ticker,price);
+  oldSell(ticker,price);await window.metxonNotifyTransaction('MetCount stock sale','Sold 1 share of '+ticker+' for ₹'+Number(price).toLocaleString('en-IN')+'.');
+ };
+ const oldTransfer=window.cloudTransfer;
+ if(typeof oldTransfer==='function')window.cloudTransfer=async function(recipient,amount){
+  const email=await window.metxonRequireMail();if(!email)throw new Error('A Met-Ail ID is required for transfers.');
+  const result=await oldTransfer(recipient,amount);await window.metxonNotifyTransaction('MetCount transfer','Transfer submitted to '+recipient+' for ₹'+Number(amount).toLocaleString('en-IN')+'.');return result;
  };
 })();
 </script>
