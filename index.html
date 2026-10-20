@@ -4727,7 +4727,9 @@ async function profile(){if(!state.currentUser)throw Error('Please sign in to yo
    const gb=Number(b.dataset.plan),status=$('cloudPlanStatus');if(gb===15)return alert('The free 15 GB plan is the default. Purchased capacity remains permanently.');
    const planName=gb===25?'Met-Cloud':gb===30?'Met-Cloud Pro':'Met-Cloud Ultra';
    const fullPrice=gb===25?10:gb===30?20:30;
-   const currentGb=Number(e.data.capacity_gb||15),charge=currentGb>=gb?0:(currentGb===30&&gb===40?10:fullPrice);
+   const ent=await metxonSupabase.from('metcloud_entitlements').select('capacity_gb').eq('user_id',p.id).maybeSingle();
+   if(ent.error)throw ent.error;
+   const currentGb=Number(ent.data?.capacity_gb||15),charge=currentGb>=gb?0:(currentGb===30&&gb===40?10:fullPrice);
    if(charge<=0)return alert('You already have this capacity or a higher plan.');
    const mailEmail=await window.metxonRequireMail();if(!mailEmail)return;
    window.metpayPendingCheckout={kind:'cloud',name:planName+' subscription ('+gb+' GB)',capacityGb:gb,jpAmount:charge};
@@ -5011,6 +5013,12 @@ window.metCountCurrencyChanged=async function(currency){
   const d=await accountData();if(!d.accounts.length)throw new Error('A Met-Ail sender account is required.');
   await sendNotice(d.accounts[0].username,a.data.username+'@metail.com',subject,body);
  }
+ window.metxonSendOrderNotice=async function(email,ownerSubject,ownerBody,customerSubject,customerBody){
+  const d=await accountData(),target=String(email||'').trim().toLowerCase();
+  if(!d.accounts.some(a=>(a.username+'@metail.com').toLowerCase()===target))throw new Error('The selected Met-Ail inbox does not belong to this account.');
+  await ownerNotice(ownerSubject,ownerBody);
+  await sendNotice(target.split('@')[0],target,customerSubject,customerBody);
+ };
  async function prepare(){
   let d;try{d=await accountData();}catch(e){alert(e.message||e);return null;}
   if(!d.accounts.length){alert('You need a Met-Ail ID before placing an order or payment request. Create one in Met-Ail, then return here.');if(typeof window.openMetAil==='function')window.openMetAil();return null;}
