@@ -4710,19 +4710,81 @@ window.metCountCurrencyChanged=async function(currency){const box=document.getEl
 
 </script>
 <script>
-/* Final app routing aliases — keep older Metxon nav entries compatible. */
+/* Final Metxon app registry/router fix: preserve the original installer for paid apps. */
 (function(){
- const previous=window.openApp;
+ const $=id=>document.getElementById(id);
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const registry=window.NEBULA_APPS||{};
+ const fresh=['metAil','metxonCare','metCloud','metNa'];
+ async function currentProfile(){
+  if(!state.currentUser)throw Error('Please sign in to your Metxon account first.');
+  const p=await loadCloudAccount(state.currentUser);
+  if(!p||!p.id)throw Error('Could not load your Metxon profile. Please sign out and sign back in.');
+  return p;
+ }
+ async function readInstalled(){
+  const p=await currentProfile();
+  const r=await metxonSupabase.from('metxon_app_installations').select('app_id').eq('user_id',p.id);
+  if(r.error)throw r.error;
+  return {p,set:new Set((r.data||[]).map(x=>x.app_id))};
+ }
+ window.renderNebulaStore=async function(){
+  const c=$('appContent');if(!c)return;
+  c.innerHTML='<div class="card"><h3>Nebula Store</h3><p style="color:var(--muted)">Met-Ail, Metxon Care, Met-Cloud and Met-Na are free to install. Internal Metxon services do not require Gmail or a public mail domain.</p><p id="nebulaStoreStatus">Loading apps…</p></div><div id="nebulaStoreGrid" class="nebula-store-grid"></div>';
+  const grid=$('nebulaStoreGrid');
+  const keys=Object.keys(registry);
+  grid.innerHTML=keys.map(k=>{const a=registry[k];return '<div class="nebula-app-card"><h3>'+esc(a.name)+'</h3><p style="color:var(--muted);min-height:42px">'+esc(a.desc||'Metxon ecosystem app')+'</p><div class="nebula-price">'+(Number(a.price)===0?'Free':'₹'+Number(a.price).toLocaleString('en-IN')+' one-time')+'</div><button class="btn btn-primary" data-app="'+esc(k)+'">'+(Number(a.price)===0?'Install free':'Install · ₹'+Number(a.price).toLocaleString('en-IN'))+'</button></div>';}).join('');
+  grid.querySelectorAll('[data-app]').forEach(b=>b.onclick=()=>window.installNebulaApp(b.dataset.app));
+  if(!state.currentUser){$('nebulaStoreStatus').textContent='Sign in to install and open apps.';return;}
+  try{
+   const {set}=await readInstalled();
+   keys.forEach(k=>{const a=registry[k],b=grid.querySelector('[data-app="'+k+'"]');if(!b)return;const yes=set.has(a.id);b.textContent=yes?'Open':Number(a.price)===0?'Install free':'Install · ₹'+Number(a.price).toLocaleString('en-IN');b.classList.toggle('btn-primary',!yes);b.onclick=()=>yes?window.launchNebulaApp(k):window.installNebulaApp(k);});
+   $('nebulaStoreStatus').textContent='Apps loaded successfully.';
+  }catch(e){
+   console.error('Nebula Store load failed:',e);
+   $('nebulaStoreStatus').innerHTML='Could not check your installed apps: '+esc(e.message||'Unknown error')+'. You can still browse the catalogue; please sign in again if needed.';
+  }
+ };
+ const previousInstall=window.installNebulaApp;
+ window.installNebulaApp=async function(key){
+  const a=registry[key];if(!a)return;
+  if(Number(a.price)>0){if(typeof previousInstall==='function')return previousInstall(key);return alert('The original paid-app installer is unavailable.');}
+  if(!state.currentUser){if(typeof openAuth==='function')return openAuth();return alert('Please sign in first.');}
+  try{
+   const {p,set}=await readInstalled();
+   if(set.has(a.id))return window.launchNebulaApp(key);
+   const ins=await metxonSupabase.from('metxon_app_installations').insert({user_id:p.id,app_id:a.id,app_name:a.name,price:0});
+   if(ins.error)throw ins.error;
+   await window.renderNebulaStore();
+   if(typeof refreshInstalledApps==='function')await refreshInstalledApps();
+   alert(a.name+' installed for free.');
+  }catch(e){console.error('Nebula install failed:',e);alert('Could not install '+a.name+': '+(e.message||'Database error'));}
+ };
+ const previousLaunch=window.launchNebulaApp;
+ window.launchNebulaApp=async function(key){
+  if(!fresh.includes(key))return typeof previousLaunch==='function'?previousLaunch(key):alert('App launcher is not available. Refresh the page.');
+  if(!state.currentUser){if(typeof openAuth==='function')return openAuth();return alert('Please sign in first.');}
+  try{
+   const {p,set}=await readInstalled();
+   if(!set.has(registry[key].id))return alert('Install this app from Nebula Store first.');
+   if(key==='metAil'&&typeof window.openMetAil==='function')return window.openMetAil();
+   if(key==='metxonCare'&&typeof window.openMetxonCare==='function')return window.openMetxonCare();
+   if(key==='metCloud'&&typeof window.openMetCloud==='function')return window.openMetCloud();
+   if(key==='metNa'&&typeof window.openMetNa==='function')return window.openMetNa();
+   return alert(registry[key].name+' is installed, but its app screen did not initialise. Refresh the page and try again.');
+  }catch(e){console.error('App launch failed:',e);alert('Could not open '+registry[key].name+': '+(e.message||'Database error'));}
+ };
  window.openApp=function(name){
   const k=String(name||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
-  if(k==='mail'||k==='metail')return window.openMetAil?window.openMetAil():alert('Met-Ail is not ready yet. Refresh the page.');
-  if(k==='metxoncare')return window.openMetxonCare?window.openMetxonCare():alert('Metxon Care is not ready yet. Refresh the page.');
-  if(k==='metcloud')return window.openMetCloud?window.openMetCloud():alert('Met-Cloud is not ready yet. Refresh the page.');
-  if(k==='metna'||k==='metxonarena')return window.openMetNa?window.openMetNa():alert('Met-Na is not ready yet. Refresh the page.');
-  if(k==='nebulastore'||k==='appstore'){const w=document.getElementById('appWorkspace'),t=document.getElementById('appTitle');if(w)w.style.display='block';if(t)t.textContent='Nebula Store';if(w)w.scrollIntoView({behavior:'smooth'});return window.renderNebulaStore?window.renderNebulaStore():alert('Nebula Store is not ready yet. Refresh the page.');}
-  if(typeof previous==='function')return previous.apply(this,arguments);
+  if(k==='mail'||k==='metail')return typeof window.openMetAil==='function'?window.openMetAil():alert('Met-Ail is not ready yet. Refresh the page.');
+  if(k==='metxoncare')return typeof window.openMetxonCare==='function'?window.openMetxonCare():alert('Metxon Care is not ready yet. Refresh the page.');
+  if(k==='metcloud')return typeof window.openMetCloud==='function'?window.openMetCloud():alert('Met-Cloud is not ready yet. Refresh the page.');
+  if(k==='metna'||k==='metxonarena')return typeof window.openMetNa==='function'?window.openMetNa():alert('Met-Na is not ready yet. Refresh the page.');
+  if(k==='nebulastore'||k==='appstore'){const w=$('appWorkspace'),t=$('appTitle');if(w)w.style.display='block';if(t)t.textContent='Nebula Store';if(w)w.scrollIntoView({behavior:'smooth'});return window.renderNebulaStore();}
+  return alert('This app is not registered in Nebula Store yet.');
  };
- window.Mail=window.mail=window.openMetAil;
+ window.openMail=window.openMetAil;
+ window.Mail=window.mail=function(){if(typeof window.openMetAil==='function')return window.openMetAil();throw new Error('Met-Ail has not finished initialising. Refresh the page.');};
 })();
 </script>
 </body>
