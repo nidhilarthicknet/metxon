@@ -4306,11 +4306,16 @@ window.showIncomingMessagePopup=function(username,message){
         emailSelect.innerHTML=accounts.map(a=>{const email=String(a.username)+'@metail.com';return '<option value="'+esc(email)+'">'+esc(email)+'</option>';}).join('');
         pending.email=emailSelect.value;status.textContent='Enter your Met-Ail password to continue.';
       }).catch(e=>{emailSelect.innerHTML='<option value="">Could not load Met-Ail IDs</option>';status.textContent='Could not load Met-Ail IDs: '+(e.message||e);});
+      emailSelect.onchange=()=>{pending.email=String(emailSelect.value||'').trim().toLowerCase();};
       document.getElementById('mpCheckoutCancel').onclick=()=>{window.metpayPendingCheckout=null;renderPayPanel();};
       pay.onclick=async()=>{
-        const password=document.getElementById('mpCheckoutPassword').value;if(!password){status.textContent='Enter your password first.';return;}
+        const checkoutPassword=document.getElementById('mpCheckoutPassword').value;
+        if(!String(emailSelect.value||pending.email||'').trim()){status.textContent='Wait for your Met-Ail inbox to load, then select it.';return;}
+        if(!checkoutPassword){status.textContent='Payment blocked: enter your Met-Ail password to authorize this order.';document.getElementById('mpCheckoutPassword').focus();return;}
+        const password=checkoutPassword;
         pay.disabled=true;status.textContent='Verifying password…';
         try{
+          if(!window.metpayPendingCheckout||window.metpayPendingCheckout!==pending)throw new Error('Checkout expired. Reopen MetPay and try again.');
           // MetPay authorizes purchases with the selected Met-Ail mailbox password.
           // Mailbox credentials are separate from the parent Metxon login credentials.
           const checkoutEmail=String(emailSelect.value||pending.email||'').trim().toLowerCase();
@@ -4333,7 +4338,7 @@ window.showIncomingMessagePopup=function(username,message){
             status.textContent='Processing MetPay transfer…';
             await cloudTransfer('Molecule',Number(pending.amount));
             const body='PAID METCART ORDER — OWNER REVIEW REQUIRED\\nOwner receipt inbox: Jurassicpark@metail.com\\nMetxon account: '+state.currentUser+'\\nCustomer Met-Ail inbox (reply to this receipt): '+pending.email+'\\nItem(s): '+pending.name+'\\nPaid amount: ₹'+Number(pending.amount).toLocaleString('en-IN')+'\\nPayment status: Paid in MetPay.\\nOrder status: Awaiting owner review and delivery-date confirmation.\\nACTION: Open this message in Jurassicpark@metail.com, press Reply, and send the delivery date. The reply is addressed to the customer inbox listed above.';
-            await window.metxonSendOrderNotice(pending.email,'PAID MetCart order — review and set delivery date',body,'MetCart payment received — order submitted','Your MetPay transaction was completed.\\nItem(s): '+pending.name+'\\nAmount paid: ₹'+Number(pending.amount).toLocaleString('en-IN')+'\\nRequest sent to the team. They are preparing your order; you will soon receive your delivery date.');
+            await window.metxonSendOrderNotice(pending.email,'PAID MetCart order — review and set delivery date',body,'MetCart order placed — waiting for delivery date','Ordered successfully. Waiting for the delivery date from our team.\\n\\nItem(s): '+pending.name+'\\nAmount paid: ₹'+Number(pending.amount).toLocaleString('en-IN')+'\\nOrder status: Ordered. Waiting for delivery date by our team.\\nWe will reply to this Met-Ail inbox once the delivery date is confirmed.');
             if(pending.isCart){getCart().length=0;save();updateCartBar();}
             status.textContent='Payment successful. Request sent to the team; you will soon receive your delivery date in Met-Ail.';
           }
