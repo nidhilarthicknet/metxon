@@ -5029,15 +5029,26 @@ window.metCountCurrencyChanged=async function(currency){
   return d;
  }
  const originalStart=window.startPay;
+ // Route every MetCart purchase directly into the real MetPay checkout.
+ // Do not show the legacy payModal: its older handler could submit an order before payment.
  window.startPay=async function(name,price){
-  if(!state.currentUser)return openAuth();const d=await prepare();if(!d)return;
-  currentCheckout={name,price};$('payItemInfo').innerHTML='Order request: <strong>'+esc(name)+'</strong> · <strong>₹'+Number(price).toLocaleString('en-IN')+'</strong>';$('payModal').classList.add('show');
+  if(!state.currentUser)return openAuth();
+  const d=await prepare();if(!d)return;
+  const email=d.accounts[0].username+'@metail.com';
+  window.metpayPendingCheckout={kind:'metcart',name:String(name),amount:Number(price),isCart:false,items:[],email,username:state.currentUser};
+  try{await window.launchNebulaApp('metPay');}
+  catch(e){window.metpayPendingCheckout=null;alert('Could not open MetPay checkout: '+(e.message||e));}
  };
  window.checkoutCart=async function(){
-  if(!state.currentUser)return openAuth();const cart=getCart();if(!cart.length)return alert('Cart is empty.');
-  const d=await prepare();if(!d)return;const total=cart.reduce((sum,i)=>sum+Number(i.price)*Number(i.qty),0),names=cart.map(i=>i.name+(i.qty>1?' ×'+i.qty:'')).join(', ');
-  currentCheckout={name:'Cart: '+names,price:total,isCart:true,items:cart.map(x=>({...x}))};
-  $('payItemInfo').innerHTML='Order request (<strong>'+cart.reduce((sum,i)=>sum+i.qty,0)+' items</strong>): <strong>'+esc(names)+'</strong> · <strong>₹'+total.toLocaleString('en-IN')+'</strong>';$('payModal').classList.add('show');
+  if(!state.currentUser)return openAuth();
+  const cart=getCart();if(!cart.length)return alert('Cart is empty.');
+  const d=await prepare();if(!d)return;
+  const total=cart.reduce((sum,i)=>sum+Number(i.price)*Number(i.qty),0);
+  const names=cart.map(i=>i.name+(i.qty>1?' ×'+i.qty:'')).join(', ');
+  const email=d.accounts[0].username+'@metail.com';
+  window.metpayPendingCheckout={kind:'metcart',name:'Cart: '+names,amount:total,isCart:true,items:cart.map(x=>({...x})),email,username:state.currentUser};
+  try{await window.launchNebulaApp('metPay');}
+  catch(e){window.metpayPendingCheckout=null;alert('Could not open MetPay checkout: '+(e.message||e));}
  };
  window.executePay=async function(){
   if(!currentCheckout)return alert('Choose an item first.');
