@@ -5220,7 +5220,6 @@ window.metCountCurrencyChanged=async function(currency){
 
 
 <script>
-<script>
 (function(){
 async function prof(){if(!state.currentUser)throw Error('Sign in first');let p=await loadCloudAccount(state.currentUser);if(!p||!p.id)throw Error('Profile unavailable');let u=await metxonSupabase.auth.getUser();if(u.error||!u.data.user||u.data.user.id!==p.id)throw Error('Sign out and sign in again');return p}
 async function pay(o){window.metpayPendingCheckout=o;let w=document.getElementById('appWorkspace'),t=document.getElementById('appTitle'),c=document.getElementById('appContent');if(!w||!c||!window.renderMetPayApp)throw Error('MetPay unavailable');w.style.display='block';w.hidden=false;c.style.display='block';c.hidden=false;if(t)t.textContent='MetPay';c.innerHTML='<div id="gameArea"><p>Opening MetPay…</p></div>';let area=c.querySelector('#gameArea');await window.renderMetPayApp(area);let tab=area.querySelector('[data-mp-tab="pay"]');if(!tab)throw Error('Payment panel unavailable');tab.click();w.scrollIntoView({behavior:'smooth',block:'start'})}
