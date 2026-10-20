@@ -5010,18 +5010,19 @@ window.metCountCurrencyChanged=async function(currency){
   const r=await metxonSupabase.rpc('metxon_send_metail_message',{p_sender_username:String(senderUsername||''),p_recipient_username:recipient,p_subject:String(subject||'Metxon notification').slice(0,200),p_body:String(body||'').slice(0,10000)});
   if(r.error)throw r.error;
  }
- async function ownerNotice(subject,body){
+ async function ownerNotice(subject,body,customerEmail){
   const a=await metxonSupabase.from('metail_accounts').select('username').ilike('username','Jurassicpark').maybeSingle();
   if(a.error)throw a.error;if(!a.data)throw new Error('Owner order-receipt inbox Jurassicpark@metail.com is not configured.');
   const ownerEmail=String(a.data.username)+'@metail.com';
   if(ownerEmail.toLowerCase()!=='jurassicpark@metail.com')throw new Error('The owner order-receipt account must be Jurassicpark@metail.com.');
-  const d=await accountData();if(!d.accounts.length)throw new Error('A Met-Ail sender account is required so the owner can reply directly to the customer.');
-  await sendNotice(d.accounts[0].username,ownerEmail,subject,body+'\\n\\nOWNER ACTION: Review this paid order, then use Reply in Met-Ail to send the delivery date. The reply goes to the customer Met-Ail inbox shown above.');
+  const sender=String(customerEmail||'').trim().toLowerCase();
+  if(!/^[a-zA-Z0-9_]{3,24}@metail\.com$/.test(sender))throw new Error('A valid customer Met-Ail inbox is required for owner replies.');
+  await sendNotice(sender.split('@')[0],ownerEmail,subject,body+'\n\nOWNER ACTION: Review this paid order, then use Reply in Met-Ail to send the delivery date. Because this receipt is sent from the customer inbox shown above, your reply will reach that customer.');
  }
  window.metxonSendOrderNotice=async function(email,ownerSubject,ownerBody,customerSubject,customerBody){
   const d=await accountData(),target=String(email||'').trim().toLowerCase();
   if(!d.accounts.some(a=>(a.username+'@metail.com').toLowerCase()===target))throw new Error('The selected Met-Ail inbox does not belong to this account.');
-  await ownerNotice(ownerSubject,ownerBody);
+  await ownerNotice(ownerSubject,ownerBody,target);
   await sendNotice(target.split('@')[0],target,customerSubject,customerBody);
  };
  async function prepare(){
