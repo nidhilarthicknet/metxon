@@ -4249,11 +4249,14 @@ window.showIncomingMessagePopup=function(username,message){
     </div>`;}
 
   async function loadMetPayContacts(){
-    const me=await currentCloudProfile(); if(!me)return[];
-    const {data,error}=await metxonSupabase.from('metpay_contacts').select('contact_id,created_at').eq('user_id',me.id).order('created_at',{ascending:true});
-    if(error){console.warn(error);return[];} const ids=(data||[]).map(x=>x.contact_id); if(!ids.length)return[];
-    const {data:profiles,error:e2}=await metxonSupabase.from('profiles').select('id,username,display_name').in('id',ids);
-    if(e2){console.warn(e2);return[];} return profiles||[];
+    try{
+      const me=await currentCloudProfile(); if(!me)return[];
+      const {data,error}=await metxonSupabase.from('metpay_contacts').select('contact_id,created_at').eq('user_id',me.id).order('created_at',{ascending:true});
+      if(error){console.warn('MetPay contacts unavailable:',error.message);return[];}
+      const ids=(data||[]).map(x=>x.contact_id); if(!ids.length)return[];
+      const {data:profiles,error:e2}=await metxonSupabase.from('profiles').select('id,username,display_name').in('id',ids);
+      if(e2){console.warn('MetPay profiles unavailable:',e2.message);return[];} return profiles||[];
+    }catch(e){console.warn('MetPay contact loading failed:',e);return[];}
   }
   async function addMetPayContact(username){
     const u=String(username||'').trim(); if(!u)return;
@@ -4263,9 +4266,9 @@ window.showIncomingMessagePopup=function(username,message){
 
   async function renderPayPanel(){
     const p=document.getElementById('mp-pay');if(!p)return;
-    const contacts=await loadMetPayContacts();
     p.innerHTML=`<h3>Send / Receive Cash</h3><p style="color:var(--muted)">Enter a Metxon username and amount to transfer money.</p><div class="form-group"><input id="mpTo" placeholder="Recipient username"></div><div class="form-group"><input id="mpAmount" type="number" min="1" step="0.01" placeholder="Amount (₹)"></div><button class="btn btn-primary" id="mpSend">Send ₹</button><button class="btn" id="mpAdd">Add Contact</button><button class="btn" id="mpRechargeCloud">Recharge cloud</button><div class="metpay-contacts" id="mpPayContacts"></div><div class="metpay-status" id="mpPayStatus"></div>`;
-    const cb=document.getElementById('mpPayContacts');cb.innerHTML=contacts.length?contacts.map(c=>`<button class="btn metpay-contact" data-u="${esc(c.username)}">${esc(c.username)}</button>`).join(''):'<span style="color:var(--muted)">No contacts yet.</span>';
+    const cb=document.getElementById('mpPayContacts');
+    const contacts=await loadMetPayContacts();cb.innerHTML=contacts.length?contacts.map(c=>`<button class="btn metpay-contact" data-u="${esc(c.username)}">${esc(c.username)}</button>`).join(''):'<span style="color:var(--muted)">No contacts yet.</span>';
     cb.querySelectorAll('[data-u]').forEach(b=>b.onclick=()=>document.getElementById('mpTo').value=b.dataset.u);
     document.getElementById('mpAdd').onclick=async()=>{try{await addMetPayContact(document.getElementById('mpTo').value);await renderPayPanel();await renderContactsPanel();}catch(e){alert(e.message||'Could not add contact.')}};
     document.getElementById('mpRechargeCloud').onclick=()=>window.launchNebulaApp('metCloud');
@@ -4312,7 +4315,7 @@ window.showIncomingMessagePopup=function(username,message){
     area.innerHTML=metPayShell();
     const tabs=area.querySelectorAll('[data-mp-tab]');
     tabs.forEach(tab=>tab.onclick=async()=>{tabs.forEach(x=>x.classList.remove('active'));tab.classList.add('active');area.querySelectorAll('.metpay-panel').forEach(x=>x.classList.remove('active'));const panel=area.querySelector('#mp-'+tab.dataset.mpTab);panel.classList.add('active');if(tab.dataset.mpTab==='pay')await renderPayPanel();if(tab.dataset.mpTab==='chat')await renderChatPanel();if(tab.dataset.mpTab==='scan')renderScanPanel();if(tab.dataset.mpTab==='contacts')await renderContactsPanel();if(tab.dataset.mpTab==='cloud'){const b=document.getElementById('mpOpenCloud');if(b)b.onclick=()=>window.launchNebulaApp('metCloud');}});
-    await renderPayPanel();
+    try{await renderPayPanel();}catch(e){console.error('MetPay initialisation failed:',e);const panel=area.querySelector('#mp-pay');if(panel)panel.innerHTML='<h3>Send / Receive Cash</h3><p style="color:var(--muted)">MetPay opened, but account data could not load. Refresh and try again.</p><button class="btn btn-primary" id="mpRetry">Retry</button><p id="mpInitError" style="color:#f66"></p>';const retry=area.querySelector('#mpRetry');if(retry)retry.onclick=async()=>{try{await renderPayPanel();}catch(err){const msg=area.querySelector('#mpInitError');if(msg)msg.textContent=err.message||String(err);}};}
   };
 
   if(!window.__metxonOriginalOpenApp)window.__metxonOriginalOpenApp=window.__openAppOriginal || window.openApp;
