@@ -4303,6 +4303,42 @@ window.showIncomingMessagePopup=function(username,message){
 
   async function renderPayPanel(){
     const p=document.getElementById('mp-pay');if(!p)return;
+    const pending=window.metpayPendingCheckout;
+    if(pending){
+      const cloud=pending.kind==='cloud';
+      p.innerHTML=`<div class="card" style="border-color:var(--cyan)"><h3>MetPay secure checkout</h3><p><b>To:</b> ${cloud?'Mettin':'Molecule'}</p><p><b>Item:</b> ${esc(pending.name)}</p><p><b>Amount:</b> ${cloud?Number(pending.jpAmount).toLocaleString('en-IN')+' JP':'₹'+Number(pending.amount).toLocaleString('en-IN')}</p><p style="color:var(--muted)">Confirm your password to authorize this Metxon transaction. You must have sufficient wallet balance.</p><div class="form-group"><label for="mpCheckoutPassword">Metxon password</label><input id="mpCheckoutPassword" type="password" autocomplete="current-password" placeholder="Enter your password"></div><button class="btn btn-primary" id="mpCheckoutPay">${cloud?'Pay and activate subscription':'Pay now'}</button><button class="btn" id="mpCheckoutCancel">Cancel checkout</button><p class="metpay-status" id="mpCheckoutStatus" aria-live="polite"></p></div>`;
+      const status=document.getElementById('mpCheckoutStatus'),pay=document.getElementById('mpCheckoutPay');
+      document.getElementById('mpCheckoutCancel').onclick=()=>{window.metpayPendingCheckout=null;renderPayPanel();};
+      pay.onclick=async()=>{
+        const password=document.getElementById('mpCheckoutPassword').value;if(!password){status.textContent='Enter your password first.';return;}
+        pay.disabled=true;status.textContent='Verifying password…';
+        try{
+          const session=await metxonSupabase.auth.getSession(),authUser=session.data?.session?.user;
+          if(!authUser?.email)throw new Error('Your secure Metxon session has expired. Sign in again.');
+          const verified=await metxonSupabase.auth.signInWithPassword({email:authUser.email,password});
+          if(verified.error)throw new Error('Password verification failed. Check your Metxon account password.');
+          if(cloud){
+            status.textContent='Processing subscription…';
+            const result=await metxonSupabase.rpc('metxon_purchase_cloud_plan',{p_capacity_gb:Number(pending.capacityGb)});
+            if(result.error)throw result.error;
+            if(typeof refreshCloudAccount==='function')await refreshCloudAccount();
+            if(typeof window.metxonNotifyTransaction==='function')await window.metxonNotifyTransaction('Met-Cloud subscription activated',pending.name+' activated successfully. Charged: '+Number(pending.jpAmount)+' JP. '+(result.data?.message||''));
+            status.textContent='Payment accepted. '+(result.data?.message||'Your Met-Cloud subscription is active.');
+          }else{
+            status.textContent='Processing MetPay transfer…';
+            await cloudTransfer('Molecule',Number(pending.amount));
+            const d=await accountData();
+            const body='MetCart payment completed\nMetxon account: '+state.currentUser+'\nCustomer: '+(d.profile.display_name||state.currentUser)+'\nCustomer Met-Ail: '+pending.email+'\nItem(s): '+pending.name+'\nPaid amount: ₹'+Number(pending.amount).toLocaleString('en-IN')+'\nPayment status: Paid in MetPay.\nOrder status: Request sent to the team; your item is being prepared. You will receive your delivery date in Met-Ail.';
+            await ownerNotice('PAID MetCart order — review and set delivery date',body);
+            await sendNotice(pending.email.split('@')[0],pending.email,'MetCart payment received — order submitted','Your MetPay transaction was completed.\nItem(s): '+pending.name+'\nAmount paid: ₹'+Number(pending.amount).toLocaleString('en-IN')+'\nRequest sent to the team. They are preparing your order; you will soon receive your delivery date.');
+            if(pending.isCart){getCart().length=0;save();updateCartBar();}
+            status.textContent='Payment successful. Request sent to the team; you will soon receive your delivery date in Met-Ail.';
+          }
+          window.metpayPendingCheckout=null;pay.disabled=false;pay.textContent='Completed';
+        }catch(e){status.textContent='Payment failed: '+(e.message||e);pay.disabled=false;}
+      };
+      return;
+    }
     p.innerHTML=`<h3>Send / Receive Cash</h3><p style="color:var(--muted)">Enter a Metxon username and amount to transfer money.</p><div class="form-group"><input id="mpTo" placeholder="Recipient username"></div><div class="form-group"><input id="mpAmount" type="number" min="1" step="0.01" placeholder="Amount (₹)"></div><button class="btn btn-primary" id="mpSend">Send ₹</button><button class="btn" id="mpAdd">Add Contact</button><button class="btn" id="mpRechargeCloud">Recharge cloud</button><div class="metpay-contacts" id="mpPayContacts"></div><div class="metpay-status" id="mpPayStatus"></div>`;
     const cb=document.getElementById('mpPayContacts');
     const contacts=await loadMetPayContacts();cb.innerHTML=contacts.length?contacts.map(c=>`<button class="btn metpay-contact" data-u="${esc(c.username)}">${esc(c.username)}</button>`).join(''):'<span style="color:var(--muted)">No contacts yet.</span>';
@@ -4689,13 +4725,14 @@ async function profile(){if(!state.currentUser)throw Error('Please sign in to yo
 
   document.getElementById('appContent').querySelectorAll('[data-plan]').forEach(b=>b.onclick=async()=>{
    const gb=Number(b.dataset.plan),status=$('cloudPlanStatus');if(gb===15)return alert('The free 15 GB plan is the default. Purchased capacity remains permanently.');
+   const planName=gb===25?'Met-Cloud':gb===30?'Met-Cloud Pro':'Met-Cloud Ultra';
+   const fullPrice=gb===25?10:gb===30?20:30;
+   const currentGb=Number(e.data.capacity_gb||15),charge=currentGb>=gb?0:(currentGb===30&&gb===40?10:fullPrice);
+   if(charge<=0)return alert('You already have this capacity or a higher plan.');
    const mailEmail=await window.metxonRequireMail();if(!mailEmail)return;
-   if(!confirm('Buy the '+gb+' GB Met-Cloud upgrade for '+(gb===25?'10':gb===30?'20':'30')+' JP (or 10 JP difference when upgrading from 30 GB)?'))return;
-   status.innerHTML='<span class="metcloud-progress"><span class="metcloud-spinner"></span> Processing secure JP purchase…</span>';
-   document.querySelectorAll('[data-plan]').forEach(x=>x.disabled=true);
-   try{const result=await metxonSupabase.rpc('metxon_purchase_cloud_plan',{p_capacity_gb:gb});if(result.error)throw result.error;status.textContent=result.data?.message||'Storage purchased.';await refreshCloudAccount();await load();if(typeof updateMcUI==='function'&&document.getElementById('currencyView'))updateMcUI();await window.metxonNotifyTransaction('Met-Cloud storage purchase','Purchased/updated Met-Cloud storage plan to '+gb+' GB. '+(result.data?.message||''));}
-   catch(err){status.textContent='Purchase failed: '+err.message;alert('Met-Cloud purchase failed: '+err.message);}
-   finally{document.querySelectorAll('[data-plan]').forEach(x=>x.disabled=false);}
+   window.metpayPendingCheckout={kind:'cloud',name:planName+' subscription ('+gb+' GB)',capacityGb:gb,jpAmount:charge};
+   status.textContent='Opening MetPay checkout…';
+   await window.launchNebulaApp('metPay');
   });
   $('cloudNoteSave').onclick=async()=>{const title=$('cloudNoteTitle').value.trim()||'Saved message',body=$('cloudNoteBody').value.trim();if(!body)return alert('Write a message to save.');const btn=$('cloudNoteSave');btn.disabled=true;const z=await metxonSupabase.from('metcloud_saved_messages').insert({user_id:p.id,title,body});btn.disabled=false;if(z.error)return alert(z.error.message);$('cloudNoteTitle').value='';$('cloudNoteBody').value='';await load();};
   await load();
@@ -4995,16 +5032,18 @@ window.metCountCurrencyChanged=async function(currency){
  window.executePay=async function(){
   if(!currentCheckout)return alert('Choose an item first.');
   const email=$('payMailAccount')?.value;if(!email)return alert('Choose a Met-Ail ID for notifications.');
-  const btn=document.querySelector('#payModal button.btn-primary');if(btn){btn.disabled=true;btn.textContent='Sending request…';}
+  const password=$('payPass')?.value||'';if(!password)return alert('Enter your Metxon password to continue to MetPay.');
+  const btn=document.querySelector('#payModal button.btn-primary');if(btn){btn.disabled=true;btn.textContent='Verifying…';}
   try{
    const d=await accountData();if(!d.accounts.some(a=>(a.username+'@metail.com').toLowerCase()===email.toLowerCase()))throw new Error('Selected Met-Ail ID does not belong to your account.');
-   const item=String(currentCheckout.name),total=Number(currentCheckout.price||0);
-   const body='New MetCart order/payment request\nMetxon account: '+state.currentUser+'\nCustomer: '+(d.profile.display_name||state.currentUser)+'\nCustomer Met-Ail: '+email+'\nItem(s): '+item+'\nRequested total: ₹'+total.toLocaleString('en-IN')+'\nStatus: Awaiting owner review. No payment has been captured by this request.';
-   await ownerNotice('New MetCart order request',body);
-   await sendNotice(email.split('@')[0],email,'MetCart request received','Your order/payment request has been sent for review.\nItem(s): '+item+'\nRequested total: ₹'+total.toLocaleString('en-IN')+'\nStatus: Awaiting confirmation. This is not a payment receipt.');
-   alert('Request sent. A confirmation has been delivered to your Met-Ail inbox. The order is awaiting review; no payment was taken.');
-   closePay();if(currentCheckout.isCart){getCart().length=0;save();updateCartBar();}
-  }catch(e){alert('Could not submit the order request: '+(e.message||e));}
+   const session=await metxonSupabase.auth.getSession();const authUser=session.data?.session?.user;
+   if(!authUser?.email)throw new Error('Your secure Metxon login session is missing. Sign in again.');
+   const verified=await metxonSupabase.auth.signInWithPassword({email:authUser.email,password});
+   if(verified.error)throw new Error('Password verification failed. Check your Metxon account password.');
+   window.metpayPendingCheckout={kind:'metcart',name:String(currentCheckout.name),amount:Number(currentCheckout.price||0),isCart:!!currentCheckout.isCart,items:currentCheckout.items||[],email,username:state.currentUser};
+   closePay();$('payPass').value='';
+   await window.launchNebulaApp('metPay');
+  }catch(e){alert('Could not continue to MetPay: '+(e.message||e));}
   finally{if(btn){btn.disabled=false;btn.textContent='Pay Now';}}
  };
  window.metxonRequireMail=async function(){
