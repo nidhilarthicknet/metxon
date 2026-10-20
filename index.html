@@ -4553,17 +4553,17 @@ async function profile(){if(!state.currentUser)throw Error('Please sign in to yo
    $('careMailId').onchange=()=>selectedMail=$('careMailId').value;
    $('careContinue').onclick=()=>{selectedMail=$('careMailId').value;selectedDevices=Array.from(document.querySelectorAll('[data-care-device]:checked')).map(x=>x.dataset.careDevice);showQuestionStep();};loadMyTickets();
   };
-  async function sendInternalMail(recipientEmail,subject,body){
-   const email=String(recipientEmail||'').trim().toLowerCase();if(!email)return {error:new Error('Missing Met-Ail address')};
-   const username=email.split('@')[0],mailbox=await metxonSupabase.from('metail_accounts').select('id,user_id,username').ilike('username',username).maybeSingle();
-   if(mailbox.error||!mailbox.data)return {error:mailbox.error||new Error('Met-Ail mailbox not found')};
-   const result=await metxonSupabase.from('metmail_messages').insert({owner_id:mailbox.data.user_id,account_email:email,folder:'Inbox',sender:'Metxon Care',recipient:email,subject:String(subject||'Metxon notification').slice(0,200),body:String(body||'').slice(0,10000)});
+  const careSender=(mailAccounts.find(a=>a.username.toLowerCase()==='jurassicpark')||mailAccounts[0]).username;
+  async function sendInternalMail(recipientEmail,subject,body,senderUsername){
+   const email=String(recipientEmail||'').trim().toLowerCase();if(!email.endsWith('@metail.com'))return {error:new Error('Missing or invalid Met-Ail address')};
+   const recipient=email.slice(0,-'@metail.com'.length),sender=senderUsername||careSender;
+   const result=await metxonSupabase.rpc('metxon_send_metail_message',{p_sender_username:sender,p_recipient_username:recipient,p_subject:String(subject||'Metxon notification').slice(0,200),p_body:String(body||'').slice(0,10000)});
    return result.error?{error:result.error}:{ok:true};
   }
   async function notifyOwner(subject,body){
    const owner=await metxonSupabase.from('metail_accounts').select('username').ilike('username','Jurassicpark').maybeSingle();
    if(owner.error||!owner.data){console.warn('Metxon owner mailbox lookup failed',owner.error);return false;}
-   const result=await sendInternalMail(owner.data.username+'@metail.com',subject,body);
+   const result=await sendInternalMail(owner.data.username+'@metail.com',subject,body,selectedMail.split('@')[0]);
    if(result.error){console.warn('Owner Met-Ail notification failed:',result.error.message);return false;}return true;
   }
   async function loadMyTickets(){
@@ -4600,7 +4600,7 @@ async function profile(){if(!state.currentUser)throw Error('Please sign in to yo
     box.querySelectorAll('[data-care-send]').forEach(b=>b.onclick=async()=>{const area=box.querySelector('[data-care-reply="'+b.dataset.careSend+'"]'),message=area.value.trim();if(!message)return alert('Write a reply first.');b.disabled=true;
      const ins=await metxonSupabase.from('metxon_care_messages').insert({ticket_id:b.dataset.careSend,author_id:p.id,author_role:'support',message});if(ins.error){b.disabled=false;return alert(ins.error.message);}
      const up=await metxonSupabase.from('metxon_care_tickets').update({status:'answered',updated_at:new Date().toISOString()}).eq('id',b.dataset.careSend);if(up.error){b.disabled=false;return alert(up.error.message);}
-     const result=b.dataset.careEmail?await sendInternalMail(b.dataset.careEmail,'Reply from Metxon Care',message):{error:new Error('Ticket does not contain a Met-Ail address')};await refreshQueue();
+     const result=b.dataset.careEmail?await sendInternalMail(b.dataset.careEmail,'Metxon Care · Reply to your support request',message,careSender):{error:new Error('Ticket does not contain a Met-Ail address')};await refreshQueue();
      if(result.error)alert('Reply saved to the support ticket, but Met-Ail delivery failed: '+result.error.message);else alert('Reply sent. The customer can read it in Met-Ail and Metxon Care.');
     });
    }await refreshQueue();
@@ -4623,7 +4623,7 @@ async function profile(){if(!state.currentUser)throw Error('Please sign in to yo
    $('cloudWallet').textContent='Available JP wallet: '+Number(wallet.data?.jp_balance||0).toLocaleString('en-IN')+' · INR balance: ₹'+Number(wallet.data?.balance||0).toLocaleString('en-IN');
    const used=(r.data||[]).reduce((n,f)=>n+Number(f.size_bytes||0),0);
    $('cloudQuota').innerHTML='<b>'+(used/1024**3).toFixed(3)+' GB used of '+e.data.capacity_gb+' GB</b> · Current plan: '+safe(e.data.plan_name);
-   const planPanel=document.createElement('div');planPanel.className='card';planPanel.style.margin='10px 0';planPanel.innerHTML='<h3 style="margin-top:0">Available plans</h3><p>Free: 15 GB · Met-Cloud: 25 GB / 10 JP · Met-Cloud Pro: 30 GB / 20 JP · Met-Cloud Ultra: 40 GB / 30 JP</p><p style="color:var(--muted)">Paid upgrades are one-time purchases and do not reset. Upgrading from 30 GB to 40 GB costs the 10 JP difference.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-plan="15">Free · 15 GB</button><button class="btn" data-plan="25">Met-Cloud · 25 GB / 10 JP</button><button class="btn" data-plan="30">Met-Cloud Pro · 30 GB / 20 JP</button><button class="btn" data-plan="40">Met-Cloud Ultra · 40 GB / 30 JP</button></div><p id="cloudPlanStatus" aria-live="polite"></p>';
+   document.getElementById('cloudPlanPanel')?.remove();const planPanel=document.createElement('div');planPanel.id='cloudPlanPanel';planPanel.className='card';planPanel.style.margin='10px 0';planPanel.innerHTML='<h3 style="margin-top:0">Available plans</h3><p>Free: 15 GB · Met-Cloud: 25 GB / 10 JP · Met-Cloud Pro: 30 GB / 20 JP · Met-Cloud Ultra: 40 GB / 30 JP</p><p style="color:var(--muted)">Paid upgrades are one-time purchases and do not reset. Upgrading from 30 GB to 40 GB costs the 10 JP difference.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-plan="15">Free · 15 GB</button><button class="btn" data-plan="25">Met-Cloud · 25 GB / 10 JP</button><button class="btn" data-plan="30">Met-Cloud Pro · 30 GB / 20 JP</button><button class="btn" data-plan="40">Met-Cloud Ultra · 40 GB / 30 JP</button></div><p id="cloudPlanStatus" aria-live="polite"></p>';
    $('cloudQuota').insertAdjacentElement('afterend',planPanel);
    $('cloudList').innerHTML='<h3>Your files</h3>'+((r.data||[]).map(f=>'<div style="display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid var(--border)"><span>'+safe(f.file_name)+' ('+Math.ceil(f.size_bytes/1024)+' KB)</span><button class="btn" data-del="'+safe(f.id)+'" data-path="'+safe(f.storage_path)+'">Delete</button></div>').join('')||'<p>No files uploaded.</p>');
    $('cloudList').querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{if(!confirm('Delete this file?'))return;const a=await metxonSupabase.storage.from('metcloud-files').remove([b.dataset.path]);if(a.error)return alert(a.error.message);const d=await metxonSupabase.from('metcloud_files').delete().eq('id',b.dataset.del).eq('user_id',p.id);if(d.error)return alert(d.error.message);await load();});
@@ -4914,17 +4914,17 @@ window.metCountCurrencyChanged=async function(currency){
   const q=await metxonSupabase.from('metail_accounts').select('id,username,display_name').eq('user_id',profile.id).order('created_at',{ascending:true});
   if(q.error)throw q.error;return {profile,accounts:q.data||[]};
  }
- async function sendNotice(email,sender,subject,body){
+ async function sendNotice(senderUsername,email,subject,body){
   const e=String(email||'').trim().toLowerCase();if(!e.endsWith('@metail.com'))throw new Error('A valid Met-Ail address is required.');
-  const username=e.slice(0,-'@metail.com'.length),a=await metxonSupabase.from('metail_accounts').select('user_id,username').ilike('username',username).maybeSingle();
-  if(a.error)throw a.error;if(!a.data)throw new Error('Met-Ail mailbox could not be found.');
-  const r=await metxonSupabase.from('metmail_messages').insert({owner_id:a.data.user_id,account_email:e,folder:'Inbox',sender:String(sender||'Metxon').slice(0,160),recipient:e,subject:String(subject||'Metxon notification').slice(0,200),body:String(body||'').slice(0,10000)});
+  const recipient=e.slice(0,-'@metail.com'.length);
+  const r=await metxonSupabase.rpc('metxon_send_metail_message',{p_sender_username:String(senderUsername||''),p_recipient_username:recipient,p_subject:String(subject||'Metxon notification').slice(0,200),p_body:String(body||'').slice(0,10000)});
   if(r.error)throw r.error;
  }
  async function ownerNotice(subject,body){
   const a=await metxonSupabase.from('metail_accounts').select('username').ilike('username','Jurassicpark').maybeSingle();
   if(a.error)throw a.error;if(!a.data)throw new Error('Metxon order desk mailbox is not configured.');
-  await sendNotice(a.data.username+'@metail.com','Metxon Orders',subject,body);
+  const d=await accountData();if(!d.accounts.length)throw new Error('A Met-Ail sender account is required.');
+  await sendNotice(d.accounts[0].username,a.data.username+'@metail.com',subject,body);
  }
  async function prepare(){
   let d;try{d=await accountData();}catch(e){alert(e.message||e);return null;}
@@ -4965,7 +4965,7 @@ window.metCountCurrencyChanged=async function(currency){
  };
  window.metxonNotifyTransaction=async function(subject,body){
   const email=await window.metxonRequireMail();if(!email)return false;
-  try{await sendNotice(email,'Metxon Account',subject,body);await ownerNotice(subject,body+'\nCustomer account: '+state.currentUser+'\nCustomer Met-Ail: '+email);return true;}
+  try{await sendNotice(email.split('@')[0],email,subject,body);await ownerNotice(subject,body+'\nCustomer account: '+state.currentUser+'\nCustomer Met-Ail: '+email);return true;}
   catch(e){console.warn('Met-Ail transaction notification failed',e);alert('The transaction notification could not be delivered: '+(e.message||e));return false;}
  };
  const originalBuySub=window.buySub;
