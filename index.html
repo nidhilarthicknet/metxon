@@ -4231,7 +4231,23 @@ window.showIncomingMessagePopup=function(username,message){
       try{await runners[key]();}catch(e){console.error(app.name,e);const c=document.getElementById('appContent');if(c)c.innerHTML='<div class="card"><h2>'+safe(app.name)+'</h2><p>Could not open app: '+safe(e.message||String(e))+'</p><button class="btn" onclick="launchNebulaApp(\''+key+'\')">Try again</button></div>';}
       return;
     }
-    if(key==='metPay'){content.innerHTML='<div id="gameArea"></div>';await playMetxonTransition('MetPay');renderMetPayApp(document.getElementById('gameArea'));return;}
+    if(key==='metPay'){
+      content.innerHTML='<div id="gameArea"><div class="card"><h3>Opening MetPay…</h3><p style="color:var(--muted)">Loading transaction tools.</p></div></div>';
+      try{
+        await playMetxonTransition('MetPay');
+        const gameArea=document.getElementById('gameArea');
+        if(!gameArea)throw new Error('MetPay workspace was not created.');
+        if(typeof window.renderMetPayApp!=='function')throw new Error('MetPay renderer did not load. Refresh the page and try again.');
+        await window.renderMetPayApp(gameArea);
+        if(!gameArea.innerHTML.trim())throw new Error('MetPay opened without rendering its interface.');
+      }catch(e){
+        console.error('MetPay launch failed:',e);
+        const gameArea=document.getElementById('gameArea');
+        if(gameArea)gameArea.innerHTML='<div class="card"><h3 style="color:var(--cyan)">MetPay could not finish opening</h3><p style="color:#ff7070;overflow-wrap:anywhere">'+String(e&&e.message||e).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))+'</p><button class="btn btn-primary" id="metPayRetry">Retry MetPay</button></div>';
+        document.getElementById('metPayRetry')?.addEventListener('click',()=>window.launchNebulaApp('metPay'));
+      }
+      return;
+    }
 
     /* Preserve the original full app implementations. */
     const original=window.__metxonOriginalOpenApp||window.openApp;
@@ -4312,6 +4328,8 @@ window.showIncomingMessagePopup=function(username,message){
   }
 
   window.renderMetPayApp=async function(area){
+    if(!area)throw new Error('MetPay workspace element is missing.');
+    if(typeof metPayShell!=='function')throw new Error('MetPay interface could not be prepared.');
     area.innerHTML=metPayShell();
     const tabs=area.querySelectorAll('[data-mp-tab]');
     tabs.forEach(tab=>tab.onclick=async()=>{tabs.forEach(x=>x.classList.remove('active'));tab.classList.add('active');area.querySelectorAll('.metpay-panel').forEach(x=>x.classList.remove('active'));const panel=area.querySelector('#mp-'+tab.dataset.mpTab);panel.classList.add('active');if(tab.dataset.mpTab==='pay')await renderPayPanel();if(tab.dataset.mpTab==='chat')await renderChatPanel();if(tab.dataset.mpTab==='scan')renderScanPanel();if(tab.dataset.mpTab==='contacts')await renderContactsPanel();if(tab.dataset.mpTab==='cloud'){const b=document.getElementById('mpOpenCloud');if(b)b.onclick=()=>window.launchNebulaApp('metCloud');}});
