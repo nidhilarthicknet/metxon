@@ -5225,92 +5225,14 @@ window.metCountCurrencyChanged=async function(currency){
 
 
 <script>
-/* MetCart password gate + explicit confirmation bridge.
-   Credentials are verified, never saved in the checkout payload. */
+<script>
 (function(){
-  const escCheckout=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  async function getCheckoutMailbox(){
-    if(!state.currentUser)throw new Error('Please sign in first.');
-    // Try the current profile path, then load the Met-Ail mailbox list.
-    const profile=await loadCloudAccount(state.currentUser);
-    if(!profile||!profile.id)throw new Error('Could not verify your Metxon profile.');
-    const q=await metxonSupabase.from('metail_accounts').select('username').eq('user_id',profile.id).order('created_at',{ascending:true});
-    if(q.error)throw q.error;
-    if(!q.data||!q.data.length)throw new Error('Create a Met-Ail ID before checkout.');
-    return {profile,mailbox:q.data[0]};
-  }
-  function openMetPayWithPending(pending){
-    window.metpayPendingCheckout=pending;
-    const ws=document.getElementById('appWorkspace'),title=document.getElementById('appTitle'),content=document.getElementById('appContent');
-    if(!ws||!content)throw new Error('MetPay workspace is unavailable.');
-    ws.style.display='block';ws.hidden=false;if(title)title.textContent='MetPay';
-    content.style.display='block';content.hidden=false;
-    content.innerHTML='<div id="gameArea"><div class="card"><h3>Opening MetPay…</h3><p>Preparing your verified checkout.</p></div></div>';
-    const area=content.querySelector('#gameArea');
-    return Promise.resolve(window.renderMetPayApp(area)).then(()=>{
-      const tab=area.querySelector('[data-mp-tab="pay"]');
-      if(!tab||!area.querySelector('#mp-pay'))throw new Error('MetPay transaction panel did not load.');
-      tab.click();ws.scrollIntoView({behavior:'smooth',block:'start'});
-    });
-  }
-  function beginMetCartCheckout(payload){
-    if(!state.currentUser){openAuth();return;}
-    const amount=Number(payload.amount);
-    if(!Number.isFinite(amount)||amount<=0){alert('Invalid order amount.');return;}
-    const pending={kind:'metcart',name:String(payload.name),amount,isCart:!!payload.isCart,
-      items:Array.isArray(payload.items)?payload.items.map(x=>({name:String(x.name),price:Number(x.price),qty:Number(x.qty||1)})):[],
-      email:'',username:state.currentUser};
-    // The password step is displayed in MetCart first, as requested.
-    let modal=document.getElementById('metcartPasswordGate');
-    if(!modal){modal=document.createElement('div');modal.id='metcartPasswordGate';modal.className='modal';modal.innerHTML='<div class="modal-box"><h2>MetCart secure checkout</h2><p id="mcGateItem"></p><p>Enter your Met-Ail password to continue to MetPay. No payment is made on this screen.</p><div class="form-group"><label for="mcGateEmail">Met-Ail ID</label><select id="mcGateEmail" style="width:100%"><option value="">Loading your Met-Ail ID…</option></select></div><div class="form-group"><label for="mcGatePassword">Met-Ail password</label><input id="mcGatePassword" type="password" autocomplete="off" placeholder="Enter your Met-Ail password"></div><p id="mcGateStatus" aria-live="polite"></p><button class="btn btn-primary" id="mcGateContinue">Verify and continue</button><button class="btn" id="mcGateCancel">Cancel</button></div>';document.body.appendChild(modal);}
-    modal.classList.add('show');
-    document.getElementById('mcGateItem').textContent=pending.name+' — ₹'+amount.toLocaleString('en-IN');
-    const email=document.getElementById('mcGateEmail'),pass=document.getElementById('mcGatePassword'),status=document.getElementById('mcGateStatus'),go=document.getElementById('mcGateContinue');
-    pass.value='';go.disabled=true;status.textContent='Loading your Met-Ail ID…';email.innerHTML='<option value="">Loading…</option>';
-    // Load the mailbox once and enable the button immediately after it is available.
-    getCheckoutMailbox().then(({mailbox})=>{
-      const value=String(mailbox.username)+'@metail.com';
-      email.innerHTML='<option value="'+escCheckout(value)+'">'+escCheckout(value)+'</option>';
-      pending.email=value;go.disabled=false;status.textContent='Enter your password, then continue to MetPay.';
-    }).catch(e=>{email.innerHTML='<option value="">Could not load Met-Ail ID</option>';status.textContent=e.message||'Could not load Met-Ail ID.';go.disabled=true;});
-    document.getElementById('mcGateCancel').onclick=()=>{modal.classList.remove('show');pass.value='';};
-    go.onclick=async()=>{
-      const password=pass.value;
-      if(!password){status.textContent='Enter your Met-Ail password first.';pass.focus();return;}
-      const selected=String(email.value||'').trim().toLowerCase();
-      if(!selected.endsWith('@metail.com')){status.textContent='Select your Met-Ail ID first.';return;}
-      go.disabled=true;status.textContent='Verifying password…';
-      try{
-        const mailboxUsername=selected.slice(0,-'@metail.com'.length);
-        const verified=await metxonSupabase.rpc('metxon_verify_metail_password',{p_username:mailboxUsername,p_password:password});
-        if(verified.error)throw verified.error;
-        if(verified.data!==true)throw new Error('Incorrect Met-Ail password.');
-        // Explicit user confirmation before moving into MetPay; no charge occurs here.
-        status.textContent='Password verified. Tap “Continue to MetPay” to review and pay.';
-        let confirmButton=document.getElementById('mcGatePayNow');
-        if(!confirmButton){confirmButton=document.createElement('button');confirmButton.id='mcGatePayNow';confirmButton.className='btn btn-primary';go.insertAdjacentElement('afterend',confirmButton);}
-        confirmButton.textContent='Continue to MetPay';
-        confirmButton.onclick=async()=>{
-          confirmButton.disabled=true;status.textContent='Opening MetPay…';
-          try{
-            pending.email=selected;
-            pending.passwordVerifiedAt=Date.now();
-            await openMetPayWithPending(pending);
-            modal.classList.remove('show');pass.value='';
-          }catch(e){status.textContent='Could not open MetPay: '+(e.message||e);confirmButton.disabled=false;}
-        };
-        go.style.display='none';
-      }catch(e){status.textContent='Password verification failed: '+(e.message||e);go.disabled=false;}
-    };
-  }
-  window.startPay=function(name,price){beginMetCartCheckout({name,amount:Number(price),isCart:false,items:[]});};
-  window.checkoutCart=function(){
-    if(!state.currentUser){openAuth();return;}
-    const cart=getCart();if(!cart.length){alert('Cart is empty.');return;}
-    const items=cart.map(x=>({name:x.name,price:Number(x.price),qty:Number(x.qty||1)}));
-    const total=items.reduce((sum,x)=>sum+x.price*x.qty,0);
-    beginMetCartCheckout({name:'Cart: '+items.map(x=>x.name+(x.qty>1?' ×'+x.qty:'')).join(', '),amount:total,isCart:true,items});
-  };
+async function prof(){if(!state.currentUser)throw Error('Sign in first');let p=await loadCloudAccount(state.currentUser);if(!p||!p.id)throw Error('Profile unavailable');let u=await metxonSupabase.auth.getUser();if(u.error||!u.data.user||u.data.user.id!==p.id)throw Error('Sign out and sign in again');return p}
+async function pay(o){window.metpayPendingCheckout=o;let w=document.getElementById('appWorkspace'),t=document.getElementById('appTitle'),c=document.getElementById('appContent');if(!w||!c||!window.renderMetPayApp)throw Error('MetPay unavailable');w.style.display='block';w.hidden=false;c.style.display='block';c.hidden=false;if(t)t.textContent='MetPay';c.innerHTML='<div id="gameArea"><p>Opening MetPay…</p></div>';let area=c.querySelector('#gameArea');await window.renderMetPayApp(area);let tab=area.querySelector('[data-mp-tab="pay"]');if(!tab)throw Error('Payment panel unavailable');tab.click();w.scrollIntoView({behavior:'smooth',block:'start'})}
+function begin(d){if(!state.currentUser){openAuth();return}let amount=Number(d.amount);if(!Number.isFinite(amount)||amount<=0){alert('Invalid amount');return}let o={kind:'metcart',name:String(d.name),amount,isCart:!!d.isCart,items:d.items||[],email:'',username:state.currentUser};let m=document.getElementById('metcartPasswordGate');if(!m){m=document.createElement('div');m.id='metcartPasswordGate';m.className='modal';m.innerHTML='<div class="modal-box"><h2>MetPay secure checkout</h2><p id="mpOrder"></p><p>Use a separate MetPay password, not your Met-Ail password.</p><div id="mpFields"></div><p id="mpStatus" aria-live="polite"></p><button class="btn btn-primary" id="mpGo">Continue</button><button class="btn" id="mpCancel">Cancel</button></div>';document.body.appendChild(m)}m.classList.add('show');let f=m.querySelector('#mpFields'),st=m.querySelector('#mpStatus'),go=m.querySelector('#mpGo');m.querySelector('#mpOrder').textContent=o.name+' — ₹'+amount.toLocaleString('en-IN');f.innerHTML='Checking password setup…';st.textContent='';go.disabled=true;m.querySelector('#mpCancel').onclick=()=>m.classList.remove('show');
+(async()=>{try{let p=await prof(),r=await metxonSupabase.rpc('metpay_password_status',{p_username:p.username});if(r.error)throw r.error;let has=!!r.data?.has_password;if(!m.classList.contains('show'))return;if(has){f.innerHTML='<label>MetPay password</label><input id="mpPw" type="password" autocomplete="off" placeholder="MetPay transaction password">';go.textContent='Verify password'}else{f.innerHTML='<label>Create MetPay password (8+ characters)</label><input id="mpNew" type="password" autocomplete="new-password"><label>Confirm MetPay password</label><input id="mpConfirm" type="password" autocomplete="new-password">';go.textContent='Create password'}go.disabled=false;go.onclick=async()=>{go.disabled=true;try{let p=await prof();if(has){let pw=f.querySelector('#mpPw').value;if(!pw)throw Error('Enter your MetPay password');st.textContent='Verifying…';let v=await metxonSupabase.rpc('metpay_verify_password',{p_username:p.username,p_password:pw});if(v.error)throw v.error;if(v.data!==true)throw Error('Incorrect MetPay password')}else{let x=f.querySelector('#mpNew').value,y=f.querySelector('#mpConfirm').value;if(x.length<8)throw Error('Use at least 8 characters');if(x!==y)throw Error('Passwords do not match');st.textContent='Creating password…';let q=await metxonSupabase.rpc('metpay_set_password',{p_username:p.username,p_new_password:x});if(q.error)throw q.error;let v=await metxonSupabase.rpc('metpay_verify_password',{p_username:p.username,p_password:x});if(v.error||v.data!==true)throw Error('Password verification failed')}o.metpayPasswordVerified=true;st.textContent='Verified. Opening MetPay…';await pay(o);m.classList.remove('show');f.innerHTML=''}catch(e){st.textContent=e.message||String(e);go.disabled=false}}}catch(e){f.innerHTML='';st.textContent=e.message||String(e)}})()}
+window.startPay=(name,price)=>begin({name,amount:Number(price),isCart:false,items:[]});
+window.checkoutCart=()=>{if(!state.currentUser){openAuth();return}let c=getCart();if(!c.length){alert('Cart is empty');return}let items=c.map(x=>({name:x.name,price:Number(x.price),qty:Number(x.qty||1)}));begin({name:'Cart: '+items.map(x=>x.name+(x.qty>1?' ×'+x.qty:'')).join(', '),amount:items.reduce((n,x)=>n+x.price*x.qty,0),isCart:true,items})};
 })();
 </script>
 
