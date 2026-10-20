@@ -306,6 +306,17 @@ tr:hover { background: rgba(255,255,255,0.03); }
 
 <style>
 .metcloud-progress{display:inline-flex;align-items:center;gap:8px}.metcloud-spinner{width:14px;height:14px;border:2px solid currentColor;border-left-color:transparent;border-radius:50%;display:inline-block;animation:metcloudspin .7s linear infinite}@keyframes metcloudspin{to{transform:rotate(360deg)}}
+
+/* Met-Ail mobile-first mailbox layout */
+@media (max-width: 640px) {
+#ailLayout { grid-template-columns: minmax(64px,78px) minmax(0,1fr) !important; gap:6px !important; }
+#ailSidebar { padding:5px !important; }
+#ailSidebar h3 { font-size:13px !important; }
+#ailSidebar [data-ail-folder] { padding:7px 3px !important; font-size:12px !important; white-space:normal; }
+#ailContent { padding:8px !important; overflow-wrap:anywhere; }
+#ailContent input,#ailContent textarea,#ailContent select { max-width:100%; box-sizing:border-box; }
+#ailContent .card { padding:8px !important; }
+}
 </style>
 </head>
 <body>
@@ -4334,8 +4345,12 @@ window.showIncomingMessagePopup=function(username,message){
             await cloudTransfer('Molecule',Number(pending.amount));
             const body='PAID METCART ORDER — OWNER REVIEW REQUIRED\\nOwner receipt inbox: Jurassicpark@metail.com\\nMetxon account: '+state.currentUser+'\\nCustomer Met-Ail inbox (reply to this receipt): '+pending.email+'\\nItem(s): '+pending.name+'\\nPaid amount: ₹'+Number(pending.amount).toLocaleString('en-IN')+'\\nPayment status: Paid in MetPay.\\nOrder status: Awaiting owner review and delivery-date confirmation.\\nACTION: Open this message in Jurassicpark@metail.com, press Reply, and send the delivery date. The reply is addressed to the customer inbox listed above.';
             await window.metxonSendOrderNotice(pending.email,'PAID MetCart order — review and set delivery date',body,'MetCart order placed — waiting for delivery date','Ordered successfully. Waiting for the delivery date from our team.\\n\\nItem(s): '+pending.name+'\\nAmount paid: ₹'+Number(pending.amount).toLocaleString('en-IN')+'\\nOrder status: Ordered. Waiting for delivery date by our team.\\nWe will reply to this Met-Ail inbox once the delivery date is confirmed.');
-            if(pending.isCart){getCart().length=0;save();updateCartBar();}
-            status.textContent='Payment successful. Request sent to the team; you will soon receive your delivery date in Met-Ail.';
+            if(pending.isCart){getCart().splice(0,getCart().length);save();updateCartBar();}
+            status.textContent='ORDERED ✓ Your order has been sent to our team. Waiting for delivery date. A confirmation has been sent to your Met-Ail inbox.';
+            const cartView=document.getElementById('cartView');
+            if(cartView){cartView.innerHTML='<div class="card" style="border-color:var(--cyan)"><h3 style="color:var(--cyan)">Ordered successfully ✓</h3><p>Your order has been sent to our team.</p><p><b>Status:</b> Waiting for delivery date from our team.</p><p>Check your Met-Ail inbox for confirmation.</p></div>';cartView.style.display='block';}
+            const cartCount=document.getElementById('cartCount');if(cartCount)cartCount.textContent='0 items';
+            const cartTotal=document.getElementById('cartTotal');if(cartTotal)cartTotal.textContent='';
           }
           window.metpayPendingCheckout=null;pay.disabled=false;pay.textContent='Completed';
         }catch(e){status.textContent='Payment failed: '+(e.message||e);pay.disabled=false;}
