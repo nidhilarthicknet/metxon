@@ -4297,7 +4297,7 @@ window.showIncomingMessagePopup=function(username,message){
     const pending=window.metpayPendingCheckout;
     if(pending){
       const cloud=pending.kind==='cloud';
-      p.innerHTML=`<div class="card" style="border-color:var(--cyan)"><h3>MetPay secure checkout</h3><p><b>To:</b> ${cloud?'Mettin':'Molecule'}</p><p><b>Item:</b> ${esc(pending.name)}</p><p><b>Amount:</b> ${cloud?Number(pending.jpAmount).toLocaleString('en-IN')+' JP':'₹'+Number(pending.amount).toLocaleString('en-IN')}</p><p style="color:var(--muted)">Confirm your Met-Ail mailbox password to authorize this Metxon transaction. You must have sufficient wallet balance.</p><div class="form-group"><label for="mpCheckoutEmail">Receipt and order updates to</label><select id="mpCheckoutEmail" style="width:100%"><option value="">Loading your Met-Ail IDs…</option></select></div><div class="form-group"><label for="mpCheckoutPassword">Met-Ail password</label><input id="mpCheckoutPassword" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Enter your Met-Ail password"></div><button class="btn btn-primary" id="mpCheckoutPay">${cloud?'Pay and activate subscription':'Pay now'}</button><button class="btn" id="mpCheckoutCancel">Cancel checkout</button><p class="metpay-status" id="mpCheckoutStatus" aria-live="polite">Loading checkout details…</p></div>`;
+      p.innerHTML=`<div class="card" style="border-color:var(--cyan)"><h3>MetPay secure checkout</h3><p><b>To:</b> ${cloud?'Mettin':'Molecule'}</p><p><b>Item:</b> ${esc(pending.name)}</p><p><b>Amount:</b> ${cloud?Number(pending.jpAmount).toLocaleString('en-IN')+' JP':'₹'+Number(pending.amount).toLocaleString('en-IN')}</p><p style="color:var(--muted)">Authorize with your separate MetPay transaction password (verified in MetCart). You must have sufficient wallet balance.</p><div class="form-group"><label for="mpCheckoutEmail">Receipt and order updates to</label><select id="mpCheckoutEmail" style="width:100%"><option value="">Loading your Met-Ail IDs…</option></select></div><button class="btn btn-primary" id="mpCheckoutPay">${cloud?'Pay and activate subscription':'Pay now'}</button><button class="btn" id="mpCheckoutCancel">Cancel checkout</button><p class="metpay-status" id="mpCheckoutStatus" aria-live="polite">Loading checkout details…</p></div>`;
       const status=document.getElementById('mpCheckoutStatus'),pay=document.getElementById('mpCheckoutPay'),emailSelect=document.getElementById('mpCheckoutEmail');
       if(pending.email)emailSelect.innerHTML='<option value="'+esc(pending.email)+'">'+esc(pending.email)+'</option>';
       else accountData().then(info=>{
@@ -4309,24 +4309,19 @@ window.showIncomingMessagePopup=function(username,message){
       emailSelect.onchange=()=>{pending.email=String(emailSelect.value||'').trim().toLowerCase();};
       document.getElementById('mpCheckoutCancel').onclick=()=>{window.metpayPendingCheckout=null;renderPayPanel();};
       pay.onclick=async()=>{
-        const checkoutPassword=document.getElementById('mpCheckoutPassword').value;
         if(!String(emailSelect.value||pending.email||'').trim()){status.textContent='Wait for your Met-Ail inbox to load, then select it.';return;}
-        if(!checkoutPassword){status.textContent='Payment blocked: enter your Met-Ail password to authorize this order.';document.getElementById('mpCheckoutPassword').focus();return;}
-        const password=checkoutPassword;
+        if(!pending.metpayPasswordVerified){status.textContent='Payment blocked: verify your MetPay transaction password in MetCart first.';return;}
         pay.disabled=true;status.textContent='Verifying password…';
         try{
           if(!window.metpayPendingCheckout||window.metpayPendingCheckout!==pending)throw new Error('Checkout expired. Reopen MetPay and try again.');
-          // MetPay authorizes purchases with the selected Met-Ail mailbox password.
-          // Mailbox credentials are separate from the parent Metxon login credentials.
+          // MetPay password was verified server-side before this checkout was opened.
+          // Met-Ail is used only for receipts and delivery updates, not payment authorization.
           const checkoutEmail=String(emailSelect.value||pending.email||'').trim().toLowerCase();
-          if(!checkoutEmail.endsWith('@metail.com'))throw new Error('Choose a Met-Ail inbox before paying.');
+          if(!checkoutEmail.endsWith('@metail.com'))throw new Error('Choose a Met-Ail inbox for the receipt.');
           pending.email=checkoutEmail;
           const accountInfo=await accountData();
           const mailbox=accountInfo.accounts.find(a=>(String(a.username||'').toLowerCase()+'@metail.com')===checkoutEmail);
           if(!mailbox)throw new Error('This Met-Ail inbox does not belong to your Metxon account.');
-          const verified=await metxonSupabase.rpc('metxon_verify_metail_password',{p_username:mailbox.username,p_password:password});
-          if(verified.error)throw verified.error;
-          if(verified.data!==true)throw new Error('Met-Ail password is incorrect. Enter the password you use to unlock this mailbox.');
           if(cloud){
             status.textContent='Processing subscription…';
             const result=await metxonSupabase.rpc('metxon_purchase_cloud_plan',{p_capacity_gb:Number(pending.capacityGb)});
