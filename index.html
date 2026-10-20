@@ -4332,7 +4332,7 @@ window.showIncomingMessagePopup=function(username,message){
           }else{
             status.textContent='Processing MetPay transfer…';
             await cloudTransfer('Molecule',Number(pending.amount));
-            const body='MetCart payment completed\\nMetxon account: '+state.currentUser+'\\nCustomer Met-Ail: '+pending.email+'\\nItem(s): '+pending.name+'\\nPaid amount: ₹'+Number(pending.amount).toLocaleString('en-IN')+'\\nPayment status: Paid in MetPay.\\nOrder status: Request sent to the team; your item is being prepared. You will receive your delivery date in Met-Ail.';
+            const body='PAID METCART ORDER — OWNER REVIEW REQUIRED\\nOwner receipt inbox: Jurassicpark@metail.com\\nMetxon account: '+state.currentUser+'\\nCustomer Met-Ail inbox (reply to this receipt): '+pending.email+'\\nItem(s): '+pending.name+'\\nPaid amount: ₹'+Number(pending.amount).toLocaleString('en-IN')+'\\nPayment status: Paid in MetPay.\\nOrder status: Awaiting owner review and delivery-date confirmation.\\nACTION: Open this message in Jurassicpark@metail.com, press Reply, and send the delivery date. The reply is addressed to the customer inbox listed above.';
             await window.metxonSendOrderNotice(pending.email,'PAID MetCart order — review and set delivery date',body,'MetCart payment received — order submitted','Your MetPay transaction was completed.\\nItem(s): '+pending.name+'\\nAmount paid: ₹'+Number(pending.amount).toLocaleString('en-IN')+'\\nRequest sent to the team. They are preparing your order; you will soon receive your delivery date.');
             if(pending.isCart){getCart().length=0;save();updateCartBar();}
             status.textContent='Payment successful. Request sent to the team; you will soon receive your delivery date in Met-Ail.';
@@ -5012,9 +5012,11 @@ window.metCountCurrencyChanged=async function(currency){
  }
  async function ownerNotice(subject,body){
   const a=await metxonSupabase.from('metail_accounts').select('username').ilike('username','Jurassicpark').maybeSingle();
-  if(a.error)throw a.error;if(!a.data)throw new Error('Metxon order desk mailbox is not configured.');
-  const d=await accountData();if(!d.accounts.length)throw new Error('A Met-Ail sender account is required.');
-  await sendNotice(d.accounts[0].username,a.data.username+'@metail.com',subject,body);
+  if(a.error)throw a.error;if(!a.data)throw new Error('Owner order-receipt inbox Jurassicpark@metail.com is not configured.');
+  const ownerEmail=String(a.data.username)+'@metail.com';
+  if(ownerEmail.toLowerCase()!=='jurassicpark@metail.com')throw new Error('The owner order-receipt account must be Jurassicpark@metail.com.');
+  const d=await accountData();if(!d.accounts.length)throw new Error('A Met-Ail sender account is required so the owner can reply directly to the customer.');
+  await sendNotice(d.accounts[0].username,ownerEmail,subject,body+'\\n\\nOWNER ACTION: Review this paid order, then use Reply in Met-Ail to send the delivery date. The reply goes to the customer Met-Ail inbox shown above.');
  }
  window.metxonSendOrderNotice=async function(email,ownerSubject,ownerBody,customerSubject,customerBody){
   const d=await accountData(),target=String(email||'').trim().toLowerCase();
