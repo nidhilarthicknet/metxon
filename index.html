@@ -5110,5 +5110,53 @@ window.metCountCurrencyChanged=async function(currency){
  };
 })();
 </script>
+
+<script>
+/* Reliable MetCart -> MetPay handoff. This deliberately opens the checkout workspace
+   directly so app-store/install animations or checks cannot leave Buy Now/Checkout frozen. */
+(function(){
+  function openMetCartCheckout(pending){
+    window.metpayPendingCheckout=pending;
+    const workspace=document.getElementById('appWorkspace');
+    const title=document.getElementById('appTitle');
+    const content=document.getElementById('appContent');
+    if(!workspace||!content){
+      alert('MetPay could not open because its workspace is missing. Refresh the page and try again.');
+      return;
+    }
+    workspace.style.display='block'; workspace.hidden=false;
+    if(title) title.textContent='MetPay';
+    content.style.display='block'; content.hidden=false;
+    content.innerHTML='<div id="gameArea"><div class="card"><h3>Opening secure MetPay checkout…</h3><p>Please wait.</p></div></div>';
+    const area=content.querySelector('#gameArea');
+    try{
+      if(typeof window.renderMetPayApp!=='function') throw new Error('MetPay has not loaded. Refresh the page and try again.');
+      Promise.resolve(window.renderMetPayApp(area)).then(function(){
+        workspace.scrollIntoView({behavior:'smooth',block:'start'});
+      }).catch(function(e){
+        console.error('MetCart direct checkout failed:',e);
+        area.innerHTML='<div class="card"><h3>MetPay could not open</h3><p>'+String(e&&e.message||e).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];})+'</p><button class="btn btn-primary" onclick="location.reload()">Refresh and retry</button></div>';
+      });
+    }catch(e){
+      console.error('MetCart direct checkout failed:',e);
+      area.innerHTML='<div class="card"><h3>MetPay could not open</h3><p>'+String(e&&e.message||e).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];})+'</p><button class="btn btn-primary" onclick="location.reload()">Refresh and retry</button></div>';
+    }
+  }
+  window.startPay=function(name,price){
+    if(!state.currentUser)return openAuth();
+    openMetCartCheckout({kind:'metcart',name:String(name),amount:Number(price),isCart:false,items:[],email:'',username:state.currentUser});
+  };
+  window.checkoutCart=function(){
+    if(!state.currentUser)return openAuth();
+    const cart=getCart();
+    if(!cart.length){alert('Cart is empty.');return;}
+    const items=cart.map(function(x){return {...x};});
+    const total=items.reduce(function(sum,x){return sum+Number(x.price)*Number(x.qty);},0);
+    const names=items.map(function(x){return x.name+(x.qty>1?' ×'+x.qty:'');}).join(', ');
+    openMetCartCheckout({kind:'metcart',name:'Cart: '+names,amount:total,isCart:true,items:items,email:'',username:state.currentUser});
+  };
+})();
+</script>
+
 </body>
 </html>
