@@ -1164,7 +1164,13 @@ verifyMetCount=secureMetCountUnlock;
 function updateMcUI() {
   const acc = state.accounts[state.currentUser];
   document.getElementById('mcUser').textContent = state.currentUser;
-  document.getElementById('mcBalance').textContent = '₹' + acc.balance.toLocaleString('en-IN');
+  const selectedDisplayCurrency=document.getElementById('metCountCurrency')?.value||'INR';
+  const displayInr=Number(acc.balance||0),displayUsd=displayInr*RATES.USD,displayJp=Number(acc.jpBalance??acc.jp_balance??0);
+  document.getElementById('mcBalance').textContent = selectedDisplayCurrency==='JP'
+    ? displayJp.toLocaleString('en-IN',{maximumFractionDigits:2})+' JP'
+    : selectedDisplayCurrency==='USD'
+      ? '$'+displayUsd.toLocaleString('en-US',{maximumFractionDigits:2})+' USD'
+      : '₹'+displayInr.toLocaleString('en-IN',{maximumFractionDigits:2})+' INR';
   document.getElementById('mcSub').textContent = acc.sub || 'None';
 
   // Multi-currency
@@ -4633,11 +4639,33 @@ async function metna(){
   await feed();
  }
  window.openMetNa=()=>metna();window.metNa=window.openMetNa;
+ window.openMetCloud=()=>cloud();window.metCloud=window.openMetCloud;
 })();
 </script>
 
 <script>
-window.metCountCurrencyChanged=async function(currency){const box=document.getElementById('metCountSelectedCurrency');if(!box)return;try{const p=state.currentUser?await loadCloudAccount(state.currentUser):null;const acc=state.accounts[state.currentUser]||{balance:0};if(currency==='JP')box.textContent='Spendable JP wallet: '+Number((p&&p.jp_balance)||0).toLocaleString('en-IN')+' JP (separate from INR balance)';else if(currency==='USD')box.textContent='Balance: $'+(Number(acc.balance||0)*RATES.USD).toFixed(2)+' USD';else box.textContent='Balance: ₹'+Number(acc.balance||0).toLocaleString('en-IN')+' INR';}catch(e){box.textContent='Could not load selected balance.';}};
+window.metCountCurrencyChanged=async function(currency){
+ const box=document.getElementById('metCountSelectedCurrency');
+ const balanceField=document.getElementById('mcBalance');
+ if(!box)return;
+ try{
+  const p=state.currentUser?await loadCloudAccount(state.currentUser):null;
+  const acc=state.accounts[state.currentUser]||{balance:0};
+  const inr=Number((p&&p.balance)??acc.balance??0);
+  const jp=Number((p&&p.jp_balance)??acc.jpBalance??acc.jp_balance??0);
+  if(currency==='JP'){
+   if(balanceField)balanceField.textContent=jp.toLocaleString('en-IN',{maximumFractionDigits:2})+' JP';
+   box.textContent='Spendable balance: '+jp.toLocaleString('en-IN',{maximumFractionDigits:2})+' JP';
+  }else if(currency==='USD'){
+   const usd=inr*RATES.USD;
+   if(balanceField)balanceField.textContent='$'+usd.toLocaleString('en-US',{maximumFractionDigits:2})+' USD';
+   box.textContent='Balance: $'+usd.toLocaleString('en-US',{maximumFractionDigits:2})+' USD';
+  }else{
+   if(balanceField)balanceField.textContent='₹'+inr.toLocaleString('en-IN',{maximumFractionDigits:2})+' INR';
+   box.textContent='Balance: ₹'+inr.toLocaleString('en-IN',{maximumFractionDigits:2})+' INR';
+  }
+ }catch(e){box.textContent='Could not load selected balance.';}
+};
 </script>
 <script>
 
