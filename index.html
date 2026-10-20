@@ -4454,7 +4454,7 @@ async function profile(){if(!state.currentUser)throw Error('Please sign in to yo
  const originalLaunch=window.launchNebulaApp;
  window.launchNebulaApp=async function(key){
   // Normalize older links/installation records so the original and new app names open consistently.
-  const aliases={mail:'metAil',Mail:'metAil',MetMail:'metAil',Met-Ail:'metAil','Met-Ail':'metAil','Metxon Care':'metxonCare','Met-Cloud':'metCloud','Met-Na':'metNa'};
+  const aliases={mail:'metAil',Mail:'metAil',MetMail:'metAil','Met-Ail':'metAil','Met-Ail':'metAil','Metxon Care':'metxonCare','Met-Cloud':'metCloud','Met-Na':'metNa'};
   key=aliases[key]||key;
   if(key==='metAil'&&typeof window.openMetAil==='function')return window.openMetAil();
   if(key==='metxonCare'&&typeof window.openMetxonCare==='function')return window.openMetxonCare();
