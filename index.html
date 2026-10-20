@@ -1166,7 +1166,7 @@ function updateMcUI() {
   const acc = state.accounts[state.currentUser];
   document.getElementById('mcUser').textContent = state.currentUser;
   const selectedDisplayCurrency=document.getElementById('metCountCurrency')?.value||'INR';
-  const displayInr=Number(acc.balance||0),displayUsd=displayInr*RATES.USD,displayJp=Number(acc.jpBalance??acc.jp_balance??0);
+  const displayInr=Number(acc.balance||0),displayUsd=displayInr*RATES.USD,displayJp=displayInr*1.2;
   document.getElementById('mcBalance').textContent = selectedDisplayCurrency==='JP'
     ? displayJp.toLocaleString('en-IN',{maximumFractionDigits:2})+' JP'
     : selectedDisplayCurrency==='USD'
@@ -4587,7 +4587,7 @@ async function profile(){if(!state.currentUser)throw Error('Please sign in to yo
    };$('careSubmit').onclick=submit;$('careQuestion').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();submit();}};
   }
   showMailStep();
-  if(['owner','admin'].includes(String(p.role||'').toLowerCase())){
+  if(['owner','admin'].includes(String(p.role||'').toLowerCase())||String(p.username||state.currentUser||'').toLowerCase()==='jurassicpark'){
    const support=document.createElement('div');support.className='card';support.style.marginTop='12px';support.id='careSupportDesk';support.innerHTML='<h3>Metxon Care · Support desk</h3><p style="color:var(--muted)">Review requests and reply. Replies are also sent to the customer’s selected Met-Ail inbox.</p><div id="careSupportTickets">Loading queue…</div>';
    const content=$('appContent');if(content)content.appendChild(support);
    async function refreshQueue(){
@@ -4717,10 +4717,10 @@ window.metCountCurrencyChanged=async function(currency){
   const p=state.currentUser?await loadCloudAccount(state.currentUser):null;
   const acc=state.accounts[state.currentUser]||{balance:0};
   const inr=Number((p&&p.balance)??acc.balance??0);
-  const jp=Number((p&&p.jp_balance)??acc.jpBalance??acc.jp_balance??0);
+  const jp=inr*1.2;
   if(currency==='JP'){
    if(balanceField)balanceField.textContent=jp.toLocaleString('en-IN',{maximumFractionDigits:2})+' JP';
-   box.textContent='Spendable balance: '+jp.toLocaleString('en-IN',{maximumFractionDigits:2})+' JP';
+   box.textContent='Converted display value: '+jp.toLocaleString('en-IN',{maximumFractionDigits:2})+' JP (₹1 = 1.2 JP); spendable JP wallet is separate.';
   }else if(currency==='USD'){
    const usd=inr*RATES.USD;
    if(balanceField)balanceField.textContent='$'+usd.toLocaleString('en-US',{maximumFractionDigits:2})+' USD';
@@ -4953,7 +4953,7 @@ window.metCountCurrencyChanged=async function(currency){
    const item=String(currentCheckout.name),total=Number(currentCheckout.price||0);
    const body='New MetCart order/payment request\nMetxon account: '+state.currentUser+'\nCustomer: '+(d.profile.display_name||state.currentUser)+'\nCustomer Met-Ail: '+email+'\nItem(s): '+item+'\nRequested total: ₹'+total.toLocaleString('en-IN')+'\nStatus: Awaiting owner review. No payment has been captured by this request.';
    await ownerNotice('New MetCart order request',body);
-   await sendNotice(email,'MetCart','MetCart request received','Your order/payment request has been sent for review.\nItem(s): '+item+'\nRequested total: ₹'+total.toLocaleString('en-IN')+'\nStatus: Awaiting confirmation. This is not a payment receipt.');
+   await sendNotice(email.split('@')[0],email,'MetCart request received','Your order/payment request has been sent for review.\nItem(s): '+item+'\nRequested total: ₹'+total.toLocaleString('en-IN')+'\nStatus: Awaiting confirmation. This is not a payment receipt.');
    alert('Request sent. A confirmation has been delivered to your Met-Ail inbox. The order is awaiting review; no payment was taken.');
    closePay();if(currentCheckout.isCart){getCart().length=0;save();updateCartBar();}
   }catch(e){alert('Could not submit the order request: '+(e.message||e));}
