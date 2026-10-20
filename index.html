@@ -4453,6 +4453,13 @@ async function profile(){if(!state.currentUser)throw Error('Please sign in to yo
 
  const originalLaunch=window.launchNebulaApp;
  window.launchNebulaApp=async function(key){
+  // Normalize older links/installation records so the original and new app names open consistently.
+  const aliases={mail:'metAil',Mail:'metAil',MetMail:'metAil',Met-Ail:'metAil','Met-Ail':'metAil','Metxon Care':'metxonCare','Met-Cloud':'metCloud','Met-Na':'metNa'};
+  key=aliases[key]||key;
+  if(key==='metAil'&&typeof window.openMetAil==='function')return window.openMetAil();
+  if(key==='metxonCare'&&typeof window.openMetxonCare==='function')return window.openMetxonCare();
+  if(key==='metCloud'&&typeof window.openMetCloud==='function')return window.openMetCloud();
+  if(key==='metNa'&&typeof window.openMetNa==='function')return window.openMetNa();
   if(!['metAil','metxonCare','metCloud','metNa'].includes(key))return typeof originalLaunch==='function'?originalLaunch(key):window.openApp?.(key);
   if(!state.currentUser){if(typeof openAuth==='function')return openAuth();return alert('Please sign in first.');}
   try{
@@ -4630,7 +4637,7 @@ async function metna(){
 </script>
 
 <script>
-window.metCountCurrencyChanged=async function(currency){const box=document.getElementById('metCountSelectedCurrency');if(!box)return;try{const p=state.currentUser?await loadCloudAccount(state.currentUser):null;const acc=state.accounts[state.currentUser]||{balance:0};if(currency==='JP')box.textContent='JP balance: '+Number((p&&p.jp_balance)||0)+' JP';else if(currency==='USD')box.textContent='Balance: $'+(Number(acc.balance||0)*RATES.USD).toFixed(2)+' USD';else box.textContent='Balance: ₹'+Number(acc.balance||0).toLocaleString('en-IN')+' INR';}catch(e){box.textContent='Could not load selected balance.';}};
+window.metCountCurrencyChanged=async function(currency){const box=document.getElementById('metCountSelectedCurrency');if(!box)return;try{const p=state.currentUser?await loadCloudAccount(state.currentUser):null;const acc=state.accounts[state.currentUser]||{balance:0};if(currency==='JP')box.textContent='Spendable JP wallet: '+Number((p&&p.jp_balance)||0).toLocaleString('en-IN')+' JP (separate from INR balance)';else if(currency==='USD')box.textContent='Balance: $'+(Number(acc.balance||0)*RATES.USD).toFixed(2)+' USD';else box.textContent='Balance: ₹'+Number(acc.balance||0).toLocaleString('en-IN')+' INR';}catch(e){box.textContent='Could not load selected balance.';}};
 </script>
 <script>
 
