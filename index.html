@@ -4900,5 +4900,80 @@ window.metCountCurrencyChanged=async function(currency){
  window.Mail=window.mail=function(){if(typeof window.openMetAil==='function')return window.openMetAil();throw new Error('Met-Ail has not finished initialising. Refresh the page.');};
 })();
 </script>
+
+<script>
+/* Met-Ail is required for commerce; send order/status notices through internal mail. */
+(function(){
+ const $=id=>document.getElementById(id);
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ async function accountData(){
+  if(!state.currentUser)throw new Error('Please sign in to your Metxon account first.');
+  const profile=await loadCloudAccount(state.currentUser);if(!profile?.id)throw new Error('Your Metxon profile could not be verified.');
+  const q=await metxonSupabase.from('metail_accounts').select('id,username,display_name').eq('user_id',profile.id).order('created_at',{ascending:true});
+  if(q.error)throw q.error;return {profile,accounts:q.data||[]};
+ }
+ async function sendNotice(email,sender,subject,body){
+  const e=String(email||'').trim().toLowerCase();if(!e.endsWith('@metail.com'))throw new Error('A valid Met-Ail address is required.');
+  const username=e.slice(0,-'@metail.com'.length),a=await metxonSupabase.from('metail_accounts').select('user_id,username').ilike('username',username).maybeSingle();
+  if(a.error)throw a.error;if(!a.data)throw new Error('Met-Ail mailbox could not be found.');
+  const r=await metxonSupabase.from('metmail_messages').insert({owner_id:a.data.user_id,account_email:e,folder:'Inbox',sender:String(sender||'Metxon').slice(0,160),recipient:e,subject:String(subject||'Metxon notification').slice(0,200),body:String(body||'').slice(0,10000)});
+  if(r.error)throw r.error;
+ }
+ async function ownerNotice(subject,body){
+  const a=await metxonSupabase.from('metail_accounts').select('username').ilike('username','Jurassicpark').maybeSingle();
+  if(a.error)throw a.error;if(!a.data)throw new Error('Metxon order desk mailbox is not configured.');
+  await sendNotice(a.data.username+'@metail.com','Metxon Orders',subject,body);
+ }
+ async function prepare(){
+  let d;try{d=await accountData();}catch(e){alert(e.message||e);return null;}
+  if(!d.accounts.length){alert('You need a Met-Ail ID before placing an order or payment request. Create one in Met-Ail, then return here.');if(typeof window.openMetAil==='function')window.openMetAil();return null;}
+  let wrap=$('payMailWrap');if(!wrap){wrap=document.createElement('div');wrap.id='payMailWrap';wrap.className='form-group';$('payItemInfo').insertAdjacentElement('afterend',wrap);}
+  wrap.innerHTML='<label for="payMailAccount">Met-Ail ID for order updates</label><select id="payMailAccount" style="width:100%;margin-top:6px">'+d.accounts.map(a=>'<option value="'+esc(a.username)+'@metail.com">'+esc(a.username)+'@metail.com</option>').join('')+'</select><small style="color:var(--muted)">Order and payment status updates will arrive in this inbox.</small>';
+  return d;
+ }
+ const originalStart=window.startPay;
+ window.startPay=async function(name,price){
+  if(!state.currentUser)return openAuth();const d=await prepare();if(!d)return;
+  currentCheckout={name,price};$('payItemInfo').innerHTML='Order request: <strong>'+esc(name)+'</strong> · <strong>₹'+Number(price).toLocaleString('en-IN')+'</strong>';$('payModal').classList.add('show');
+ };
+ window.checkoutCart=async function(){
+  if(!state.currentUser)return openAuth();const cart=getCart();if(!cart.length)return alert('Cart is empty.');
+  const d=await prepare();if(!d)return;const total=cart.reduce((sum,i)=>sum+Number(i.price)*Number(i.qty),0),names=cart.map(i=>i.name+(i.qty>1?' ×'+i.qty:'')).join(', ');
+  currentCheckout={name:'Cart: '+names,price:total,isCart:true,items:cart.map(x=>({...x}))};
+  $('payItemInfo').innerHTML='Order request (<strong>'+cart.reduce((sum,i)=>sum+i.qty,0)+' items</strong>): <strong>'+esc(names)+'</strong> · <strong>₹'+total.toLocaleString('en-IN')+'</strong>';$('payModal').classList.add('show');
+ };
+ window.executePay=async function(){
+  if(!currentCheckout)return alert('Choose an item first.');
+  const email=$('payMailAccount')?.value;if(!email)return alert('Choose a Met-Ail ID for notifications.');
+  const btn=document.querySelector('#payModal button.btn-primary');if(btn){btn.disabled=true;btn.textContent='Sending request…';}
+  try{
+   const d=await accountData();if(!d.accounts.some(a=>(a.username+'@metail.com').toLowerCase()===email.toLowerCase()))throw new Error('Selected Met-Ail ID does not belong to your account.');
+   const item=String(currentCheckout.name),total=Number(currentCheckout.price||0);
+   const body='New MetCart order/payment request\nMetxon account: '+state.currentUser+'\nCustomer: '+(d.profile.display_name||state.currentUser)+'\nCustomer Met-Ail: '+email+'\nItem(s): '+item+'\nRequested total: ₹'+total.toLocaleString('en-IN')+'\nStatus: Awaiting owner review. No payment has been captured by this request.';
+   await ownerNotice('New MetCart order request',body);
+   await sendNotice(email,'MetCart','MetCart request received','Your order/payment request has been sent for review.\nItem(s): '+item+'\nRequested total: ₹'+total.toLocaleString('en-IN')+'\nStatus: Awaiting confirmation. This is not a payment receipt.');
+   alert('Request sent. A confirmation has been delivered to your Met-Ail inbox. The order is awaiting review; no payment was taken.');
+   closePay();if(currentCheckout.isCart){getCart().length=0;save();updateCartBar();}
+  }catch(e){alert('Could not submit the order request: '+(e.message||e));}
+  finally{if(btn){btn.disabled=false;btn.textContent='Pay Now';}}
+ };
+ window.metxonRequireMail=async function(){
+  try{const d=await accountData();if(d.accounts.length)return d.accounts[0].username+'@metail.com';alert('Create a Met-Ail ID before making transactions or purchases.');if(window.openMetAil)window.openMetAil();return null;}
+  catch(e){alert(e.message||e);return null;}
+ };
+ window.metxonNotifyTransaction=async function(subject,body){
+  const email=await window.metxonRequireMail();if(!email)return false;
+  try{await sendNotice(email,'Metxon Account',subject,body);await ownerNotice(subject,body+'\nCustomer account: '+state.currentUser+'\nCustomer Met-Ail: '+email);return true;}
+  catch(e){console.warn('Met-Ail transaction notification failed',e);alert('The transaction notification could not be delivered: '+(e.message||e));return false;}
+ };
+ const originalBuySub=window.buySub;
+ if(typeof originalBuySub==='function')window.buySub=async function(tier,price){
+  const email=await window.metxonRequireMail();if(!email)return;
+  const acc=state.accounts[state.currentUser];if(!acc||Number(acc.balance)<Number(price))return originalBuySub(tier,price);
+  originalBuySub(tier,price);
+  await window.metxonNotifyTransaction('MetCount subscription request',tier+' subscription selected for ₹'+Number(price).toLocaleString('en-IN')+'.');
+ };
+})();
+</script>
 </body>
 </html>
