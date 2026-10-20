@@ -4327,10 +4327,8 @@ window.showIncomingMessagePopup=function(username,message){
           }else{
             status.textContent='Processing MetPay transfer…';
             await cloudTransfer('Molecule',Number(pending.amount));
-            const d=await accountData();
-            const body='MetCart payment completed\nMetxon account: '+state.currentUser+'\nCustomer: '+(d.profile.display_name||state.currentUser)+'\nCustomer Met-Ail: '+pending.email+'\nItem(s): '+pending.name+'\nPaid amount: ₹'+Number(pending.amount).toLocaleString('en-IN')+'\nPayment status: Paid in MetPay.\nOrder status: Request sent to the team; your item is being prepared. You will receive your delivery date in Met-Ail.';
-            await ownerNotice('PAID MetCart order — review and set delivery date',body);
-            await sendNotice(pending.email.split('@')[0],pending.email,'MetCart payment received — order submitted','Your MetPay transaction was completed.\nItem(s): '+pending.name+'\nAmount paid: ₹'+Number(pending.amount).toLocaleString('en-IN')+'\nRequest sent to the team. They are preparing your order; you will soon receive your delivery date.');
+            const body='MetCart payment completed\\nMetxon account: '+state.currentUser+'\\nCustomer Met-Ail: '+pending.email+'\\nItem(s): '+pending.name+'\\nPaid amount: ₹'+Number(pending.amount).toLocaleString('en-IN')+'\\nPayment status: Paid in MetPay.\\nOrder status: Request sent to the team; your item is being prepared. You will receive your delivery date in Met-Ail.';
+            await window.metxonSendOrderNotice(pending.email,'PAID MetCart order — review and set delivery date',body,'MetCart payment received — order submitted','Your MetPay transaction was completed.\\nItem(s): '+pending.name+'\\nAmount paid: ₹'+Number(pending.amount).toLocaleString('en-IN')+'\\nRequest sent to the team. They are preparing your order; you will soon receive your delivery date.');
             if(pending.isCart){getCart().length=0;save();updateCartBar();}
             status.textContent='Payment successful. Request sent to the team; you will soon receive your delivery date in Met-Ail.';
           }
