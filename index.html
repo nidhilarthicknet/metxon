@@ -4234,7 +4234,24 @@ window.showIncomingMessagePopup=function(username,message){
     if(key==='metPay'){
       content.innerHTML='<div id="gameArea"><div class="card" style="text-align:center;padding:28px"><div style="font-size:2.4rem;font-weight:900;letter-spacing:.15em;color:var(--cyan)">Met</div><p style="color:var(--muted)">Starting MetPay securely…</p></div></div>';
       try{
-        await playMetxonTransition('MetPay');
+        // Keep the MetPay boot transition inside this launcher scope.
+        // playMetxonTransition is private to another script closure and cannot be called here.
+        const bootStyle=document.createElement('style');
+        bootStyle.id='metpayBootStyle';
+        bootStyle.textContent='@keyframes metpayPulse{0%,100%{opacity:.45;transform:scale(.98)}50%{opacity:1;transform:scale(1.02)}}#metpayBootOverlay .metpayBootWord{font-size:clamp(3rem,9vw,6rem);font-weight:900;letter-spacing:.18em;color:#08d9f5;animation:metpayPulse .7s ease-in-out infinite}#metpayBootOverlay .metpayBootSub{margin-top:14px;color:#a8b8d0;font-size:1rem}';
+        document.head.appendChild(bootStyle);
+        const boot=document.createElement('div');
+        boot.id='metpayBootOverlay';
+        Object.assign(boot.style,{position:'fixed',inset:'0',zIndex:'999999',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:'#070b14',opacity:'1',transition:'opacity .3s ease'});
+        boot.innerHTML='<div class="metpayBootWord">Met</div><div class="metpayBootSub">Starting MetPay…</div>';
+        document.body.appendChild(boot);
+        await new Promise(resolve=>setTimeout(resolve,650));
+        boot.querySelector('.metpayBootWord').textContent='XON';
+        boot.querySelector('.metpayBootSub').textContent='Secured by Metware X';
+        await new Promise(resolve=>setTimeout(resolve,650));
+        boot.style.opacity='0';
+        await new Promise(resolve=>setTimeout(resolve,320));
+        boot.remove();bootStyle.remove();
         const workspace=document.getElementById('appWorkspace'),title=document.getElementById('appTitle'),fresh=document.getElementById('appContent');
         if(!fresh)throw new Error('MetPay workspace was not found.');
         if(title)title.textContent='MetPay';
