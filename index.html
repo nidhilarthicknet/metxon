@@ -5158,5 +5158,70 @@ window.metCountCurrencyChanged=async function(currency){
 })();
 </script>
 
+
+<script>
+/* Explicit MetCart -> MetPay bridge: retain the order payload, then open the MetPay
+   transaction tab and re-render it only after the checkout payload is in place. */
+(function(){
+  window.metxonCheckoutBridge = function(payload){
+    if(!payload || !payload.name || !Number.isFinite(Number(payload.amount)) || Number(payload.amount)<=0){
+      alert('This product has an invalid price. Please refresh and try again.'); return;
+    }
+    if(!state.currentUser){openAuth();return;}
+    const handoff={
+      kind:'metcart',
+      name:String(payload.name),
+      amount:Number(payload.amount),
+      isCart:!!payload.isCart,
+      items:Array.isArray(payload.items)?payload.items.map(x=>({name:String(x.name),price:Number(x.price),qty:Number(x.qty||1)})):[],
+      email:'',
+      username:state.currentUser,
+      handoffId:String(Date.now())+'-'+Math.random().toString(36).slice(2,8)
+    };
+    // Publish the payload before touching the app UI; MetPay reads this exact object.
+    window.metpayPendingCheckout=handoff;
+    const ws=document.getElementById('appWorkspace');
+    const title=document.getElementById('appTitle');
+    const content=document.getElementById('appContent');
+    if(!ws||!content){alert('MetPay workspace is unavailable. Refresh the page and try again.');return;}
+    ws.style.display='block';ws.hidden=false;
+    if(title)title.textContent='MetPay';
+    content.style.display='block';content.hidden=false;
+    content.innerHTML='<div id="gameArea"><div class="card"><h3>Connecting MetCart to MetPay…</h3><p>Order total: ₹'+handoff.amount.toLocaleString('en-IN')+'</p></div></div>';
+    const area=content.querySelector('#gameArea');
+    try{
+      if(typeof window.renderMetPayApp!=='function')throw new Error('MetPay is unavailable. Refresh the page and try again.');
+      Promise.resolve(window.renderMetPayApp(area)).then(function(){
+        // Confirm the pending order is still the one rendered, then activate Transaction.
+        if(window.metpayPendingCheckout!==handoff)throw new Error('Checkout handoff changed unexpectedly. Please retry.');
+        const transaction=area.querySelector('[data-mp-tab="pay"]');
+        const panel=area.querySelector('#mp-pay');
+        if(!transaction||!panel)throw new Error('MetPay opened, but its transaction panel was not found.');
+        transaction.click();
+        ws.scrollIntoView({behavior:'smooth',block:'start'});
+      }).catch(function(e){
+        console.error('MetCart → MetPay handoff error:',e);
+        area.innerHTML='<div class="card"><h3>MetPay could not open checkout</h3><p>'+String(e&&e.message||e).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];})+'</p><button class="btn btn-primary" onclick="location.reload()">Refresh and retry</button></div>';
+      });
+    }catch(e){
+      console.error('MetCart → MetPay handoff error:',e);
+      area.innerHTML='<div class="card"><h3>MetPay could not open checkout</h3><p>'+String(e&&e.message||e).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];})+'</p><button class="btn btn-primary" onclick="location.reload()">Refresh and retry</button></div>';
+    }
+  };
+  window.startPay=function(name,price){
+    window.metxonCheckoutBridge({name:name,amount:Number(price),isCart:false,items:[]});
+  };
+  window.checkoutCart=function(){
+    if(!state.currentUser){openAuth();return;}
+    const cart=getCart();
+    if(!cart.length){alert('Cart is empty.');return;}
+    const items=cart.map(x=>({name:x.name,price:Number(x.price),qty:Number(x.qty||1)}));
+    const total=items.reduce((sum,x)=>sum+x.price*x.qty,0);
+    const names=items.map(x=>x.name+(x.qty>1?' ×'+x.qty:'')).join(', ');
+    window.metxonCheckoutBridge({name:'Cart: '+names,amount:total,isCart:true,items:items});
+  };
+})();
+</script>
+
 </body>
 </html>
