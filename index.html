@@ -4317,10 +4317,16 @@ window.showIncomingMessagePopup=function(username,message){
         const password=document.getElementById('mpCheckoutPassword').value;if(!password){status.textContent='Enter your password first.';return;}
         pay.disabled=true;status.textContent='Verifying password…';
         try{
-          const session=await metxonSupabase.auth.getSession(),authUser=session.data?.session?.user;
-          if(!authUser?.email)throw new Error('Your secure Metxon session has expired. Sign in again.');
-          const verified=await metxonSupabase.auth.signInWithPassword({email:authUser.email,password});
-          if(verified.error)throw new Error('Password verification failed. Check your Metxon account password.');
+          // MetPay authorizes purchases with the selected Met-Ail mailbox password.
+          // Mailbox credentials are separate from the parent Metxon login credentials.
+          const checkoutEmail=String(pending.email||'').trim().toLowerCase();
+          if(!checkoutEmail.endsWith('@metail.com'))throw new Error('Choose a Met-Ail inbox before paying.');
+          const accountInfo=await accountData();
+          const mailbox=accountInfo.accounts.find(a=>(String(a.username||'').toLowerCase()+'@metail.com')===checkoutEmail);
+          if(!mailbox)throw new Error('This Met-Ail inbox does not belong to your Metxon account.');
+          const verified=await metxonSupabase.rpc('metxon_verify_metail_password',{p_username:mailbox.username,p_password:password});
+          if(verified.error)throw verified.error;
+          if(verified.data!==true)throw new Error('Met-Ail password is incorrect. Enter the password you use to unlock this mailbox.');
           if(cloud){
             status.textContent='Processing subscription…';
             const result=await metxonSupabase.rpc('metxon_purchase_cloud_plan',{p_capacity_gb:Number(pending.capacityGb)});
@@ -4734,7 +4740,7 @@ async function profile(){if(!state.currentUser)throw Error('Please sign in to yo
    const currentGb=Number(ent.data?.capacity_gb||15),charge=currentGb>=gb?0:(currentGb===30&&gb===40?10:fullPrice);
    if(charge<=0)return alert('You already have this capacity or a higher plan.');
    const mailEmail=await window.metxonRequireMail();if(!mailEmail)return;
-   window.metpayPendingCheckout={kind:'cloud',name:planName+' subscription ('+gb+' GB)',capacityGb:gb,jpAmount:charge};
+   window.metpayPendingCheckout={kind:'cloud',name:planName+' subscription ('+gb+' GB)',capacityGb:gb,jpAmount:charge,email:mailEmail,username:state.currentUser};
    status.textContent='Opening MetPay checkout…';
    await window.launchNebulaApp('metPay');
   });
