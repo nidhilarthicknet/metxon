@@ -4325,12 +4325,12 @@ window.showIncomingMessagePopup=function(username,message){
         const accounts=info.accounts||[];
         if(!accounts.length){emailSelect.innerHTML='<option value="">No Met-Ail ID found</option>';status.textContent='Create a Met-Ail ID before placing an order.';return;}
         emailSelect.innerHTML=accounts.map(a=>{const email=String(a.username)+'@metail.com';return '<option value="'+esc(email)+'">'+esc(email)+'</option>';}).join('');
-        pending.email=emailSelect.value;status.textContent=pending.autoPayAfterVerification?'Password verified. Processing your order…':'Choose your Met-Ail inbox, then pay.';if(pending.autoPayAfterVerification){Promise.resolve().then(()=>{if(pay.isConnected&&!pay.disabled)pay.click();});}
-      }).catch(e=>{emailSelect.innerHTML='<option value="">Could not load Met-Ail IDs</option>';status.textContent='Could not load Met-Ail IDs: '+(e.message||e);});
+        pending.email=emailSelect.value;if(!pending.autoPayAfterVerification)status.textContent='Choose your Met-Ail inbox, then pay.';
+      }).catch(e=>{emailSelect.innerHTML='<option value="">Receipt inbox selected securely at payment</option>';if(!pending.autoPayAfterVerification)status.textContent='Could not load Met-Ail IDs: '+(e.message||e);else console.warn('MetCart will resolve its receipt inbox inside the secure Supabase purchase:',e);});
       emailSelect.onchange=()=>{pending.email=String(emailSelect.value||'').trim().toLowerCase();};
       document.getElementById('mpCheckoutCancel').onclick=()=>{window.metpayPendingCheckout=null;renderPayPanel();};
-      pay.onclick=async()=>{
-        if(!String(emailSelect.value||pending.email||'').trim()){status.textContent='Wait for your Met-Ail inbox to load, then select it.';return;}
+      const executeCheckout=async()=>{
+        if(!pending.autoPayAfterVerification&&!String(emailSelect.value||pending.email||'').trim()){status.textContent='Wait for your Met-Ail inbox to load, then select it.';return;}
         if(!pending.metpayPasswordVerified){status.textContent='Payment blocked: verify your MetPay transaction password in MetCart first.';return;}
         pay.disabled=true;status.textContent='Verifying password…';
         try{
@@ -4338,11 +4338,15 @@ window.showIncomingMessagePopup=function(username,message){
           // MetPay password was verified server-side before this checkout was opened.
           // Met-Ail is used only for receipts and delivery updates, not payment authorization.
           const checkoutEmail=String(emailSelect.value||pending.email||'').trim().toLowerCase();
-          if(!checkoutEmail.endsWith('@metail.com'))throw new Error('Choose a Met-Ail inbox for the receipt.');
-          pending.email=checkoutEmail;
-          const accountInfo=await accountData();
-          const mailbox=accountInfo.accounts.find(a=>(String(a.username||'').toLowerCase()+'@metail.com')===checkoutEmail);
-          if(!mailbox)throw new Error('This Met-Ail inbox does not belong to your Metxon account.');
+          // For password-verified MetCart checkout, Supabase resolves and validates both inboxes atomically.
+          // Do not make a browser-side mailbox-list query a prerequisite to charging/recording the order.
+          if(cloud||!pending.autoPayAfterVerification){
+            if(!checkoutEmail.endsWith('@metail.com'))throw new Error('Choose a Met-Ail inbox for the receipt.');
+            const accountInfo=await accountData();
+            const mailbox=accountInfo.accounts.find(a=>(String(a.username||'').toLowerCase()+'@metail.com')===checkoutEmail);
+            if(!mailbox)throw new Error('This Met-Ail inbox does not belong to your Metxon account.');
+            pending.email=checkoutEmail;
+          }
           if(cloud){
             status.textContent='Processing subscription…';
             const result=await metxonSupabase.rpc('metxon_purchase_cloud_plan',{p_capacity_gb:Number(pending.capacityGb)});
@@ -4360,6 +4364,9 @@ window.showIncomingMessagePopup=function(username,message){
             // Use the server-validated item names, quantities, prices, and total for the receipt.
             if(Array.isArray(purchaseResult.data.items))pending.items=purchaseResult.data.items;
             if(Number.isFinite(Number(purchaseResult.data.total)))pending.amount=Number(purchaseResult.data.total);
+            pending.email=String(purchaseResult.data.customer_email||pending.email||'');
+            const ownerReceiptEmail=String(purchaseResult.data.owner_email||'Jurassicpark@metail.com');
+            if(purchaseResult.data.receipts_saved!==true)throw new Error('Payment returned without confirmed receipts. Do not retry; check your order history.');
             pending.metpayPassword='';
             const placedAt=new Date().toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});
             const itemLines=(Array.isArray(pending.items)&&pending.items.length?pending.items.map((item,i)=>String(i+1)+'. '+item.name+' | Qty: '+Number(item.qty||1)+' | Unit price: ₹'+Number(item.price||0).toLocaleString('en-IN')+' | Subtotal: ₹'+(Number(item.price||0)*Number(item.qty||1)).toLocaleString('en-IN')).join('\n'):pending.name+' | Amount: ₹'+Number(pending.amount).toLocaleString('en-IN'));
@@ -4386,20 +4393,9 @@ window.showIncomingMessagePopup=function(username,message){
             }
             window.metpayPendingCheckout=null;pay.disabled=false;pay.textContent='Completed';status.textContent='ORDER CONFIRMED ✓ '+orderId+' — payment recorded. Sending your receipt to Met-Ail…';
             if(typeof window.metxonShowOrderReceiptToast==='function')window.metxonShowOrderReceiptToast('Order placed successfully','Order '+orderId+' is paid. Your receipt is being sent to Met-Ail.');
-            // Deliver both receipts in the background; never let a slow inbox request delay the customer confirmation.
-            Promise.resolve().then(async()=>{
-              try{
-                if(typeof window.metxonSendOrderNotice!=='function')throw new Error('Order receipt service is unavailable.');
-                await window.metxonSendOrderNotice(pending.email,'MetCart receipt '+orderId+' — paid order, delivery date required',ownerBody,'Your MetCart receipt — '+orderId,customerReceipt);
-                const statusNow=document.getElementById('mpCheckoutStatus');
-                if(statusNow)statusNow.textContent='ORDERED ✓ '+orderId+' — receipt sent to your Met-Ail inbox and JurassicPark@metail.com. Waiting for delivery date.';
-              }catch(mailError){
-                console.error('MetCart payment succeeded but receipt delivery failed:',mailError);
-                const statusNow=document.getElementById('mpCheckoutStatus');
-                if(statusNow)statusNow.textContent='PAYMENT SUCCEEDED ✓ '+orderId+'. Do not pay again. Receipt delivery failed: '+(mailError?.message||String(mailError))+'. Contact the owner.';
-                window.metxonShowOrderReceiptToast('Payment received — receipt needs attention','Order '+orderId+' was paid. Receipt delivery failed; do not pay again. Contact the owner.');
-              }
-            });
+            // Supabase already stored the customer and owner receipts atomically with the payment.
+            status.textContent='ORDERED ✓ '+orderId+' — receipt recorded in '+pending.email+' and '+ownerReceiptEmail+'. Waiting for delivery date.';
+            window.metxonShowOrderReceiptToast('Order placed successfully','Order '+orderId+' is paid and its receipt is recorded in both Met-Ail inboxes. Tap to open Met-Ail.');
           }
         }catch(e){
           console.error('MetCart payment was not confirmed by Supabase:',e);
@@ -4410,6 +4406,13 @@ window.showIncomingMessagePopup=function(username,message){
           }
         }
       };
+      pay.onclick=executeCheckout;
+      if(pending.autoPayAfterVerification&&!pending._autoCheckoutStarted){
+        pending._autoCheckoutStarted=true;
+        Promise.resolve().then(()=>{
+          if(pay.isConnected&&!pay.disabled&&window.metpayPendingCheckout===pending)executeCheckout();
+        });
+      }
       return;
     }
     p.innerHTML=`<h3>Send / Receive Cash</h3><p style="color:var(--muted)">Enter a Metxon username and amount to transfer money.</p><div class="form-group"><input id="mpTo" placeholder="Recipient username"></div><div class="form-group"><input id="mpAmount" type="number" min="1" step="0.01" placeholder="Amount (₹)"></div><button class="btn btn-primary" id="mpSend">Send ₹</button><button class="btn" id="mpAdd">Add Contact</button><button class="btn" id="mpRechargeCloud">Recharge cloud</button><div class="metpay-contacts" id="mpPayContacts"></div><div class="metpay-status" id="mpPayStatus"></div>`;
@@ -5307,7 +5310,7 @@ window.metCountCurrencyChanged=async function(currency){
 <script>
 (function(){
 async function prof(){if(!state.currentUser)throw Error('Sign in first');let p=await loadCloudAccount(state.currentUser);if(!p||!p.id)throw Error('Profile unavailable');let u=await metxonSupabase.auth.getUser();if(u.error||!u.data.user||u.data.user.id!==p.id)throw Error('Sign out and sign in again');return p}
-async function pay(o){window.metpayPendingCheckout=o;let w=document.getElementById('appWorkspace'),t=document.getElementById('appTitle'),c=document.getElementById('appContent');if(!w||!c||!window.renderMetPayApp)throw Error('MetPay unavailable');w.style.display='block';w.hidden=false;c.style.display='block';c.hidden=false;if(t)t.textContent='MetPay';c.innerHTML='<div id="gameArea"><p>Opening MetPay…</p></div>';let area=c.querySelector('#gameArea');await window.renderMetPayApp(area);let tab=area.querySelector('[data-mp-tab="pay"]');if(!tab)throw Error('Payment panel unavailable');tab.click();w.scrollIntoView({behavior:'smooth',block:'start'})}
+async function pay(o){window.metpayPendingCheckout=o;let w=document.getElementById('appWorkspace'),t=document.getElementById('appTitle'),c=document.getElementById('appContent');if(!w||!c||!window.renderMetPayApp)throw Error('MetPay unavailable');w.style.display='block';w.hidden=false;c.style.display='block';c.hidden=false;if(t)t.textContent='MetPay';c.innerHTML='<div id="gameArea"><p>Opening MetPay…</p></div>';let area=c.querySelector('#gameArea');await window.renderMetPayApp(area);const tab=area.querySelector('[data-mp-tab="pay"]'),panel=area.querySelector('#mp-pay');if(!tab||!panel)throw Error('Payment panel unavailable');/* renderMetPayApp already renders the active Transaction panel. Do not click the tab again: that re-renders checkout during initialization. */w.scrollIntoView({behavior:'smooth',block:'start'})}
 function begin(d){
  if(!state.currentUser){openAuth();return}
  const amount=Number(d.amount);if(!Number.isFinite(amount)||amount<=0){alert('Invalid amount');return}
