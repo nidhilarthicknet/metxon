@@ -4357,6 +4357,9 @@ window.showIncomingMessagePopup=function(username,message){
             const purchaseResult=await metxonSupabase.rpc('metxon_purchase_metcart',{p_order_id:orderId,p_items:purchaseItems,p_expected_total:Number(pending.amount),p_delivery:pending.deliveryAddress||{},p_metpay_password:String(pending.metpayPassword||'')});
             if(purchaseResult.error)throw purchaseResult.error;
             if(!purchaseResult.data?.success)throw new Error('Supabase did not confirm the order payment.');
+            // Use the server-validated item names, quantities, prices, and total for the receipt.
+            if(Array.isArray(purchaseResult.data.items))pending.items=purchaseResult.data.items;
+            if(Number.isFinite(Number(purchaseResult.data.total)))pending.amount=Number(purchaseResult.data.total);
             pending.metpayPassword='';
             const placedAt=new Date().toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});
             const itemLines=(Array.isArray(pending.items)&&pending.items.length?pending.items.map((item,i)=>String(i+1)+'. '+item.name+' | Qty: '+Number(item.qty||1)+' | Unit price: ₹'+Number(item.price||0).toLocaleString('en-IN')+' | Subtotal: ₹'+(Number(item.price||0)*Number(item.qty||1)).toLocaleString('en-IN')).join('\n'):pending.name+' | Amount: ₹'+Number(pending.amount).toLocaleString('en-IN'));
