@@ -5082,13 +5082,13 @@ window.metCountCurrencyChanged=async function(currency){
   if(r.error)throw r.error;
  }
  async function ownerNotice(subject,body,customerEmail){
-  const a=await metxonSupabase.from('metail_accounts').select('username').ilike('username','Jurassicpark').maybeSingle();
-  if(a.error)throw a.error;if(!a.data)throw new Error('Owner order-receipt inbox Jurassicpark@metail.com is not configured.');
-  const ownerEmail=String(a.data.username)+'@metail.com';
-  if(ownerEmail.toLowerCase()!=='jurassicpark@metail.com')throw new Error('The owner order-receipt account must be Jurassicpark@metail.com.');
+  // Use the confirmed owner mailbox directly. Browser-side RLS can hide its row
+  // from customers, falsely reporting that the existing mailbox is not configured.
+  const ownerUsername='Jurassicpark';
+  const ownerEmail=ownerUsername+'@metail.com';
   const sender=String(customerEmail||'').trim().toLowerCase();
-  if(!/^[a-zA-Z0-9_]{3,24}@metail\.com$/.test(sender))throw new Error('A valid customer Met-Ail inbox is required for owner replies.');
-  await sendNotice(sender.split('@')[0],ownerEmail,subject,body+'\n\nOWNER ACTION: Review this paid order, then use Reply in Met-Ail to send the delivery date. Because this receipt is sent from the customer inbox shown above, your reply will reach that customer.');
+  if(!/^[a-zA-Z0-9_]{3,24}@metail\\.com$/.test(sender))throw new Error('A valid customer Met-Ail inbox is required for owner replies.');
+  await sendNotice(sender.split('@')[0],ownerEmail,subject,body+'\\n\\nOWNER ACTION: Review this order, then use Reply in Met-Ail to send the delivery date. Because this receipt is sent from the customer inbox shown above, your reply will reach that customer.');
  }
  window.metxonSendOrderNotice=async function(email,ownerSubject,ownerBody,customerSubject,customerBody){
   const d=await accountData(),target=String(email||'').trim().toLowerCase();
@@ -5146,8 +5146,19 @@ window.metCountCurrencyChanged=async function(currency){
  };
  window.metxonNotifyTransaction=async function(subject,body){
   const email=await window.metxonRequireMail();if(!email)return false;
-  try{await sendNotice(email.split('@')[0],email,subject,body);await ownerNotice(subject,body+'\nCustomer account: '+state.currentUser+'\nCustomer Met-Ail: '+email);return true;}
-  catch(e){console.warn('Met-Ail transaction notification failed',e);alert('The transaction notification could not be delivered: '+(e.message||e));return false;}
+  const deliveries=await Promise.allSettled([
+   sendNotice(email.split('@')[0],email,subject,body),
+   ownerNotice(subject,body+'\\nCustomer account: '+state.currentUser+'\\nCustomer Met-Ail: '+email,email)
+  ]);
+  const customerFailed=deliveries[0].status==='rejected';
+  const ownerFailed=deliveries[1].status==='rejected';
+  if(customerFailed||ownerFailed){
+   const reasons=deliveries.filter(x=>x.status==='rejected').map(x=>String(x.reason?.message||x.reason||'Delivery failed'));
+   console.warn('Met-Ail transaction notification partial failure:',reasons);
+   alert((customerFailed?'Your Met-Ail notification could not be delivered. ':'')+(ownerFailed?'The owner notification could not be delivered. ':'')+'Details: '+reasons.join(' | '));
+   return false;
+  }
+  return true;
  };
  const originalBuySub=window.buySub;
  if(typeof originalBuySub==='function')window.buySub=async function(tier,price){
