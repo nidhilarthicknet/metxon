@@ -4321,7 +4321,7 @@ window.showIncomingMessagePopup=function(username,message){
             if(typeof window.metxonNotifyTransaction==='function')await window.metxonNotifyTransaction('Met-Cloud subscription activated',pending.name+' activated successfully. Charged: '+Number(pending.jpAmount)+' JP. '+(result.data?.message||''));
             status.textContent='Payment accepted. '+(result.data?.message||'Your Met-Cloud subscription is active.');
           }else{
-            status.textContent='Securely charging your MetPay wallet…';
+            status.textContent='Securely charging your InstaPay wallet…';
             const orderId=String(pending.orderId||('MC-'+new Date().toISOString().replace(/[-:.TZ]/g,'').slice(0,14)+'-'+Math.random().toString(36).slice(2,8).toUpperCase()));
             const purchaseItems=(Array.isArray(pending.items)&&pending.items.length?pending.items:[{name:pending.name,qty:1}]).map(item=>({name:String(item.name||''),qty:Number(item.qty||1)}));
             const purchaseResult=await metxonSupabase.rpc('metxon_purchase_metcart',{p_order_id:orderId,p_items:purchaseItems,p_expected_total:Number(pending.amount),p_delivery:pending.deliveryAddress||{},p_metpay_password:String(pending.metpayPassword||'')});
@@ -5116,7 +5116,7 @@ window.metCountCurrencyChanged=async function(currency){
  const originalBuySub=window.buySub;
  if(typeof originalBuySub==='function')window.buySub=async function(tier,price){
   const email=await window.metxonRequireMail();if(!email)return;
-  const acc=state.accounts[state.currentUser];if(!acc||Number(acc.balance)<Number(price))return originalBuySub(tier,price);
+  const acc=state.accounts[state.currentUser];if(!acc||Number(acc.jpBalance||0)<Number(price)/100)return originalBuySub(tier,price);
   originalBuySub(tier,price);
   await window.metxonNotifyTransaction('MetCount subscription request',tier+' subscription selected for ₹'+Number(price).toLocaleString('en-IN')+'.');
  };
@@ -5128,7 +5128,7 @@ window.metCountCurrencyChanged=async function(currency){
  const oldBuy=window.buyStock;
  if(typeof oldBuy==='function')window.buyStock=async function(ticker,price){
   const email=await window.metxonRequireMail();if(!email)return;
-  const a=state.accounts[state.currentUser];if(!a||Number(a.balance)<Number(price))return oldBuy(ticker,price);
+  const a=state.accounts[state.currentUser];if(!a||Number(a.jpBalance||0)<Number(price)/100)return oldBuy(ticker,price);
   oldBuy(ticker,price);await window.metxonNotifyTransaction('MetCount stock purchase','Purchased 1 share of '+ticker+' for ₹'+Number(price).toLocaleString('en-IN')+'.');
  };
  const oldSell=window.sellStock;
