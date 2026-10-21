@@ -4351,9 +4351,13 @@ window.showIncomingMessagePopup=function(username,message){
             if(typeof window.metxonNotifyTransaction==='function')await window.metxonNotifyTransaction('Met-Cloud subscription activated',pending.name+' activated successfully. Charged: '+Number(pending.jpAmount)+' JP. '+(result.data?.message||''));
             status.textContent='Payment accepted. '+(result.data?.message||'Your Met-Cloud subscription is active.');
           }else{
-            status.textContent='Processing MetPay transfer…';
-            await cloudTransfer('Molecule',Number(pending.amount));
-            const orderId='MC-'+new Date().toISOString().replace(/[-:.TZ]/g,'').slice(0,14)+'-'+Math.random().toString(36).slice(2,6).toUpperCase();
+            status.textContent='Securely charging your MetPay wallet…';
+            const orderId=String(pending.orderId||('MC-'+new Date().toISOString().replace(/[-:.TZ]/g,'').slice(0,14)+'-'+Math.random().toString(36).slice(2,8).toUpperCase()));
+            const purchaseItems=(Array.isArray(pending.items)&&pending.items.length?pending.items:[{name:pending.name,qty:1}]).map(item=>({name:String(item.name||''),qty:Number(item.qty||1)}));
+            const purchaseResult=await metxonSupabase.rpc('metxon_purchase_metcart',{p_order_id:orderId,p_items:purchaseItems,p_expected_total:Number(pending.amount),p_delivery:pending.deliveryAddress||{},p_metpay_password:String(pending.metpayPassword||'')});
+            if(purchaseResult.error)throw purchaseResult.error;
+            if(!purchaseResult.data?.success)throw new Error('Supabase did not confirm the order payment.');
+            pending.metpayPassword='';
             const placedAt=new Date().toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});
             const itemLines=(Array.isArray(pending.items)&&pending.items.length?pending.items.map((item,i)=>String(i+1)+'. '+item.name+' | Qty: '+Number(item.qty||1)+' | Unit price: ₹'+Number(item.price||0).toLocaleString('en-IN')+' | Subtotal: ₹'+(Number(item.price||0)*Number(item.qty||1)).toLocaleString('en-IN')).join('\n'):pending.name+' | Amount: ₹'+Number(pending.amount).toLocaleString('en-IN'));
             const delivery='Class: '+(pending.deliveryAddress?.class||'not provided')+' | Section: '+(pending.deliveryAddress?.section||'not provided')+' | Roll number: '+(pending.deliveryAddress?.roll||'not provided');
@@ -4364,15 +4368,17 @@ window.showIncomingMessagePopup=function(username,message){
             // even if the active UI/account changed while MetPay was open.
             if(pending.isCart){
               const orderUser=String(pending.username||state.currentUser||'');
+              // Mutate the same state object used by getCart(), then persist it using the site's save() function.
               if(orderUser && state.accounts && state.accounts[orderUser]) state.accounts[orderUser].cart=[];
-              if(state.currentUser && state.accounts && state.accounts[state.currentUser]) state.accounts[state.currentUser].cart=[];
-              try{localStorage.setItem(KEY,JSON.stringify(state));}catch(storageError){console.warn('Cart was cleared in memory but could not be persisted:',storageError);}
-              try{updateCartBar();}catch(uiError){console.warn('Could not refresh cart count:',uiError);}
-              const cartView=document.getElementById('cartView');
-              if(cartView){cartView.innerHTML='<p style="color:var(--muted)">Your cart is empty.</p>';cartView.style.display='block';}
-              const cartCount=document.getElementById('cartCount');if(cartCount)cartCount.textContent='0 items';
-              const cartTotal=document.getElementById('cartTotal');if(cartTotal)cartTotal.textContent='';
-              try{if(typeof renderMetcart==='function')renderMetcart();}catch(renderError){console.warn('Could not refresh MetCart display:',renderError);}
+              try{save();}catch(storageError){console.error('Paid order confirmed but local cart persistence failed:',storageError);}
+              if(String(state.currentUser||'')===orderUser){
+                try{updateCartBar();}catch(uiError){console.warn('Could not refresh cart count:',uiError);}
+                const cartView=document.getElementById('cartView');
+                if(cartView){cartView.innerHTML='<p style="color:var(--muted)">Your cart is empty.</p>';cartView.style.display='block';}
+                const cartCount=document.getElementById('cartCount');if(cartCount)cartCount.textContent='0 items';
+                const cartTotal=document.getElementById('cartTotal');if(cartTotal)cartTotal.textContent='';
+                try{renderMetcart();}catch(renderError){console.warn('Could not refresh MetCart display:',renderError);}
+              }
             }
             window.metpayPendingCheckout=null;pay.disabled=false;pay.textContent='Completed';
             if(typeof window.metxonShowOrderReceiptToast==='function')window.metxonShowOrderReceiptToast('Order placed successfully','Receipt '+orderId+' is being sent to your Met-Ail inbox. Tap here to view it.');
@@ -5075,8 +5081,12 @@ window.metCountCurrencyChanged=async function(currency){
  window.metxonSendOrderNotice=async function(email,ownerSubject,ownerBody,customerSubject,customerBody){
   const d=await accountData(),target=String(email||'').trim().toLowerCase();
   if(!d.accounts.some(a=>(a.username+'@metail.com').toLowerCase()===target))throw new Error('The selected Met-Ail inbox does not belong to this account.');
-  await ownerNotice(ownerSubject,ownerBody,target);
-  await sendNotice(target.split('@')[0],target,customerSubject,customerBody);
+  const deliveries=await Promise.allSettled([
+    ownerNotice(ownerSubject,ownerBody,target),
+    sendNotice(target.split('@')[0],target,customerSubject,customerBody)
+  ]);
+  const failures=deliveries.filter(x=>x.status==='rejected');
+  if(failures.length)throw new Error(failures.map(x=>String(x.reason?.message||x.reason||'Receipt delivery failed')).join(' | '));
  };
  async function prepare(){
   let d;try{d=await accountData();}catch(e){alert(e.message||e);return null;}
@@ -5279,7 +5289,7 @@ async function pay(o){window.metpayPendingCheckout=o;let w=document.getElementBy
 function begin(d){
  if(!state.currentUser){openAuth();return}
  const amount=Number(d.amount);if(!Number.isFinite(amount)||amount<=0){alert('Invalid amount');return}
- const o={kind:'metcart',name:String(d.name),amount,isCart:!!d.isCart,items:d.items||[],email:'',username:state.currentUser,deliveryAddress:{}};
+ const o={kind:'metcart',name:String(d.name),amount,isCart:!!d.isCart,items:d.items||[],email:'',username:state.currentUser,deliveryAddress:{},orderId:'MC-'+new Date().toISOString().replace(/[-:.TZ]/g,'').slice(0,14)+'-'+Math.random().toString(36).slice(2,8).toUpperCase(),metpayPassword:''};
  let m=document.getElementById('metcartPasswordGate');
  if(!m){m=document.createElement('div');m.id='metcartPasswordGate';m.className='modal';m.innerHTML='<div class="modal-box"><h2 id="mpGateTitle">Delivery details</h2><p id="mpOrder"></p><p id="mpGateIntro">Optional: enter your class, section and roll number so our team can identify and deliver your order at school.</p><div id="mpFields"></div><p id="mpStatus" aria-live="polite"></p><button class="btn btn-primary" id="mpGo">Continue to payment</button><button class="btn" id="mpCancel">Cancel</button></div>';document.body.appendChild(m)}
  m.classList.add('show');const f=m.querySelector('#mpFields'),st=m.querySelector('#mpStatus'),go=m.querySelector('#mpGo'),title=m.querySelector('#mpGateTitle'),intro=m.querySelector('#mpGateIntro');
@@ -5303,8 +5313,8 @@ function begin(d){
     o._hasMetPayPassword=has;go.disabled=false;return;
    }
    const p=await prof();
-   if(o._hasMetPayPassword){const pw=f.querySelector('#mpPw')?.value||'';if(!pw)throw Error('Enter your MetPay password');st.textContent='Verifying MetPay password…';const v=await metxonSupabase.rpc('metpay_verify_password',{p_username:p.username,p_password:pw});if(v.error)throw v.error;if(v.data!==true)throw Error('Incorrect MetPay password')}
-   else{const x=f.querySelector('#mpNew')?.value||'',y=f.querySelector('#mpConfirm')?.value||'';if(x.length<8)throw Error('Use at least 8 characters');if(x!==y)throw Error('Passwords do not match');st.textContent='Creating MetPay password…';const q=await metxonSupabase.rpc('metpay_set_password',{p_username:p.username,p_new_password:x});if(q.error)throw q.error;const v=await metxonSupabase.rpc('metpay_verify_password',{p_username:p.username,p_password:x});if(v.error||v.data!==true)throw Error('Password verification failed')}
+   if(o._hasMetPayPassword){const pw=f.querySelector('#mpPw')?.value||'';if(!pw)throw Error('Enter your MetPay password');st.textContent='Verifying MetPay password…';const v=await metxonSupabase.rpc('metpay_verify_password',{p_username:p.username,p_password:pw});if(v.error)throw v.error;if(v.data!==true)throw Error('Incorrect MetPay password');o.metpayPassword=pw}
+   else{const x=f.querySelector('#mpNew')?.value||'',y=f.querySelector('#mpConfirm')?.value||'';if(x.length<8)throw Error('Use at least 8 characters');if(x!==y)throw Error('Passwords do not match');st.textContent='Creating MetPay password…';const q=await metxonSupabase.rpc('metpay_set_password',{p_username:p.username,p_new_password:x});if(q.error)throw q.error;const v=await metxonSupabase.rpc('metpay_verify_password',{p_username:p.username,p_password:x});if(v.error||v.data!==true)throw Error('Password verification failed');o.metpayPassword=x}
    o.metpayPasswordVerified=true;st.textContent='Verified. Opening MetPay…';await pay(o);m.classList.remove('show');f.innerHTML='';
   }catch(e){st.textContent=e.message||String(e);go.disabled=false}
  };
