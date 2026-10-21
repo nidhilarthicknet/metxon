@@ -4391,8 +4391,7 @@ window.showIncomingMessagePopup=function(username,message){
                 const cartTotal=document.getElementById('cartTotal');if(cartTotal)cartTotal.textContent='';
               }
             }
-            window.metpayPendingCheckout=null;pay.disabled=false;pay.textContent='Completed';status.textContent='ORDER CONFIRMED ✓ '+orderId+' — payment recorded. Sending your receipt to Met-Ail…';
-            if(typeof window.metxonShowOrderReceiptToast==='function')window.metxonShowOrderReceiptToast('Order placed successfully','Order '+orderId+' is paid. Your receipt is being sent to Met-Ail.');
+            window.metpayPendingCheckout=null;pay.disabled=false;pay.textContent='Completed';status.textContent='ORDER CONFIRMED ✓ '+orderId+' — payment and receipt records saved.';
             // Supabase already stored the customer and owner receipts atomically with the payment.
             status.textContent='ORDERED ✓ '+orderId+' — receipt recorded in '+pending.email+' and '+ownerReceiptEmail+'. Waiting for delivery date.';
             window.metxonShowOrderReceiptToast('Order placed successfully','Order '+orderId+' is paid and its receipt is recorded in both Met-Ail inboxes. Tap to open Met-Ail.');
