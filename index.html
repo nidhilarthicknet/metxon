@@ -4305,8 +4305,22 @@ window.showIncomingMessagePopup=function(username,message){
       emailSelect.onchange=()=>{pending.email=String(emailSelect.value||'').trim().toLowerCase();};
       document.getElementById('mpCheckoutCancel').onclick=()=>{window.metpayPendingCheckout=null;renderPayPanel();};
       const executeCheckout=async()=>{
+        // Legacy MetPay panel compatibility: Cloud purchases must open the shared password gate
+        // instead of demanding that the password was already verified in MetCart.
+        if(cloud&&!pending.metpayPasswordVerified){
+          if(typeof window.beginMetxonCheckout!=='function'){status.textContent='Secure Met-Cloud password checkout is unavailable. Refresh the page and retry.';return;}
+          window.metpayPendingCheckout=null;
+          window.beginMetxonCheckout({
+            kind:'cloud',
+            name:String(pending.name||'Met-Cloud subscription'),
+            capacityGb:Number(pending.capacityGb||0),
+            jpAmount:Number(pending.jpAmount||pending.amount||0)
+          });
+          status.textContent='MetPay password checkout opened. Enter your password in the Met-Cloud checkout window.';
+          return;
+        }
         if(!pending.autoPayAfterVerification&&!String(emailSelect.value||pending.email||'').trim()){status.textContent='Wait for your Met-Ail inbox to load, then select it.';return;}
-        if(!pending.metpayPasswordVerified){status.textContent='Payment blocked: verify your MetPay transaction password in MetCart first.';return;}
+        if(!pending.metpayPasswordVerified){status.textContent='Payment blocked: verify your MetPay transaction password first.';return;}
         pay.disabled=true;status.textContent='Verifying password…';
         try{
           if(!window.metpayPendingCheckout||window.metpayPendingCheckout!==pending)throw new Error('Checkout expired. Reopen MetPay and try again.');
