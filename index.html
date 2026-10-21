@@ -5384,7 +5384,14 @@ function begin(d){
    }else{
     alert('Order placed successfully: '+confirmedOrderId+'. Receipts saved to '+customerMailbox+' and '+ownerMailbox+'.');
    }
-  }catch(e){st.textContent=e.message||String(e);go.disabled=false}
+  }catch(e){
+   const message=String(e&&e.message||e||'Checkout failed.');
+   st.textContent=message;
+   go.disabled=false;
+   if(o.metpayPasswordVerified&&typeof window.metxonShowOrderReceiptToast==='function'){
+    window.metxonShowOrderReceiptToast('Payment not confirmed','Order '+o.orderId+': '+message+'. Do not submit a different order until you check your MetPay balance and Met-Ail inbox. Retrying this same order uses the same order ID.');
+   }
+  }
  };
 }
 window.startPay=(name,price)=>begin({name,amount:Number(price),isCart:false,items:[]});
