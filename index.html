@@ -474,7 +474,7 @@ tr:hover { background: rgba(255,255,255,0.03); }
         <p>Balance: <strong id="mcBalance" style="color:var(--green);"></strong></p>
         <p>Active Subscription: <strong id="mcSub"></strong></p>
         <label for="metCountCurrency" style="display:block;margin-top:12px;color:var(--muted)">Display currency</label><select id="metCountCurrency" onchange="metCountCurrencyChanged(this.value)" style="margin-top:6px;background:var(--bg);color:var(--text);border:1px solid var(--border);padding:9px;border-radius:8px"><option value="INR">INR · ₹</option><option value="USD">USD · $</option><option value="JP">JP · Jurassic Points</option></select><div id="metCountSelectedCurrency" style="margin-top:8px;font-weight:700"></div><div id="currencyView" style="margin-top:10px;font-size:0.9rem;color:var(--muted);"></div>
-        <div class="card" style="margin-top:14px"><h3 style="margin-top:0">Convert balance to Jurassic Points</h3><p style="color:var(--muted)">Convert from your MetCount INR balance to your JP wallet. This is an internal balance conversion, not a real-money payment.</p><label for="mcConvertInr">INR amount</label><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><input id="mcConvertInr" type="number" min="0.01" step="0.01" placeholder="Enter INR amount" style="max-width:220px"><button class="btn btn-primary" id="mcConvertBtn">Convert to JP</button></div><p id="mcConvertStatus" aria-live="polite" style="color:var(--muted)"></p></div>
+        </div><div class="card" style="margin-top:14px"><h3 style="margin-top:0">InstaPay</h3><p style="color:var(--muted)">Your spendable Jurassic Points wallet. Add funds here before buying products, subscriptions, or stocks.</p><p>Wallet balance: <strong id="instaPayBalance" style="color:var(--green)">0 &amp; (JP)</strong></p><p id="instaPayEquivalent" style="color:var(--muted);font-size:.9rem">1 &amp; = 1 JP = ₹100 = US$1.20</p><label for="mcConvertInr">Add funds from MetCount balance (INR)</label><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><input id="mcConvertInr" type="number" min="0.01" step="0.01" placeholder="Enter INR amount" style="max-width:220px"><button class="btn btn-primary" id="mcConvertBtn">Add to InstaPay</button></div><p id="mcConvertStatus" aria-live="polite" style="color:var(--muted)"></p></div>
       </div>
 
       <h2 class="section-title">Transaction History</h2>
@@ -1177,7 +1177,7 @@ function updateMcUI() {
   const acc = state.accounts[state.currentUser];
   document.getElementById('mcUser').textContent = state.currentUser;
   const selectedDisplayCurrency=document.getElementById('metCountCurrency')?.value||'INR';
-  const displayInr=Number(acc.balance||0),displayUsd=displayInr*RATES.USD,displayJp=displayInr*1.2;
+  const displayInr=Number(acc.balance||0),displayUsd=displayInr*RATES.USD,displayJp=displayInr/100;
   document.getElementById('mcBalance').textContent = selectedDisplayCurrency==='JP'
     ? displayJp.toLocaleString('en-IN',{maximumFractionDigits:2})+' JP'
     : selectedDisplayCurrency==='USD'
@@ -1198,9 +1198,11 @@ function updateMcUI() {
     html = 'Subscribe to see multi-currency view';
   }
   const inrAmount=Number(acc.balance||0),usdAmount=inrAmount*RATES.USD,jpAmount=Number(acc.jpBalance||0);
-  currBox.innerHTML = html + '<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border)"><label for="mcCurrencyChoice">Currency view</label> <select id="mcCurrencyChoice" style="max-width:220px"><option value="INR">INR · Indian Rupee</option><option value="USD">USD · US Dollar</option><option value="JP">JP · Jurassic Points</option></select><p id="mcCurrencyValue" style="font-weight:700;margin:8px 0 0"></p><small style="color:var(--muted)">JP equivalent uses the prototype rate 1 USD = 100 JP; spendable JP is shown as the wallet balance.</small></div>';
+  const instaPayBalance=document.getElementById('instaPayBalance');if(instaPayBalance)instaPayBalance.textContent=jpAmount.toLocaleString('en-IN',{maximumFractionDigits:2})+' & (JP)';
+  const instaPayEquivalent=document.getElementById('instaPayEquivalent');if(instaPayEquivalent)instaPayEquivalent.textContent='Available to spend: '+jpAmount.toLocaleString('en-IN',{maximumFractionDigits:2})+' & · equivalent to ₹'+(jpAmount*100).toLocaleString('en-IN',{maximumFractionDigits:2})+' or US$'+(jpAmount*1.2).toLocaleString('en-US',{maximumFractionDigits:2});
+  currBox.innerHTML = html + '<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border)"><label for="mcCurrencyChoice">Currency view</label> <select id="mcCurrencyChoice" style="max-width:220px"><option value="INR">INR · Indian Rupee</option><option value="USD">USD · US Dollar</option><option value="JP">JP · Jurassic Points</option></select><p id="mcCurrencyValue" style="font-weight:700;margin:8px 0 0"></p><small style="color:var(--muted)">Rate: ₹100 = 1 JP (&), and 1 JP = US$1.20. Spendable JP is the InstaPay wallet balance.</small></div>';
   const currencyChoice=document.getElementById('mcCurrencyChoice'),currencyValue=document.getElementById('mcCurrencyValue');
-  const showCurrency=()=>{if(!currencyChoice||!currencyValue)return;const c=currencyChoice.value;currencyValue.textContent=c==='INR'?'₹'+inrAmount.toLocaleString('en-IN',{maximumFractionDigits:2}):c==='USD'?'$'+usdAmount.toLocaleString('en-US',{maximumFractionDigits:2}):(inrAmount*RATES.USD*100).toLocaleString('en-IN',{maximumFractionDigits:2})+' JP equivalent · wallet '+jpAmount.toLocaleString('en-IN',{maximumFractionDigits:2})+' JP';};
+  const showCurrency=()=>{if(!currencyChoice||!currencyValue)return;const c=currencyChoice.value;currencyValue.textContent=c==='INR'?'₹'+inrAmount.toLocaleString('en-IN',{maximumFractionDigits:2}):c==='USD'?'$'+usdAmount.toLocaleString('en-US',{maximumFractionDigits:2}):(inrAmount/100).toLocaleString('en-IN',{maximumFractionDigits:2})+' JP equivalent · InstaPay wallet '+jpAmount.toLocaleString('en-IN',{maximumFractionDigits:2})+' &';};
   if(currencyChoice)currencyChoice.onchange=showCurrency;showCurrency();
 
   // Transactions
@@ -4828,11 +4830,11 @@ window.addEventListener('click',async function(ev){
  const input=document.getElementById('mcConvertInr'),status=document.getElementById('mcConvertStatus'),amount=Number(input&&input.value);
  if(!Number.isFinite(amount)||amount<=0){alert('Enter a valid INR amount.');return;}if(!state.currentUser){alert('Sign in to MetCount first.');return;}
  const mailEmail=await window.metxonRequireMail();if(!mailEmail)return;
- if(!confirm('Convert ₹'+amount.toLocaleString('en-IN',{maximumFractionDigits:2})+' to JP at the configured prototype rate? This moves value from INR to the JP wallet.'))return;
+ if(!confirm('Add ₹'+amount.toLocaleString('en-IN',{maximumFractionDigits:2})+' to InstaPay? At ₹100 = 1 JP, you will receive '+(amount/100).toLocaleString('en-IN',{maximumFractionDigits:2})+' & (JP). This moves value from your MetCount INR balance to your spendable wallet.'))return;
  btn.disabled=true;if(status)status.textContent='Converting…';
  try{const result=await metxonSupabase.rpc('metxon_convert_balance_to_jp',{p_inr_amount:amount});if(result.error)throw result.error;
- if(status)status.textContent='Converted ₹'+Number(result.data.inr_debited).toLocaleString('en-IN')+' to '+Number(result.data.jp_credited).toLocaleString('en-IN')+' JP.';
- if(input)input.value='';await refreshCloudAccount();await cloudLoadTransactions();if(typeof updateMcUI==='function')updateMcUI();await window.metxonNotifyTransaction('MetCount JP conversion','Converted ₹'+Number(result.data.inr_debited).toLocaleString('en-IN')+' into '+Number(result.data.jp_credited).toLocaleString('en-IN')+' JP.');
+ if(status)status.textContent='Added ₹'+Number(result.data.inr_debited).toLocaleString('en-IN')+' to InstaPay as '+Number(result.data.jp_credited).toLocaleString('en-IN')+' & (JP).';
+ if(input)input.value='';await refreshCloudAccount();await cloudLoadTransactions();if(typeof updateMcUI==='function')updateMcUI();await window.metxonNotifyTransaction('InstaPay wallet top-up','Added ₹'+Number(result.data.inr_debited).toLocaleString('en-IN')+' into InstaPay as '+Number(result.data.jp_credited).toLocaleString('en-IN')+' & (JP).');
  }catch(err){if(status)status.textContent='Conversion failed: '+(err.message||err);alert('JP conversion failed: '+(err.message||err));}finally{btn.disabled=false;}
 });
 window.metCountCurrencyChanged=async function(currency){
@@ -4843,10 +4845,10 @@ window.metCountCurrencyChanged=async function(currency){
   const p=state.currentUser?await loadCloudAccount(state.currentUser):null;
   const acc=state.accounts[state.currentUser]||{balance:0};
   const inr=Number((p&&p.balance)??acc.balance??0);
-  const jp=inr*1.2;
+  const jp=inr/100;
   if(currency==='JP'){
    if(balanceField)balanceField.textContent=jp.toLocaleString('en-IN',{maximumFractionDigits:2})+' JP';
-   box.textContent='Converted display value: '+jp.toLocaleString('en-IN',{maximumFractionDigits:2})+' JP (₹1 = 1.2 JP); spendable JP wallet is separate.';
+   box.textContent='Converted display value: '+jp.toLocaleString('en-IN',{maximumFractionDigits:2})+' & (JP) at ₹100 = 1 JP; spendable InstaPay wallet is separate.';
   }else if(currency==='USD'){
    const usd=inr*RATES.USD;
    if(balanceField)balanceField.textContent='$'+usd.toLocaleString('en-US',{maximumFractionDigits:2})+' USD';
