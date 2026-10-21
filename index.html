@@ -4325,7 +4325,7 @@ window.showIncomingMessagePopup=function(username,message){
         const accounts=info.accounts||[];
         if(!accounts.length){emailSelect.innerHTML='<option value="">No Met-Ail ID found</option>';status.textContent='Create a Met-Ail ID before placing an order.';return;}
         emailSelect.innerHTML=accounts.map(a=>{const email=String(a.username)+'@metail.com';return '<option value="'+esc(email)+'">'+esc(email)+'</option>';}).join('');
-        pending.email=emailSelect.value;status.textContent=pending.autoPayAfterVerification?'Password verified. Processing your order…':'Choose your Met-Ail inbox, then pay.';if(pending.autoPayAfterVerification){pay.disabled=true;pay.textContent='Processing order…';Promise.resolve().then(()=>pay.click());}
+        pending.email=emailSelect.value;status.textContent=pending.autoPayAfterVerification?'Password verified. Processing your order…':'Choose your Met-Ail inbox, then pay.';if(pending.autoPayAfterVerification){Promise.resolve().then(()=>{if(pay.isConnected&&!pay.disabled)pay.click();});}
       }).catch(e=>{emailSelect.innerHTML='<option value="">Could not load Met-Ail IDs</option>';status.textContent='Could not load Met-Ail IDs: '+(e.message||e);});
       emailSelect.onchange=()=>{pending.email=String(emailSelect.value||'').trim().toLowerCase();};
       document.getElementById('mpCheckoutCancel').onclick=()=>{window.metpayPendingCheckout=null;renderPayPanel();};
