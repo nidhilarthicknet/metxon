@@ -4382,9 +4382,7 @@ window.showIncomingMessagePopup=function(username,message){
                 window.metxonShowOrderReceiptToast('Payment received — receipt needs attention','Order '+orderId+' was paid. Receipt delivery failed; do not pay again. Contact the owner.');
               }
             });
-            }
           }
-          window.metpayPendingCheckout=null;pay.disabled=false;pay.textContent='Completed';
         }catch(e){status.textContent='Payment failed: '+(e.message||e);pay.disabled=false;}
       };
       return;
