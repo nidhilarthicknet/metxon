@@ -4329,7 +4329,7 @@ window.showIncomingMessagePopup=function(username,message){
             if(!purchaseResult.data?.success)throw new Error('Supabase did not confirm the order payment.');
             // Use the server-validated item names, quantities, prices, and total for the receipt.
             if(Array.isArray(purchaseResult.data.items))pending.items=purchaseResult.data.items;
-            if(Number.isFinite(Number(purchaseResult.data.total)))pending.amount=Number(purchaseResult.data.total);
+            if(Number.isFinite(Number(purchaseResult.data.total)))pending.amount=Number(purchaseResult.data.total); pending.jpTotal=Number(purchaseResult.data.jp_total??(Number(purchaseResult.data.total||0)/100));
             pending.email=String(purchaseResult.data.customer_email||pending.email||'');
             const ownerReceiptEmail=String(purchaseResult.data.owner_email||'Jurassicpark@metail.com');
             if(purchaseResult.data.receipts_saved!==true)throw new Error('Payment returned without confirmed receipts. Do not retry; check your order history.');
@@ -5305,6 +5305,7 @@ function begin(d){
    if(!purchase.data||purchase.data.success!==true)throw new Error('Supabase did not confirm the order. Your cart has not been cleared.');
    if(purchase.data.receipts_saved!==true)throw new Error('The order response did not confirm both receipts. Do not pay again; check your order history.');
    const confirmedOrderId=String(purchase.data.order_id||o.orderId);
+   const jpPaid=Number(purchase.data.jp_total??(Number(purchase.data.total||o.amount||0)/100));
    const customerMailbox=String(purchase.data.customer_email||'your Met-Ail inbox');
    const ownerMailbox=String(purchase.data.owner_email||'Jurassicpark@metail.com');
    o.metpayPassword='';
@@ -5332,9 +5333,9 @@ function begin(d){
    go.disabled=false;
    go.textContent='Order confirmed';
    if(typeof window.metxonShowOrderReceiptToast==='function'){
-    window.metxonShowOrderReceiptToast('Order placed successfully','Order '+confirmedOrderId+' is paid. The receipt was saved to '+customerMailbox+' and '+ownerMailbox+'. Tap here to open Met-Ail.'); 
+    window.metxonShowOrderReceiptToast('Order placed successfully','Order '+confirmedOrderId+' is paid. InstaPay charged '+jpPaid.toLocaleString('en-IN',{maximumFractionDigits:2})+' & (JP). Listed price: ₹'+Number(purchase.data.total||o.amount||0).toLocaleString('en-IN')+'. The receipt was saved to '+customerMailbox+' and '+ownerMailbox+'. Tap here to open Met-Ail.'); 
    }else{
-    alert('Order placed successfully: '+confirmedOrderId+'. Receipts saved to '+customerMailbox+' and '+ownerMailbox+'.');
+    alert('Order placed successfully: '+confirmedOrderId+'. InstaPay charged '+jpPaid.toLocaleString('en-IN',{maximumFractionDigits:2})+' & (JP). Receipts saved to '+customerMailbox+' and '+ownerMailbox+'.');
    }
   }catch(e){
    const message=String(e&&e.message||e||'Checkout failed.');
