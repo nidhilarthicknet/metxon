@@ -4303,6 +4303,16 @@ window.showIncomingMessagePopup=function(username,message){
   }
   window.metpayAddContact=addMetPayContact;
 
+  window.metxonShowOrderReceiptToast=function(title,message){
+    const old=document.getElementById('metxonOrderReceiptToast');if(old)old.remove();
+    const toast=document.createElement('button');toast.id='metxonOrderReceiptToast';toast.type='button';
+    toast.setAttribute('aria-label','Open Met-Ail to view your order receipt');
+    toast.style.cssText='position:fixed;z-index:100000;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92vw,430px);padding:22px 20px;border:1px solid var(--cyan);border-radius:16px;background:#0d1527;color:#f1f5f9;box-shadow:0 18px 70px rgba(0,0,0,.65);text-align:left;cursor:pointer;font:inherit;';
+    toast.innerHTML='<span style="display:block;font-size:1.1rem;font-weight:800;color:var(--cyan);margin-bottom:8px">✓ '+String(title).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))+'</span><span style="display:block;margin-bottom:12px">'+String(message).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))+'</span><span style="display:block;font-size:.85rem;color:#00d2ff">Tap to open Met-Ail · closes in 5 seconds</span>';
+    toast.onclick=async()=>{clearTimeout(toast.__expiry);toast.remove();try{if(typeof window.launchNebulaApp==='function')await window.launchNebulaApp('metAil');else if(typeof window.openMetAil==='function')await window.openMetAil();else alert('Open Met-Ail from Mettin to view your receipt.');}catch(e){alert('Could not open Met-Ail: '+(e.message||e));}};
+    document.body.appendChild(toast);toast.__expiry=setTimeout(()=>{if(toast.isConnected)toast.remove();},5000);
+  };
+
   async function renderPayPanel(){
     const p=document.getElementById('mp-pay');if(!p)return;
     const pending=window.metpayPendingCheckout;
@@ -4343,14 +4353,20 @@ window.showIncomingMessagePopup=function(username,message){
           }else{
             status.textContent='Processing MetPay transfer…';
             await cloudTransfer('Molecule',Number(pending.amount));
-            const body='PAID METCART ORDER — OWNER REVIEW REQUIRED\\nOwner receipt inbox: Jurassicpark@metail.com\\nMetxon account: '+state.currentUser+'\\nCustomer Met-Ail inbox (reply to this receipt): '+pending.email+'\\nDelivery details (optional): Class '+(pending.deliveryAddress?.class||'not provided')+', Section '+(pending.deliveryAddress?.section||'not provided')+', Roll number '+(pending.deliveryAddress?.roll||'not provided')+'\\nItem(s): '+pending.name+'\\nPaid amount: ₹'+Number(pending.amount).toLocaleString('en-IN')+'\\nPayment status: Paid in MetPay.\\nOrder status: Awaiting owner review and delivery-date confirmation.\\nACTION: Open this message in Jurassicpark@metail.com, press Reply, and send the delivery date. The reply is addressed to the customer inbox listed above.';
-            await window.metxonSendOrderNotice(pending.email,'PAID MetCart order — review and set delivery date',body,'MetCart order placed — waiting for delivery date','Ordered successfully. Waiting for the delivery date from our team.\\n\\nItem(s): '+pending.name+'\\nAmount paid: ₹'+Number(pending.amount).toLocaleString('en-IN')+'\\nDelivery details (optional): Class '+(pending.deliveryAddress?.class||'not provided')+', Section '+(pending.deliveryAddress?.section||'not provided')+', Roll number '+(pending.deliveryAddress?.roll||'not provided')+'\\nOrder status: Ordered. Waiting for delivery date by our team.\\nWe will reply to this Met-Ail inbox once the delivery date is confirmed.');
+            const orderId='MC-'+new Date().toISOString().replace(/[-:.TZ]/g,'').slice(0,14)+'-'+Math.random().toString(36).slice(2,6).toUpperCase();
+            const itemLines=(Array.isArray(pending.items)&&pending.items.length?pending.items.map((item,i)=>String(i+1)+'. '+item.name+' | Qty: '+Number(item.qty||1)+' | Unit price: ₹'+Number(item.price||0).toLocaleString('en-IN')+' | Subtotal: ₹'+(Number(item.price||0)*Number(item.qty||1)).toLocaleString('en-IN')).join('\\n'):pending.name+' | Amount: ₹'+Number(pending.amount).toLocaleString('en-IN'));
+            const delivery='Class: '+(pending.deliveryAddress?.class||'not provided')+' | Section: '+(pending.deliveryAddress?.section||'not provided')+' | Roll number: '+(pending.deliveryAddress?.roll||'not provided');
+            const receipt='METCART ORDER RECEIPT\\nOrder ID: '+orderId+'\\nCustomer Metxon account: '+state.currentUser+'\\nCustomer Met-Ail inbox: '+pending.email+'\\nItems:\\n'+itemLines+'\\nTotal paid: ₹'+Number(pending.amount).toLocaleString('en-IN')+'\\nPayment status: Paid successfully through MetPay\\nOrder status: Ordered — waiting for delivery date from our team\\nSchool delivery details (optional): '+delivery+'\\nReceipt destination: '+pending.email+'\\nOwner: JurassicPark@metail.com';
+            const body=receipt+'\\n\\nOWNER ACTION: Please review this order and reply to this message with the delivery date. Replying to this receipt sends the date to the customer inbox listed above.';
+            const customerReceipt=receipt+'\\n\\nOrdered successfully. Waiting for the delivery date from our team. We will reply to this Met-Ail inbox once the delivery date is confirmed.';
+            await window.metxonSendOrderNotice(pending.email,'MetCart receipt '+orderId+' — paid order, delivery date required',body,'Your MetCart receipt — '+orderId,customerReceipt);
             if(pending.isCart){getCart().splice(0,getCart().length);save();updateCartBar();}
             status.textContent='ORDERED ✓ Your order has been sent to our team. Waiting for delivery date. A confirmation has been sent to your Met-Ail inbox.';
             const cartView=document.getElementById('cartView');
             if(cartView){cartView.innerHTML='<div class="card" style="border-color:var(--cyan)"><h3 style="color:var(--cyan)">Ordered successfully ✓</h3><p>Your order has been sent to our team.</p><p><b>Status:</b> Waiting for delivery date from our team.</p><p>Check your Met-Ail inbox for confirmation.</p></div>';cartView.style.display='block';}
             const cartCount=document.getElementById('cartCount');if(cartCount)cartCount.textContent='0 items';
             const cartTotal=document.getElementById('cartTotal');if(cartTotal)cartTotal.textContent='';
+            if(typeof window.metxonShowOrderReceiptToast==='function')window.metxonShowOrderReceiptToast('Order placed successfully','Receipt '+orderId+' is in your Met-Ail inbox. Tap here to view the full receipt.');
           }
           window.metpayPendingCheckout=null;pay.disabled=false;pay.textContent='Completed';
         }catch(e){status.textContent='Payment failed: '+(e.message||e);pay.disabled=false;}
