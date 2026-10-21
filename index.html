@@ -4360,12 +4360,20 @@ window.showIncomingMessagePopup=function(username,message){
             const receipt='METCART ORDER RECEIPT\nOrder ID: '+orderId+'\nOrdered at: '+placedAt+'\nCustomer Metxon account: '+state.currentUser+'\nCustomer Met-Ail inbox: '+pending.email+'\nItems:\n'+itemLines+'\nTotal paid: ₹'+Number(pending.amount).toLocaleString('en-IN')+'\nPayment status: Paid successfully through MetPay\nOrder status: Ordered — waiting for delivery date from our team\nSchool delivery details (optional): '+delivery+'\nReceipt destination: '+pending.email+'\nOwner receipt inbox: JurassicPark@metail.com';
             const ownerBody=receipt+'\n\nOWNER ACTION: Review this paid order and reply to this message with the delivery date. Replying will send the date to the customer inbox listed above.';
             const customerReceipt=receipt+'\n\nOrdered successfully. Waiting for the delivery date from our team. We will reply to this Met-Ail inbox once the delivery date is confirmed.';
-            // A successful transfer is the order boundary. Clear the cart and show confirmation immediately, without waiting for mailbox/network operations.
-            if(pending.isCart){getCart().splice(0,getCart().length);save();updateCartBar();}
-            const cartView=document.getElementById('cartView');
-            if(cartView){cartView.innerHTML='<div class="card" style="border-color:var(--cyan)"><h3 style="color:var(--cyan)">Ordered successfully ✓</h3><p>Order ID: '+orderId+'</p><p><b>Status:</b> Waiting for delivery date from our team.</p><p>Opening the receipt notification takes you to Met-Ail.</p></div>';cartView.style.display='block';}
-            const cartCount=document.getElementById('cartCount');if(cartCount)cartCount.textContent='0 items';
-            const cartTotal=document.getElementById('cartTotal');if(cartTotal)cartTotal.textContent='';
+            // Payment has succeeded. Empty the saved cart for the account that placed this order,
+            // even if the active UI/account changed while MetPay was open.
+            if(pending.isCart){
+              const orderUser=String(pending.username||state.currentUser||'');
+              if(orderUser && state.accounts && state.accounts[orderUser]) state.accounts[orderUser].cart=[];
+              if(state.currentUser && state.accounts && state.accounts[state.currentUser]) state.accounts[state.currentUser].cart=[];
+              try{localStorage.setItem(KEY,JSON.stringify(state));}catch(storageError){console.warn('Cart was cleared in memory but could not be persisted:',storageError);}
+              try{updateCartBar();}catch(uiError){console.warn('Could not refresh cart count:',uiError);}
+              const cartView=document.getElementById('cartView');
+              if(cartView){cartView.innerHTML='<p style="color:var(--muted)">Your cart is empty.</p>';cartView.style.display='block';}
+              const cartCount=document.getElementById('cartCount');if(cartCount)cartCount.textContent='0 items';
+              const cartTotal=document.getElementById('cartTotal');if(cartTotal)cartTotal.textContent='';
+              try{if(typeof renderMetcart==='function')renderMetcart();}catch(renderError){console.warn('Could not refresh MetCart display:',renderError);}
+            }
             window.metpayPendingCheckout=null;pay.disabled=false;pay.textContent='Completed';
             if(typeof window.metxonShowOrderReceiptToast==='function')window.metxonShowOrderReceiptToast('Order placed successfully','Receipt '+orderId+' is being sent to your Met-Ail inbox. Tap here to view it.');
             // Deliver both receipts in the background; never let a slow inbox request delay the customer confirmation.
