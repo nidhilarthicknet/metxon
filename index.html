@@ -4790,16 +4790,12 @@ async function profile(){if(!state.currentUser)throw Error('Please sign in to yo
    allPlanButtons.forEach(x=>x.disabled=true);
    try{
     const planName=gb===25?'Met-Cloud':gb===30?'Met-Cloud Pro':'Met-Cloud Ultra';
-    const fullPrice=gb===25?10:gb===30?20:30;
-    if(status)status.textContent='Checking your current plan…';
-    const ent=await metxonSupabase.from('metcloud_entitlements').select('capacity_gb').eq('user_id',p.id).maybeSingle();
-    if(ent.error)throw ent.error;
-    const currentGb=Number(ent.data?.capacity_gb||15),currentPaid=currentGb===25?10:currentGb===30?20:currentGb===40?30:0;
-    const charge=currentGb>=gb?0:Math.max(0,fullPrice-currentPaid);
-    if(charge<=0){if(status)status.textContent='You already have this capacity or a higher plan. No charge was made.';return;}
+    const maximumPrice=gb===25?10:gb===30?20:30;
     if(typeof window.beginMetxonCheckout!=='function')throw new Error('Secure checkout has not loaded. Refresh Met-Cloud and try again.');
     if(status)status.textContent='Opening MetPay password checkout…';
-    window.beginMetxonCheckout({kind:'cloud',name:planName+' subscription ('+gb+' GB)',capacityGb:gb,jpAmount:charge});
+    // Do not gate the password prompt on a separate browser read. The server locks the current
+    // entitlement and computes the exact incremental charge inside the payment transaction.
+    window.beginMetxonCheckout({kind:'cloud',name:planName+' subscription ('+gb+' GB)',capacityGb:gb,jpAmount:maximumPrice});
    }catch(err){
     const message=String(err&&err.message||err||'Unable to open subscription checkout.');
     if(status)status.textContent='Checkout could not start: '+message;
@@ -5299,7 +5295,7 @@ function begin(d){
  let m=document.getElementById('metcartPasswordGate');
  if(!m){m=document.createElement('div');m.id='metcartPasswordGate';m.className='modal';m.innerHTML='<div class="modal-box"><h2 id="mpGateTitle">Delivery details</h2><p id="mpOrder"></p><p id="mpGateIntro">Optional: enter your class, section and roll number so our team can identify and deliver your order at school.</p><div id="mpFields"></div><p id="mpStatus" aria-live="polite"></p><button class="btn btn-primary" id="mpGo">Continue to payment</button><button class="btn" id="mpCancel">Cancel</button></div>';document.body.appendChild(m)}
  m.classList.add('show');const f=m.querySelector('#mpFields'),st=m.querySelector('#mpStatus'),go=m.querySelector('#mpGo'),title=m.querySelector('#mpGateTitle'),intro=m.querySelector('#mpGateIntro');
- m.querySelector('#mpOrder').textContent=o.name+' — '+(isCloud?amount.toLocaleString('en-IN')+' & (JP)':'₹'+amount.toLocaleString('en-IN'));
+ m.querySelector('#mpOrder').textContent=o.name+' — '+(isCloud?'up to '+amount.toLocaleString('en-IN')+' & (JP); exact upgrade price confirmed securely':'₹'+amount.toLocaleString('en-IN'));
  st.textContent='';go.disabled=false;go.textContent='Continue to payment';
  m.querySelector('#mpCancel').onclick=()=>{m.classList.remove('show');go.disabled=false;};
  const prepareCloudPasswordGate=async()=>{
