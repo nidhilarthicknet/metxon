@@ -2862,44 +2862,8 @@ window.__METXON_SECURE_HANDLE_AUTH = async function(){
 /* Secure MetCount re-authentication. Owner password is checked server-side. */
 window.__METXON_SECURE_VERIFY_METCOUNT=secureMetCountUnlock;
 
-/* Secure Met-Pay: re-authenticate server-side, then perform an atomic RPC. */
-executePay=async function(){
-  if(!state.currentUser || !currentCheckout)return openAuth();
-  const pass=(document.getElementById('payPass').value||'').trim();
-  if(!pass)return alert('Enter your account password.');
-  try{
-    const result=await metxonAuthRequest('login',{username:state.currentUser,password:pass});
-    if(result.session){
-      await metxonSupabase.auth.setSession({
-        access_token:result.session.access_token,
-        refresh_token:result.session.refresh_token
-      });
-    }
-    const quantity=currentCheckout.isCart && Array.isArray(state.accounts[state.currentUser]?.cart) && state.accounts[state.currentUser].cart.length
-      ? state.accounts[state.currentUser].cart.reduce((s,i)=>s+Number(i.qty||1),0) : 1;
-    const {data,error}=await metxonSupabase.rpc('metxon_purchase_order',{
-      item_name:currentCheckout.name,
-      quantity,
-      unit_price:Number(currentCheckout.price)
-    });
-    if(error)throw error;
-    await refreshCloudAccount();
-    await cloudLoadTransactions();
-    await cloudLoadCart();
-    if(currentCheckout.isCart){
-      state.accounts[state.currentUser].cart=[];
-      updateCartBar();
-      const view=document.getElementById('cartView');
-      if(view)view.style.display='none';
-    }
-    closePay();
-    document.getElementById('payPass').value='';
-    alert(`Payment successful! Order for ${currentCheckout.name} recorded.`);
-    if(document.getElementById('mcDashboard') && document.getElementById('mcDashboard').style.display!=='none')updateMcUI();
-  }catch(e){
-    alert(e.message||'Payment failed');
-  }
-};
+/* Retired legacy payment implementation. Purchases must use the secure MetCart RPC, which requires the separate MetPay transaction password and records receipts atomically. */
+executePay=async function(){alert('This older payment path is disabled. Return to MetCart and use Buy Now or Checkout Cart.');};
 
 /* Recipient/chat/chess directory: only non-sensitive identity is exposed. */
 async function secureOtherProfile(username){
@@ -5125,21 +5089,7 @@ window.metCountCurrencyChanged=async function(currency){
   window.launchNebulaApp('metPay').catch(e=>{console.error('MetCart checkout launch failed:',e);alert('Could not open MetPay checkout: '+(e.message||e));});
  };
  window.executePay=async function(){
-  if(!currentCheckout)return alert('Choose an item first.');
-  const email=$('payMailAccount')?.value;if(!email)return alert('Choose a Met-Ail ID for notifications.');
-  const password=$('payPass')?.value||'';if(!password)return alert('Enter your Metxon password to continue to MetPay.');
-  const btn=document.querySelector('#payModal button.btn-primary');if(btn){btn.disabled=true;btn.textContent='Verifying…';}
-  try{
-   const d=await accountData();if(!d.accounts.some(a=>(a.username+'@metail.com').toLowerCase()===email.toLowerCase()))throw new Error('Selected Met-Ail ID does not belong to your account.');
-   const session=await metxonSupabase.auth.getSession();const authUser=session.data?.session?.user;
-   if(!authUser?.email)throw new Error('Your secure Metxon login session is missing. Sign in again.');
-   const verified=await metxonSupabase.auth.signInWithPassword({email:authUser.email,password});
-   if(verified.error)throw new Error('Password verification failed. Check your Metxon account password.');
-   window.metpayPendingCheckout={kind:'metcart',name:String(currentCheckout.name),amount:Number(currentCheckout.price||0),isCart:!!currentCheckout.isCart,items:currentCheckout.items||[],email,username:state.currentUser};
-   closePay();$('payPass').value='';
-   await window.launchNebulaApp('metPay');
-  }catch(e){alert('Could not continue to MetPay: '+(e.message||e));}
-  finally{if(btn){btn.disabled=false;btn.textContent='Pay Now';}}
+  alert('This older checkout window is disabled. Close it and use Buy Now or Checkout Cart in MetCart. The disabled button will not charge your account.');
  };
  window.metxonRequireMail=async function(){
   try{const d=await accountData();if(d.accounts.length)return d.accounts[0].username+'@metail.com';alert('Create a Met-Ail ID before making transactions or purchases.');if(window.openMetAil)window.openMetAil();return null;}
