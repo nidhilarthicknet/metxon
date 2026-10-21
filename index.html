@@ -5339,7 +5339,51 @@ function begin(d){
    const p=await prof();
    if(o._hasMetPayPassword){const pw=f.querySelector('#mpPw')?.value||'';if(!pw)throw Error('Enter your MetPay password');st.textContent='Verifying MetPay password…';const v=await metxonSupabase.rpc('metpay_verify_password',{p_username:p.username,p_password:pw});if(v.error)throw v.error;if(v.data!==true)throw Error('Incorrect MetPay password');o.metpayPassword=pw}
    else{const x=f.querySelector('#mpNew')?.value||'',y=f.querySelector('#mpConfirm')?.value||'';if(x.length<8)throw Error('Use at least 8 characters');if(x!==y)throw Error('Passwords do not match');st.textContent='Creating MetPay password…';const q=await metxonSupabase.rpc('metpay_set_password',{p_username:p.username,p_new_password:x});if(q.error)throw q.error;const v=await metxonSupabase.rpc('metpay_verify_password',{p_username:p.username,p_password:x});if(v.error||v.data!==true)throw Error('Password verification failed');o.metpayPassword=x}
-   o.metpayPasswordVerified=true;o.autoPayAfterVerification=true;st.textContent='Password verified. Opening secure payment…';await pay(o);m.classList.remove('show');f.innerHTML='';
+   o.metpayPasswordVerified=true;
+   st.textContent='Password verified. Submitting your order securely…';
+   const checkoutItems=(Array.isArray(o.items)&&o.items.length?o.items:[{name:o.name,qty:1}]).map(item=>({name:String(item.name||''),qty:Number(item.qty||1)}));
+   const purchase=await metxonSupabase.rpc('metxon_purchase_metcart',{
+    p_order_id:String(o.orderId),
+    p_items:checkoutItems,
+    p_expected_total:Number(o.amount),
+    p_delivery:o.deliveryAddress||{},
+    p_metpay_password:String(o.metpayPassword||'')
+   });
+   if(purchase.error)throw purchase.error;
+   if(!purchase.data||purchase.data.success!==true)throw new Error('Supabase did not confirm the order. Your cart has not been cleared.');
+   if(purchase.data.receipts_saved!==true)throw new Error('The order response did not confirm both receipts. Do not pay again; check your order history.');
+   const confirmedOrderId=String(purchase.data.order_id||o.orderId);
+   const customerMailbox=String(purchase.data.customer_email||'your Met-Ail inbox');
+   const ownerMailbox=String(purchase.data.owner_email||'Jurassicpark@metail.com');
+   o.metpayPassword='';
+   if(Array.isArray(purchase.data.items))o.items=purchase.data.items;
+   if(Number.isFinite(Number(purchase.data.total)))o.amount=Number(purchase.data.total);
+   if(o.isCart){
+    const orderUser=String(o.username||state.currentUser||'');
+    if(orderUser&&state.accounts&&state.accounts[orderUser])state.accounts[orderUser].cart=[];
+    if(String(state.currentUser||'')===orderUser){
+     try{const activeCart=getCart();activeCart.splice(0,activeCart.length);}catch(cartError){console.warn('MetCart active cart clear failed:',cartError);}
+    }
+    try{save();}catch(storageError){console.error('Paid MetCart order is recorded, but local save failed:',storageError);}
+    if(String(state.currentUser||'')===orderUser){
+     try{renderMetcart();}catch(renderError){console.warn('MetCart product refresh failed:',renderError);}
+     try{updateCartBar();}catch(updateError){console.warn('MetCart cart count refresh failed:',updateError);}
+     const cartView=document.getElementById('cartView');
+     if(cartView){cartView.innerHTML='<p style="color:var(--muted)">Your cart is empty.</p>';cartView.style.display='block';}
+     const cartCount=document.getElementById('cartCount');if(cartCount)cartCount.textContent='0 items';
+     const cartTotal=document.getElementById('cartTotal');if(cartTotal)cartTotal.textContent='';
+    }
+   }
+   window.metpayPendingCheckout=null;
+   m.classList.remove('show');
+   f.innerHTML='';
+   go.disabled=false;
+   go.textContent='Order confirmed';
+   if(typeof window.metxonShowOrderReceiptToast==='function'){
+    window.metxonShowOrderReceiptToast('Order placed successfully','Order '+confirmedOrderId+' is paid. The receipt was saved to '+customerMailbox+' and '+ownerMailbox+'. Tap here to open Met-Ail.'); 
+   }else{
+    alert('Order placed successfully: '+confirmedOrderId+'. Receipts saved to '+customerMailbox+' and '+ownerMailbox+'.');
+   }
   }catch(e){st.textContent=e.message||String(e);go.disabled=false}
  };
 }
