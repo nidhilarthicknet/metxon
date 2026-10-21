@@ -460,14 +460,9 @@ tr:hover { background: rgba(255,255,255,0.03); }
   <div id="metcountContent">
     <h1 style="color:var(--purple);">MetCount™ – Financial Division</h1>
 
-    <!-- Re-auth -->
-    <div id="mcAuthBox" class="card" style="margin:20px 0;">
-      <h3>Security Re-authentication</h3>
-      <p style="color:var(--muted);font-size:0.9rem;">Your signed-in Metxon session is used to authenticate MetCount.</p>
-      <button class="btn btn-primary" onclick="verifyMetCount()">Verify Session &amp; Unlock MetCount</button>
-    </div>
+    <div id="mcAuthBox" class="card" style="display:none;margin:20px 0;" aria-hidden="true"></div>
 
-    <div id="mcDashboard" style="display:none;">
+    <div id="mcDashboard">
       <div class="card">
         <h3>Account Dashboard</h3>
         <p>User: <strong id="mcUser"></strong></p>
@@ -787,9 +782,23 @@ function tryShow(page) {
   if (btn) btn.classList.add('active');
   window.scrollTo(0,0);
 
-  if (page === 'metcount' && state.currentUser) {
-    document.getElementById('mcAuthBox').style.display = 'block';
-    document.getElementById('mcDashboard').style.display = 'none';
+  if (page === 'metcount') {
+    const authBox=document.getElementById('mcAuthBox');
+    const dashboard=document.getElementById('mcDashboard');
+    if(authBox)authBox.style.display='none';
+    if(dashboard)dashboard.style.display=state.currentUser?'block':'none';
+    const lock=document.getElementById('metcountLock');
+    const content=document.getElementById('metcountContent');
+    if(lock)lock.style.display=state.currentUser?'none':'block';
+    if(content)content.style.display=state.currentUser?'block':'none';
+    if(state.currentUser){
+      Promise.resolve().then(async()=>{
+        try{
+          if(typeof window.__METXON_SECURE_VERIFY_METCOUNT==='function') await window.__METXON_SECURE_VERIFY_METCOUNT();
+          else if(typeof updateMcUI==='function') updateMcUI();
+        }catch(e){console.error('MetCount automatic refresh failed:',e);}
+      });
+    }
   }
 }
 
@@ -1159,8 +1168,8 @@ async function secureMetCountUnlock(){
     stripLocalPassword(username);
     save();
 
-    document.getElementById('mcAuthBox').style.display='none';
-    document.getElementById('mcDashboard').style.display='block';
+    const authBox=document.getElementById('mcAuthBox');if(authBox)authBox.style.display='none';
+    const dashboard=document.getElementById('mcDashboard');if(dashboard)dashboard.style.display='block';
 
     await refreshCloudAccount();
     await cloudLoadTransactions();
