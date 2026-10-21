@@ -5087,8 +5087,8 @@ window.metCountCurrencyChanged=async function(currency){
   const ownerUsername='Jurassicpark';
   const ownerEmail=ownerUsername+'@metail.com';
   const sender=String(customerEmail||'').trim().toLowerCase();
-  if(!/^[a-zA-Z0-9_]{3,24}@metail\\.com$/.test(sender))throw new Error('A valid customer Met-Ail inbox is required for owner replies.');
-  await sendNotice(sender.split('@')[0],ownerEmail,subject,body+'\\n\\nOWNER ACTION: Review this order, then use Reply in Met-Ail to send the delivery date. Because this receipt is sent from the customer inbox shown above, your reply will reach that customer.');
+  if(!/^[a-zA-Z0-9_]{3,24}@metail\.com$/.test(sender))throw new Error('A valid customer Met-Ail inbox is required for owner replies.');
+  await sendNotice(sender.split('@')[0],ownerEmail,subject,body+'\n\nOWNER ACTION: Review this order, then use Reply in Met-Ail to send the delivery date. Because this receipt is sent from the customer inbox shown above, your reply will reach that customer.');
  }
  window.metxonSendOrderNotice=async function(email,ownerSubject,ownerBody,customerSubject,customerBody){
   const d=await accountData(),target=String(email||'').trim().toLowerCase();
