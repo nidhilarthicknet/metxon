@@ -4375,12 +4375,14 @@ window.showIncomingMessagePopup=function(username,message){
               if(orderUser && state.accounts && state.accounts[orderUser]) state.accounts[orderUser].cart=[];
               try{save();}catch(storageError){console.error('Paid order confirmed but local cart persistence failed:',storageError);}
               if(String(state.currentUser||'')===orderUser){
+                // Render the catalogue first (it rebuilds the cart summary), then refresh
+                // the summary from the now-empty account cart so stale counts cannot return.
+                try{renderMetcart();}catch(renderError){console.warn('Could not refresh MetCart display:',renderError);}
                 try{updateCartBar();}catch(uiError){console.warn('Could not refresh cart count:',uiError);}
                 const cartView=document.getElementById('cartView');
                 if(cartView){cartView.innerHTML='<p style="color:var(--muted)">Your cart is empty.</p>';cartView.style.display='block';}
                 const cartCount=document.getElementById('cartCount');if(cartCount)cartCount.textContent='0 items';
                 const cartTotal=document.getElementById('cartTotal');if(cartTotal)cartTotal.textContent='';
-                try{renderMetcart();}catch(renderError){console.warn('Could not refresh MetCart display:',renderError);}
               }
             }
             window.metpayPendingCheckout=null;pay.disabled=false;pay.textContent='Completed';
@@ -4400,7 +4402,14 @@ window.showIncomingMessagePopup=function(username,message){
               }
             });
           }
-        }catch(e){status.textContent='Payment failed: '+(e.message||e);pay.disabled=false;}
+        }catch(e){
+          console.error('MetCart payment was not confirmed by Supabase:',e);
+          status.textContent='PAYMENT NOT CONFIRMED — '+(e.message||String(e))+'. Your cart will not be cleared unless Supabase confirms the order. Check your MetPay balance and order history before trying again.';
+          pay.disabled=false;
+          if(typeof window.metxonShowOrderReceiptToast==='function'){
+            window.metxonShowOrderReceiptToast('Order not confirmed','Supabase did not confirm this order. Do not retry until you check your balance and Met-Ail/order history.');
+          }
+        }
       };
       return;
     }
