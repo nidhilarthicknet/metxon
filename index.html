@@ -4781,10 +4781,9 @@ async function profile(){if(!state.currentUser)throw Error('Please sign in to yo
    if(ent.error)throw ent.error;
    const currentGb=Number(ent.data?.capacity_gb||15),charge=currentGb>=gb?0:(currentGb===30&&gb===40?10:fullPrice);
    if(charge<=0)return alert('You already have this capacity or a higher plan.');
-   const mailEmail=await window.metxonRequireMail();if(!mailEmail)return;
-   window.metpayPendingCheckout={kind:'cloud',name:planName+' subscription ('+gb+' GB)',capacityGb:gb,jpAmount:charge,email:mailEmail,username:state.currentUser};
-   status.textContent='Opening MetPay checkout…';
-   await window.launchNebulaApp('metPay');
+   if(typeof window.beginMetxonCheckout!=='function')return alert('Secure checkout is not ready. Refresh and try again.');
+   status.textContent='Opening secure checkout in this Met-Cloud window…';
+   window.beginMetxonCheckout({kind:'cloud',name:planName+' subscription ('+gb+' GB)',capacityGb:gb,jpAmount:charge});
   });
   $('cloudNoteSave').onclick=async()=>{const title=$('cloudNoteTitle').value.trim()||'Saved message',body=$('cloudNoteBody').value.trim();if(!body)return alert('Write a message to save.');const btn=$('cloudNoteSave');btn.disabled=true;const z=await metxonSupabase.from('metcloud_saved_messages').insert({user_id:p.id,title,body});btn.disabled=false;if(z.error)return alert(z.error.message);$('cloudNoteTitle').value='';$('cloudNoteBody').value='';await load();};
   await load();
@@ -5273,12 +5272,13 @@ async function prof(){if(!state.currentUser)throw Error('Sign in first');let p=a
 async function pay(o){window.metpayPendingCheckout=o;let w=document.getElementById('appWorkspace'),t=document.getElementById('appTitle'),c=document.getElementById('appContent');if(!w||!c||!window.renderMetPayApp)throw Error('MetPay unavailable');w.style.display='block';w.hidden=false;c.style.display='block';c.hidden=false;if(t)t.textContent='MetPay';c.innerHTML='<div id="gameArea"><p>Opening MetPay…</p></div>';let area=c.querySelector('#gameArea');await window.renderMetPayApp(area);const tab=area.querySelector('[data-mp-tab="pay"]'),panel=area.querySelector('#mp-pay');if(!tab||!panel)throw Error('Payment panel unavailable');/* renderMetPayApp already renders the active Transaction panel. Do not click the tab again: that re-renders checkout during initialization. */w.scrollIntoView({behavior:'smooth',block:'start'})}
 function begin(d){
  if(!state.currentUser){openAuth();return}
- const amount=Number(d.amount);if(!Number.isFinite(amount)||amount<=0){alert('Invalid amount');return}
- const o={kind:'metcart',name:String(d.name),amount,isCart:!!d.isCart,items:d.items||[],email:'',username:state.currentUser,deliveryAddress:{},orderId:'MC-'+new Date().toISOString().replace(/[-:.TZ]/g,'').slice(0,14)+'-'+Math.random().toString(36).slice(2,8).toUpperCase(),metpayPassword:''};
+ const isCloud=d.kind==='cloud';
+ const amount=Number(isCloud?d.jpAmount:d.amount);if(!Number.isFinite(amount)||amount<=0){alert('Invalid amount');return}
+ const o={kind:isCloud?'cloud':'metcart',name:String(d.name),amount,capacityGb:Number(d.capacityGb||0),jpAmount:amount,isCart:!!d.isCart,items:d.items||[],email:'',username:state.currentUser,deliveryAddress:{},orderId:(isCloud?'MCL-':'MC-')+new Date().toISOString().replace(/[-:.TZ]/g,'').slice(0,14)+'-'+Math.random().toString(36).slice(2,8).toUpperCase(),metpayPassword:''};
  let m=document.getElementById('metcartPasswordGate');
  if(!m){m=document.createElement('div');m.id='metcartPasswordGate';m.className='modal';m.innerHTML='<div class="modal-box"><h2 id="mpGateTitle">Delivery details</h2><p id="mpOrder"></p><p id="mpGateIntro">Optional: enter your class, section and roll number so our team can identify and deliver your order at school.</p><div id="mpFields"></div><p id="mpStatus" aria-live="polite"></p><button class="btn btn-primary" id="mpGo">Continue to payment</button><button class="btn" id="mpCancel">Cancel</button></div>';document.body.appendChild(m)}
  m.classList.add('show');const f=m.querySelector('#mpFields'),st=m.querySelector('#mpStatus'),go=m.querySelector('#mpGo'),title=m.querySelector('#mpGateTitle'),intro=m.querySelector('#mpGateIntro');
- m.querySelector('#mpOrder').textContent=o.name+' — ₹'+amount.toLocaleString('en-IN');
+ m.querySelector('#mpOrder').textContent=o.name+' — '+(isCloud?amount.toLocaleString('en-IN')+' JP (&)':'₹'+amount.toLocaleString('en-IN'));
  title.textContent='Delivery details';intro.textContent='Optional school delivery details. Fill in only what you are comfortable sharing. These details will be sent to the order team and included in the receipt.';
  f.innerHTML='<label for="mpDeliveryClass">Class (optional)</label><input id="mpDeliveryClass" maxlength="30" autocomplete="off" placeholder="e.g. Class 8"><label for="mpDeliverySection">Section (optional)</label><input id="mpDeliverySection" maxlength="20" autocomplete="off" placeholder="e.g. B"><label for="mpDeliveryRoll">Roll number (optional)</label><input id="mpDeliveryRoll" maxlength="20" autocomplete="off" placeholder="Roll number">';
  st.textContent='';go.disabled=false;go.textContent='Continue to payment';
@@ -5302,6 +5302,23 @@ function begin(d){
    else{const x=f.querySelector('#mpNew')?.value||'',y=f.querySelector('#mpConfirm')?.value||'';if(x.length<8)throw Error('Use at least 8 characters');if(x!==y)throw Error('Passwords do not match');st.textContent='Creating MetPay password…';const q=await metxonSupabase.rpc('metpay_set_password',{p_username:p.username,p_new_password:x});if(q.error)throw q.error;const v=await metxonSupabase.rpc('metpay_verify_password',{p_username:p.username,p_password:x});if(v.error||v.data!==true)throw Error('Password verification failed');o.metpayPassword=x}
    o.metpayPasswordVerified=true;
    st.textContent='Password verified. Submitting your order securely…';
+   if(o.kind==='cloud'){
+    st.textContent='Verifying payment and activating Met-Cloud securely…';
+    const cloudPurchase=await metxonSupabase.rpc('metxon_purchase_cloud_plan_secure',{
+     p_capacity_gb:Number(o.capacityGb),p_metpay_password:String(o.metpayPassword||''),p_delivery:o.deliveryAddress||{}
+    });
+    if(cloudPurchase.error)throw cloudPurchase.error;
+    if(!cloudPurchase.data||cloudPurchase.data.ok!==true)throw new Error('Supabase did not confirm the Met-Cloud purchase.');
+    o.metpayPassword='';
+    if(Number(cloudPurchase.data.charged_jp||0)>0&&cloudPurchase.data.receipts_saved!==true)throw new Error('Purchase response did not confirm both receipts. Do not retry until you check Met-Ail and InstaPay.');
+    if(typeof refreshCloudAccount==='function')await refreshCloudAccount();
+    if(typeof window.metxonNotifyTransaction==='function')await window.metxonNotifyTransaction('Met-Cloud subscription activated',String(cloudPurchase.data.plan_name||o.name)+' activated. Charged '+Number(cloudPurchase.data.charged_jp||0).toLocaleString('en-IN')+' JP.');
+    m.classList.remove('show');f.innerHTML='';go.disabled=false;go.textContent='Purchase confirmed';
+    const receiptMsg=cloudPurchase.data.receipts_saved?'Receipt '+String(cloudPurchase.data.order_id||'')+' saved to your Met-Ail inbox and the owner inbox.':'You already have this capacity or a higher plan; no charge was made.';
+    if(typeof window.metxonShowOrderReceiptToast==='function')window.metxonShowOrderReceiptToast('Met-Cloud purchase complete',String(cloudPurchase.data.message||'Your capacity is active.')+' '+receiptMsg);
+    else alert(String(cloudPurchase.data.message||'Met-Cloud purchase complete.')+' '+receiptMsg);
+    return;
+   }
    const checkoutItems=(Array.isArray(o.items)&&o.items.length?o.items:[{name:o.name,qty:1}]).map(item=>({name:String(item.name||''),qty:Number(item.qty||1)}));
    const purchase=await metxonSupabase.rpc('metxon_purchase_metcart',{
     p_order_id:String(o.orderId),
@@ -5356,6 +5373,7 @@ function begin(d){
   }
  };
 }
+window.beginMetxonCheckout=begin;
 window.startPay=(name,price)=>begin({name,amount:Number(price),isCart:false,items:[]});
 window.checkoutCart=()=>{if(!state.currentUser){openAuth();return}let c=getCart();if(!c.length){alert('Cart is empty');return}let items=c.map(x=>({name:x.name,price:Number(x.price),qty:Number(x.qty||1)}));begin({name:'Cart: '+items.map(x=>x.name+(x.qty>1?' ×'+x.qty:'')).join(', '),amount:items.reduce((n,x)=>n+x.price*x.qty,0),isCart:true,items})};
 })();
