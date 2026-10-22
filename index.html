@@ -877,10 +877,10 @@ function renderMetcart() {
       <h3>${item.name}</h3>
       <p style="font-size:0.8rem;color:var(--muted)">${item.cat}</p>
       <p>${item.desc}</p>
-      <div class="price">₹${item.price.toLocaleString('en-IN')}</div>
+      <div class="price">₹${metcartSalePrice(item.price).toLocaleString('en-IN')}${metcartSalePercent()? ` <span style="font-size:.75rem;color:var(--green)">-${metcartSalePercent()}% offer</span>` : ''}</div>
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
-        <button class="btn" onclick="addToCart('${item.name}', ${item.price})">Add to Cart</button>
-        <button class="btn btn-primary" onclick="startPay('${item.name}', ${item.price})">Buy Now</button>
+        <button class="btn" onclick="addToCart('${item.name}', ${metcartSalePrice(item.price)})">Add to Cart</button>
+        <button class="btn btn-primary" onclick="startPay('${item.name}', ${metcartSalePrice(item.price)})">Buy Now</button>
       </div>
     </div>
   `).join('');
@@ -890,7 +890,13 @@ function renderMetcart() {
 function getCart() {
   if (!state.currentUser || !state.accounts[state.currentUser]) return [];
   if (!state.accounts[state.currentUser].cart) state.accounts[state.currentUser].cart = [];
-  return state.accounts[state.currentUser].cart;
+  const cart = state.accounts[state.currentUser].cart;
+  // Reprice legacy saved carts for today's sale; the database remains the final authority.
+  cart.forEach(item => {
+    const product = CATALOG.find(p => p.name === item.name);
+    if (product) item.price = metcartSalePrice(product.price);
+  });
+  return cart;
 }
 
 function addToCart(name, price) {
@@ -2458,6 +2464,21 @@ const metxonSupabase = window.supabase.createClient(METXON_SUPABASE_URL, METXON_
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
 });
 const METXON_AUTH_FUNCTION = METXON_SUPABASE_URL + '/functions/v1/metxon-auth-v2';
+function metcartSalePercent(){
+  const month=Number(new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Kolkata',month:'numeric'}).format(new Date()));
+  if(month>=1&&month<=3)return 35;
+  if(month>=8&&month<=10)return 20;
+  if(month===11)return 65;
+  return 0;
+}
+function metcartSalePrice(base){
+  return Math.round(Number(base)*(1-metcartSalePercent()/100));
+}
+async function metcartSyncTrustedPrices(){
+  const {data,error}=await metxonSupabase.functions.invoke('metcart-catalog-sync');
+  if(error||!data?.ok)throw new Error('MetCart could not verify current sale prices. No payment was attempted.');
+  return data;
+}
 window.metxonMoney=window.metxonMoney||function(value,currency){
   const n=Number(value);
   const code=String(currency||'USD').toUpperCase();
@@ -4369,6 +4390,7 @@ window.showIncomingMessagePopup=function(username,message){
             status.textContent='Securely charging your InstaPay wallet…';
             const orderId=String(pending.orderId||('MC-'+new Date().toISOString().replace(/[-:.TZ]/g,'').slice(0,14)+'-'+Math.random().toString(36).slice(2,8).toUpperCase()));
             const purchaseItems=(Array.isArray(pending.items)&&pending.items.length?pending.items:[{name:pending.name,qty:1}]).map(item=>({name:String(item.name||''),qty:Number(item.qty||1)}));
+            await metcartSyncTrustedPrices();
             const purchaseResult=await metxonSupabase.rpc('metxon_purchase_metcart',{p_order_id:orderId,p_items:purchaseItems,p_expected_total:Number(pending.amount),p_delivery:pending.deliveryAddress||{},p_metpay_password:String(pending.metpayPassword||'')});
             if(purchaseResult.error)throw purchaseResult.error;
             if(!purchaseResult.data?.success)throw new Error('Supabase did not confirm the order payment.');
@@ -5395,6 +5417,7 @@ function begin(d){
     return;
    }
    const checkoutItems=(Array.isArray(o.items)&&o.items.length?o.items:[{name:o.name,qty:1}]).map(item=>({name:String(item.name||''),qty:Number(item.qty||1)}));
+   await metcartSyncTrustedPrices();
    const purchase=await metxonSupabase.rpc('metxon_purchase_metcart',{
     p_order_id:String(o.orderId),
     p_items:checkoutItems,
