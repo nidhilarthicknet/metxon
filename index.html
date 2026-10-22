@@ -479,19 +479,19 @@ tr:hover { background: rgba(255,255,255,0.03); }
       <div class="grid">
         <div class="card">
           <h3>Base</h3>
-          <p class="price">₹500 / week</p>
+          <p class="price">π5 JP / week</p>
           <p>INR + USD • 5-min scan</p>
           <button class="btn" onclick="buySub('Base',500)">Subscribe</button>
         </div>
         <div class="card">
           <h3>Premium</h3>
-          <p class="price">₹2,000 / week</p>
+          <p class="price">π20 JP / week</p>
           <p>INR USD EUR GBP JPY • Alerts</p>
           <button class="btn" onclick="buySub('Premium',2000)">Subscribe</button>
         </div>
         <div class="card">
           <h3>Elite</h3>
-          <p class="price">₹10,000 / week</p>
+          <p class="price">π100 JP / week</p>
           <p>All currencies + KRW • AI Analyzer</p>
           <button class="btn" onclick="buySub('Elite',10000)">Subscribe</button>
         </div>
@@ -834,14 +834,14 @@ function homeSearch() {
     if (results.length) {
       box.innerHTML = `<div class="card"><strong style="color:var(--purple)">[Cule AI]</strong><br>
         According to Molecule & MetCart records:<br>` +
-        results.map(r => `• <strong>${r.name}</strong> – ₹${r.price.toLocaleString('en-IN')} (${r.cat})`).join('<br>') +
+        results.map(r => `• <strong>${r.name}</strong> – π${(r.price/100).toLocaleString('en-IN',{maximumFractionDigits:2})} (${r.cat})`).join('<br>') +
         `</div>`;
     } else {
       box.innerHTML = `<div class="card"><strong style="color:var(--purple)">[Cule AI]</strong> No matching product found for "${q}".</div>`;
     }
   } else {
     if (results.length) {
-      box.innerHTML = results.map(r => `<div class="card"><strong>${r.name}</strong> – ₹${r.price.toLocaleString('en-IN')} <span style="color:var(--muted)">(${r.cat})</span></div>`).join('');
+      box.innerHTML = results.map(r => `<div class="card"><strong>${r.name}</strong> – π${(r.price/100).toLocaleString('en-IN',{maximumFractionDigits:2})} <span style="color:var(--muted)">(${r.cat})</span></div>`).join('');
     } else {
       box.innerHTML = `<div class="card">No results for "${q}"</div>`;
     }
@@ -864,7 +864,7 @@ function renderMolecule(filter='') {
       <h3>${item.name}</h3>
       <p style="font-size:0.8rem;color:var(--muted)">${item.cat}</p>
       <p>${item.desc}</p>
-      <div class="price">₹${item.price.toLocaleString('en-IN')}</div>
+      <div class="price">π${(item.price/100).toLocaleString('en-IN',{maximumFractionDigits:2})}</div>
     </div>
   `).join('') || '<p style="color:var(--muted)">No devices match.</p>';
 }
@@ -877,7 +877,7 @@ function renderMetcart() {
       <h3>${item.name}</h3>
       <p style="font-size:0.8rem;color:var(--muted)">${item.cat}</p>
       <p>${item.desc}</p>
-      <div class="price">₹${metcartSalePrice(item.price).toLocaleString('en-IN')}${metcartSalePercent()? ` <span style="font-size:.75rem;color:var(--green)">-${metcartSalePercent()}% offer</span>` : ''}</div>
+      <div class="price">π${(metcartSalePrice(item.price)/100).toLocaleString('en-IN',{maximumFractionDigits:2})}${metcartSalePercent()? ` <span style="font-size:.75rem;color:var(--green)">-${metcartSalePercent()}% offer</span>` : ''}</div>
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
         <button class="btn" onclick="addToCart('${item.name}', ${metcartSalePrice(item.price)})">Add to Cart</button>
         <button class="btn btn-primary" onclick="startPay('${item.name}', ${metcartSalePrice(item.price)})">Buy Now</button>
@@ -1133,12 +1133,12 @@ function runCuleSearch() {
   if (aiOn) {
     if (results.length) {
       box.innerHTML = `<div class="card"><strong style="color:var(--purple)">[Cule AI]</strong><br>` +
-        results.map(r => `The <strong>${r.name}</strong> is priced at <strong>₹${r.price.toLocaleString('en-IN')}</strong> (${r.cat}). ${r.desc}`).join('<br><br>') + `</div>`;
+        results.map(r => `The <strong>${r.name}</strong> is priced at <strong>π${(r.price/100).toLocaleString('en-IN',{maximumFractionDigits:2})}</strong> (${r.cat}). ${r.desc}`).join('<br><br>') + `</div>`;
     } else {
       box.innerHTML = `<div class="card"><strong style="color:var(--purple)">[Cule AI]</strong> I could not find a matching product for "${q}".</div>`;
     }
   } else {
-    box.innerHTML = results.length ? results.map(r => `<div class="card"><strong>${r.name}</strong> – ₹${r.price.toLocaleString('en-IN')}</div>`).join('') : `<div class="card">No results.</div>`;
+    box.innerHTML = results.length ? results.map(r => `<div class="card"><strong>${r.name}</strong> – π${(r.price/100).toLocaleString('en-IN',{maximumFractionDigits:2})}</div>`).join('') : `<div class="card">No results.</div>`;
   }
 }
 
@@ -1147,7 +1147,7 @@ function askAI() {
   const out = document.getElementById('aiOut');
   const results = flexibleSearch(q);
   if (results.length) {
-    out.innerHTML = `[Nebula AI] Found:\n` + results.map(r => `${r.name}: ₹${r.price.toLocaleString('en-IN')}`).join('\n');
+    out.innerHTML = `[Nebula AI] Found:\n` + results.map(r => `${r.name}: π${(r.price/100).toLocaleString('en-IN',{maximumFractionDigits:2})}`).join('\n');
   } else {
     out.textContent = `[Nebula AI] Processed: "${q}". All systems nominal.`;
   }
