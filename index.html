@@ -5344,7 +5344,7 @@ function begin(d){
  let m=document.getElementById('metcartPasswordGate');
  if(!m){m=document.createElement('div');m.id='metcartPasswordGate';m.className='modal';m.innerHTML='<div class="modal-box"><h2 id="mpGateTitle">Delivery details</h2><p id="mpOrder"></p><p id="mpGateIntro">Optional: enter your class, section and roll number so our team can identify and deliver your order at school.</p><div id="mpFields"></div><p id="mpStatus" aria-live="polite"></p><button class="btn btn-primary" id="mpGo">Continue to payment</button><button class="btn" id="mpCancel">Cancel</button></div>';document.body.appendChild(m)}
  m.classList.add('show');const f=m.querySelector('#mpFields'),st=m.querySelector('#mpStatus'),go=m.querySelector('#mpGo'),title=m.querySelector('#mpGateTitle'),intro=m.querySelector('#mpGateIntro');
- m.querySelector('#mpOrder').textContent=o.name+' — '+(isCloud?'up to '+amount.toLocaleString('en-IN')+' & (JP); exact upgrade price confirmed securely':'π'+(amount/100).toLocaleString('en-IN'));
+ m.querySelector('#mpOrder').textContent=o.name+' — '+(isCloud?'up to '+amount.toLocaleString('en-IN')+' π (JP); exact upgrade price confirmed securely':'π'+(amount/100).toLocaleString('en-IN'));
  st.textContent='';go.disabled=false;go.textContent='Continue to payment';
  m.querySelector('#mpCancel').onclick=()=>{m.classList.remove('show');go.disabled=false;};
  const prepareCloudPasswordGate=async()=>{
