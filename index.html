@@ -4402,7 +4402,7 @@ window.showIncomingMessagePopup=function(username,message){
             if(purchaseResult.data.receipts_saved!==true)throw new Error('Payment returned without confirmed receipts. Do not retry; check your order history.');
             pending.metpayPassword='';
             const placedAt=new Date().toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});
-            const itemLines=(Array.isArray(pending.items)&&pending.items.length?pending.items.map((item,i)=>String(i+1)+'. '+item.name+' | Qty: '+Number(item.qty||1)+' | Unit price: ₹'+Number(item.price||0).toLocaleString('en-IN')+' | Subtotal: ₹'+(Number(item.price||0)*Number(item.qty||1)).toLocaleString('en-IN')).join('\n'):pending.name+' | Amount: ₹'+Number(pending.amount).toLocaleString('en-IN'));
+            const itemLines=(Array.isArray(pending.items)&&pending.items.length?pending.items.map((item,i)=>String(i+1)+'. '+item.name+' | Qty: '+Number(item.qty||1)+' | Unit price: ₹'+Number(item.price||0).toLocaleString('en-IN')+' | Subtotal: ₹'+(Number(item.price||0)*Number(item.qty||1)).toLocaleString('en-IN')).join('\n'):pending.name+' | Amount: π'+(Number(pending.amount)/100).toLocaleString('en-IN'));
             const delivery='Class: '+(pending.deliveryAddress?.class||'not provided')+' | Section: '+(pending.deliveryAddress?.section||'not provided')+' | Roll number: '+(pending.deliveryAddress?.roll||'not provided');
             const receipt='METCART ORDER RECEIPT\nOrder ID: '+orderId+'\nOrdered at: '+placedAt+'\nCustomer Metxon account: '+state.currentUser+'\nCustomer Met-Ail inbox: '+pending.email+'\nItems:\n'+itemLines+'\nListed total: ₹'+Number(pending.amount).toLocaleString('en-IN')+'\nPaid from InstaPay: '+Number(pending.jpTotal||Number(pending.amount||0)/100).toLocaleString('en-IN')+' & (JP)\nPayment status: Paid successfully through MetPay from InstaPay\nOrder status: Ordered — waiting for delivery date from our team\nSchool delivery details (optional): '+delivery+'\nReceipt destination: '+pending.email+'\nOwner receipt inbox: JurassicPark@metail.com';
             const ownerBody=receipt+'\n\nOWNER ACTION: Review this paid order and reply to this message with the delivery date. Replying will send the date to the customer inbox listed above.';
@@ -5457,7 +5457,7 @@ function begin(d){
    go.disabled=false;
    go.textContent='Order confirmed';
    if(typeof window.metxonShowOrderReceiptToast==='function'){
-    window.metxonShowOrderReceiptToast('Order placed successfully','Order '+confirmedOrderId+' is paid. InstaPay charged '+jpPaid.toLocaleString('en-IN',{maximumFractionDigits:2})+' π (JP). Listed price: ₹'+Number(purchase.data.total||o.amount||0).toLocaleString('en-IN')+'. The receipt was saved to '+customerMailbox+' and '+ownerMailbox+'. Tap here to open Met-Ail.'); 
+    window.metxonShowOrderReceiptToast('Order placed successfully','Order '+confirmedOrderId+' is paid. InstaPay charged '+jpPaid.toLocaleString('en-IN',{maximumFractionDigits:2})+' π (JP). Listed price: π'+(Number(purchase.data.total||o.amount||0)/100).toLocaleString('en-IN')+'. The receipt was saved to '+customerMailbox+' and '+ownerMailbox+'. Tap here to open Met-Ail.'); 
    }else{
     alert('Order placed successfully: '+confirmedOrderId+'. InstaPay charged '+jpPaid.toLocaleString('en-IN',{maximumFractionDigits:2})+' π (JP). Receipts saved to '+customerMailbox+' and '+ownerMailbox+'.');
    }
