@@ -4782,6 +4782,25 @@ async function profile(){if(!state.currentUser)throw Error('Please sign in to yo
    $('cloudQuota').innerHTML='<b>'+(used/1024**3).toFixed(3)+' GB used of '+e.data.capacity_gb+' GB</b> · Current plan: '+safe(e.data.plan_name);
    document.getElementById('cloudPlanPanel')?.remove();const planPanel=document.createElement('div');planPanel.id='cloudPlanPanel';planPanel.className='card';planPanel.style.margin='10px 0';planPanel.innerHTML='<h3 style="margin-top:0">Available plans</h3><p>Free: 15 GB · Met-Cloud: 25 GB / 10 JP · Met-Cloud Pro: 30 GB / 20 JP · Met-Cloud Ultra: 40 GB / 30 JP</p><p style="color:var(--muted)">Paid upgrades are one-time purchases and do not reset. Upgrading from 30 GB to 40 GB costs the 10 JP difference.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-plan="15">Free · 15 GB</button><button class="btn" data-plan="25">Met-Cloud · 25 GB / 10 JP</button><button class="btn" data-plan="30">Met-Cloud Pro · 30 GB / 20 JP</button><button class="btn" data-plan="40">Met-Cloud Ultra · 40 GB / 30 JP</button></div><p id="cloudPlanStatus" aria-live="polite"></p>';
    $('cloudQuota').insertAdjacentElement('afterend',planPanel);
+   // Bind only after load() creates and inserts the dynamic Available plans buttons.
+   const cloudPlanPanel=document.getElementById('cloudPlanPanel');
+   cloudPlanPanel.querySelectorAll('[data-plan]').forEach(b=>b.onclick=async()=>{
+    const gb=Number(b.dataset.plan),status=$('cloudPlanStatus');
+    if(gb===15){alert('The free 15 GB plan is the default. Purchased capacity remains permanently.');return;}
+    const allPlanButtons=cloudPlanPanel.querySelectorAll('[data-plan]');
+    allPlanButtons.forEach(x=>x.disabled=true);
+    try{
+     const planName=gb===25?'Met-Cloud':gb===30?'Met-Cloud Pro':'Met-Cloud Ultra';
+     const maximumPrice=gb===25?10:gb===30?20:30;
+     if(typeof window.beginMetxonCheckout!=='function')throw new Error('Secure checkout has not loaded. Refresh Met-Cloud and try again.');
+     if(status)status.textContent='Opening MetPay password checkout…';
+     window.beginMetxonCheckout({kind:'cloud',name:planName+' subscription ('+gb+' GB)',capacityGb:gb,jpAmount:maximumPrice});
+    }catch(err){
+     const message=String(err&&err.message||err||'Unable to open subscription checkout.');
+     if(status)status.textContent='Checkout could not start: '+message;
+     alert('Met-Cloud checkout could not start: '+message);
+    }finally{allPlanButtons.forEach(x=>x.disabled=false);}
+   });
    $('cloudList').innerHTML='<h3>Your files</h3>'+((r.data||[]).map(f=>'<div style="display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid var(--border)"><span>'+safe(f.file_name)+' ('+Math.ceil(f.size_bytes/1024)+' KB)</span><button class="btn" data-del="'+safe(f.id)+'" data-path="'+safe(f.storage_path)+'">Delete</button></div>').join('')||'<p>No files uploaded.</p>');
    $('cloudList').querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{if(!confirm('Delete this file?'))return;const a=await metxonSupabase.storage.from('metcloud-files').remove([b.dataset.path]);if(a.error)return alert(a.error.message);const d=await metxonSupabase.from('metcloud_files').delete().eq('id',b.dataset.del).eq('user_id',p.id);if(d.error)return alert(d.error.message);await load();});
   }
@@ -4796,26 +4815,7 @@ async function profile(){if(!state.currentUser)throw Error('Please sign in to yo
    catch(err){alert('Upload failed: '+err.message);}finally{btn.disabled=false;btn.textContent='QuickUp files';$('cloudFiles').value='';await load();}
   };
 
-  const cloudPlanPanel=document.getElementById('cloudPlanPanel');
-  if(cloudPlanPanel)cloudPlanPanel.querySelectorAll('[data-plan]').forEach(b=>b.onclick=async()=>{
-   const gb=Number(b.dataset.plan),status=$('cloudPlanStatus');
-   if(gb===15){alert('The free 15 GB plan is the default. Purchased capacity remains permanently.');return;}
-   const allPlanButtons=cloudPlanPanel.querySelectorAll('[data-plan]');
-   allPlanButtons.forEach(x=>x.disabled=true);
-   try{
-    const planName=gb===25?'Met-Cloud':gb===30?'Met-Cloud Pro':'Met-Cloud Ultra';
-    const maximumPrice=gb===25?10:gb===30?20:30;
-    if(typeof window.beginMetxonCheckout!=='function')throw new Error('Secure checkout has not loaded. Refresh Met-Cloud and try again.');
-    if(status)status.textContent='Opening MetPay password checkout…';
-    // Do not gate the password prompt on a separate browser read. The server locks the current
-    // entitlement and computes the exact incremental charge inside the payment transaction.
-    window.beginMetxonCheckout({kind:'cloud',name:planName+' subscription ('+gb+' GB)',capacityGb:gb,jpAmount:maximumPrice});
-   }catch(err){
-    const message=String(err&&err.message||err||'Unable to open subscription checkout.');
-    if(status)status.textContent='Checkout could not start: '+message;
-    alert('Met-Cloud checkout could not start: '+message);
-   }finally{allPlanButtons.forEach(x=>x.disabled=false);}
-  });
+
   $('cloudNoteSave').onclick=async()=>{const title=$('cloudNoteTitle').value.trim()||'Saved message',body=$('cloudNoteBody').value.trim();if(!body)return alert('Write a message to save.');const btn=$('cloudNoteSave');btn.disabled=true;const z=await metxonSupabase.from('metcloud_saved_messages').insert({user_id:p.id,title,body});btn.disabled=false;if(z.error)return alert(z.error.message);$('cloudNoteTitle').value='';$('cloudNoteBody').value='';await load();};
   await load();
  }
