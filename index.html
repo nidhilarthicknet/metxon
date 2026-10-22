@@ -2501,6 +2501,18 @@ async function loadCloudAccount(username){
   return data;
 }
 
+function syncMetCloudPlanDisplay(purchase){
+  if(!purchase)return;
+  const quota=document.getElementById('cloudQuota');
+  if(!quota)return;
+  const capacity=Number(purchase.capacity_gb||0);
+  const plan=String(purchase.plan_name||'').trim();
+  if(!capacity||!plan)return;
+  const old=quota.textContent||'';
+  const usedMatch=old.match(/([\d.]+\s*GB used of )\d+\s*GB/i);
+  const usedPrefix=usedMatch?usedMatch[1]:'';
+  quota.textContent=(usedPrefix||'Storage capacity: ')+capacity+' GB · Current plan: '+plan;
+}
 async function refreshCloudAccount(){
   if(!state.currentUser) return null;
   try{
@@ -4350,6 +4362,7 @@ window.showIncomingMessagePopup=function(username,message){
             if(!result.data||result.data.ok!==true)throw new Error('Supabase did not confirm the Met-Cloud subscription.');
             if(Number(result.data.charged_jp||0)>0&&result.data.receipts_saved!==true)throw new Error('Both receipt messages were not confirmed. Check Met-Ail and InstaPay before retrying.');
             if(typeof refreshCloudAccount==='function')await refreshCloudAccount();
+            syncMetCloudPlanDisplay(result.data);
             if(typeof window.metxonNotifyTransaction==='function')await window.metxonNotifyTransaction('Met-Cloud subscription activated',pending.name+' activated. Charged '+Number(result.data.charged_jp||0).toLocaleString('en-IN')+' JP (&). Order '+String(result.data.order_id||cloudOrderId)+'.');
             status.textContent='Payment accepted. '+(result.data.message||'Your Met-Cloud subscription is active.')+(result.data.receipts_saved?' Receipt '+String(result.data.order_id||cloudOrderId)+' saved to both Met-Ail accounts.':' No payment was needed for an already-owned capacity.');
           }else{
@@ -5373,6 +5386,7 @@ function begin(d){
     o.metpayPassword='';
     if(Number(cloudPurchase.data.charged_jp||0)>0&&cloudPurchase.data.receipts_saved!==true)throw new Error('Purchase response did not confirm both receipts. Do not retry until you check Met-Ail and InstaPay.');
     if(typeof refreshCloudAccount==='function')await refreshCloudAccount();
+    syncMetCloudPlanDisplay(cloudPurchase.data);
     if(typeof window.metxonNotifyTransaction==='function')await window.metxonNotifyTransaction('Met-Cloud subscription activated',String(cloudPurchase.data.plan_name||o.name)+' activated. Charged '+Number(cloudPurchase.data.charged_jp||0).toLocaleString('en-IN')+' JP.');
     m.classList.remove('show');f.innerHTML='';go.disabled=false;go.textContent='Purchase confirmed';
     const receiptMsg=cloudPurchase.data.receipts_saved?'Receipt '+String(cloudPurchase.data.order_id||'')+' saved to your Met-Ail inbox and the owner inbox.':'You already have this capacity or a higher plan; no charge was made.';
