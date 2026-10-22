@@ -5320,7 +5320,7 @@ function begin(d){
   try{
    const account=await prof(),passwordStatus=await metxonSupabase.rpc('metpay_password_status',{p_username:account.username});
    if(passwordStatus.error)throw passwordStatus.error;
-   o._hasMetPayPassword=!!(passwordStatus.data&&passwordStatus.data.has_password);
+   const passwordState=passwordStatus.data;o._hasMetPayPassword=typeof passwordState==='boolean'?passwordState:typeof passwordState==='string'?['true','yes','1','set'].includes(passwordState.toLowerCase()):!!(passwordState&&(passwordState.has_password??passwordState.hasPassword??passwordState.password_set??passwordState.password_exists??passwordState.exists));
    if(o._hasMetPayPassword){
     f.innerHTML='<label for="mpPw">MetPay transaction password</label><input id="mpPw" type="password" autocomplete="current-password" placeholder="Enter MetPay password">';
     go.textContent='Verify password';
@@ -5353,7 +5353,7 @@ function begin(d){
     title.textContent='MetPay secure checkout';intro.textContent='Use your separate MetPay transaction password, not your Met-Ail password.';
     f.innerHTML='Checking MetPay password setup…';st.textContent='';go.textContent='Continue';
     const p=await prof(),r=await metxonSupabase.rpc('metpay_password_status',{p_username:p.username});if(r.error)throw r.error;
-    const has=!!(r.data&&r.data.has_password);
+    const passwordState=r.data,has=typeof passwordState==='boolean'?passwordState:typeof passwordState==='string'?['true','yes','1','set'].includes(passwordState.toLowerCase()):!!(passwordState&&(passwordState.has_password??passwordState.hasPassword??passwordState.password_set??passwordState.password_exists??passwordState.exists));
     if(has){f.innerHTML='<label for="mpPw">MetPay transaction password</label><input id="mpPw" type="password" autocomplete="off" placeholder="MetPay password">';go.textContent='Verify password'}
     else{f.innerHTML='<label for="mpNew">Create MetPay password (8+ characters)</label><input id="mpNew" type="password" autocomplete="new-password"><label for="mpConfirm">Confirm MetPay password</label><input id="mpConfirm" type="password" autocomplete="new-password">';go.textContent='Create password'}
     o._hasMetPayPassword=has;go.disabled=false;return;
@@ -5366,7 +5366,7 @@ function begin(d){
    if(o.kind==='cloud'){
     st.textContent='Verifying payment and activating Met-Cloud securely…';
     const cloudPurchase=await metxonSupabase.rpc('metxon_purchase_cloud_plan_secure',{
-     p_order_id:String(o.orderId),p_capacity_gb:Number(o.capacityGb),p_metpay_password:String(o.metpayPassword||''),p_delivery:o.deliveryAddress||{}
+     p_order_id:String(o.orderId||('MCL-'+crypto.randomUUID())),p_capacity_gb:Number(o.capacityGb),p_metpay_password:String(o.metpayPassword||''),p_delivery:o.deliveryAddress||{}
     });
     if(cloudPurchase.error)throw cloudPurchase.error;
     if(!cloudPurchase.data||cloudPurchase.data.ok!==true)throw new Error('Supabase did not confirm the Met-Cloud purchase.');
