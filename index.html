@@ -469,7 +469,7 @@ tr:hover { background: rgba(255,255,255,0.03); }
         <p>Balance: <strong id="mcBalance" style="color:var(--green);"></strong></p>
         <p>Active Subscription: <strong id="mcSub"></strong></p>
         <label for="metCountCurrency" style="display:block;margin-top:12px;color:var(--muted)">Display currency</label><select id="metCountCurrency" onchange="metCountCurrencyChanged(this.value)" style="margin-top:6px;background:var(--bg);color:var(--text);border:1px solid var(--border);padding:9px;border-radius:8px"><option value="INR">INR · ₹</option><option value="USD">USD · $</option><option value="JP">JP · Jurassic Points</option></select><div id="metCountSelectedCurrency" style="margin-top:8px;font-weight:700"></div><div id="currencyView" style="margin-top:10px;font-size:0.9rem;color:var(--muted);"></div>
-        </div><div class="card" style="margin-top:14px"><h3 style="margin-top:0">InstaPay</h3><p style="color:var(--muted)">Your spendable Jurassic Points wallet. Add funds here before buying products, subscriptions, or stocks.</p><p>Wallet balance: <strong id="instaPayBalance" style="color:var(--green)">0 &amp; (JP)</strong></p><p id="instaPayEquivalent" style="color:var(--muted);font-size:.9rem">1 &amp; = 1 JP = ₹100 = US$1.20</p><label for="mcConvertInr">Add funds from MetCount balance (INR)</label><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><input id="mcConvertInr" type="number" min="0.01" step="0.01" placeholder="Enter INR amount" style="max-width:220px"><button class="btn btn-primary" id="mcConvertBtn">Add to InstaPay</button></div><p id="mcConvertStatus" aria-live="polite" style="color:var(--muted)"></p></div>
+        </div><div class="card" style="margin-top:14px"><h3 style="margin-top:0">InstaPay</h3><p style="color:var(--muted)">Your spendable Jurassic Points wallet. Add funds here before buying products, subscriptions, or stocks.</p><p>Wallet balance: <strong id="instaPayBalance" style="color:var(--green)">0 π (JP)</strong></p><p id="instaPayEquivalent" style="color:var(--muted);font-size:.9rem">1 π = 1 JP = ₹100 = US$1.20</p><label for="mcConvertInr">Add funds from MetCount balance (INR)</label><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><input id="mcConvertInr" type="number" min="0.01" step="0.01" placeholder="Enter INR amount" style="max-width:220px"><button class="btn btn-primary" id="mcConvertBtn">Add to InstaPay</button></div><p id="mcConvertStatus" aria-live="polite" style="color:var(--muted)"></p></div>
       </div>
 
       <h2 class="section-title">Transaction History</h2>
@@ -1213,8 +1213,8 @@ function updateMcUI() {
     html = 'Subscribe to see multi-currency view';
   }
   const inrAmount=Number(acc.balance||0),usdAmount=inrAmount*RATES.USD,jpAmount=Number(acc.jpBalance||0);
-  const instaPayBalance=document.getElementById('instaPayBalance');if(instaPayBalance)instaPayBalance.textContent=jpAmount.toLocaleString('en-IN',{maximumFractionDigits:2})+' & (JP)';
-  const instaPayEquivalent=document.getElementById('instaPayEquivalent');if(instaPayEquivalent)instaPayEquivalent.textContent='Available to spend: '+jpAmount.toLocaleString('en-IN',{maximumFractionDigits:2})+' & · equivalent to ₹'+(jpAmount*100).toLocaleString('en-IN',{maximumFractionDigits:2})+' or US$'+(jpAmount*1.2).toLocaleString('en-US',{maximumFractionDigits:2});
+  const instaPayBalance=document.getElementById('instaPayBalance');if(instaPayBalance)instaPayBalance.textContent=jpAmount.toLocaleString('en-IN',{maximumFractionDigits:2})+' π (JP)';
+  const instaPayEquivalent=document.getElementById('instaPayEquivalent');if(instaPayEquivalent)instaPayEquivalent.textContent='Available to spend: '+jpAmount.toLocaleString('en-IN',{maximumFractionDigits:2})+' π · equivalent to ₹'+(jpAmount*100).toLocaleString('en-IN',{maximumFractionDigits:2})+' or US$'+(jpAmount*1.2).toLocaleString('en-US',{maximumFractionDigits:2});
   currBox.innerHTML = html + '<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border)"><label for="mcCurrencyChoice">Currency view</label> <select id="mcCurrencyChoice" style="max-width:220px"><option value="INR">INR · Indian Rupee</option><option value="USD">USD · US Dollar</option><option value="JP">JP · Jurassic Points</option></select><p id="mcCurrencyValue" style="font-weight:700;margin:8px 0 0"></p><small style="color:var(--muted)">Rate: ₹100 = 1 JP (&), and 1 JP = US$1.20. Spendable JP is the InstaPay wallet balance.</small></div>';
   const currencyChoice=document.getElementById('mcCurrencyChoice'),currencyValue=document.getElementById('mcCurrencyValue');
   const showCurrency=()=>{if(!currencyChoice||!currencyValue)return;const c=currencyChoice.value;currencyValue.textContent=c==='INR'?'₹'+inrAmount.toLocaleString('en-IN',{maximumFractionDigits:2}):c==='USD'?'$'+usdAmount.toLocaleString('en-US',{maximumFractionDigits:2}):(inrAmount/100).toLocaleString('en-IN',{maximumFractionDigits:2})+' JP equivalent · InstaPay wallet '+jpAmount.toLocaleString('en-IN',{maximumFractionDigits:2})+' &';};
@@ -4326,7 +4326,7 @@ window.showIncomingMessagePopup=function(username,message){
     const pending=window.metpayPendingCheckout;
     if(pending){
       const cloud=pending.kind==='cloud';
-      p.innerHTML=`<div class="card" style="border-color:var(--cyan)"><h3>MetPay secure checkout</h3><p><b>To:</b> ${cloud?'Mettin':'MetCart owner wallet'}</p><p><b>Item:</b> ${esc(pending.name)}</p><p><b>Amount:</b> ${cloud?Number(pending.jpAmount).toLocaleString('en-IN')+' JP':'₹'+Number(pending.amount).toLocaleString('en-IN')}</p><p style="color:var(--muted)">Authorize with your separate MetPay transaction password (verified in MetCart). You must have sufficient wallet balance.</p><div class="form-group"><label for="mpCheckoutEmail">Receipt and order updates to</label><select id="mpCheckoutEmail" style="width:100%"><option value="">Loading your Met-Ail IDs…</option></select></div><button class="btn btn-primary" id="mpCheckoutPay">${cloud?'Pay and activate subscription':'Pay now'}</button><button class="btn" id="mpCheckoutCancel">Cancel checkout</button><p class="metpay-status" id="mpCheckoutStatus" aria-live="polite">Loading checkout details…</p></div>`;
+      p.innerHTML=`<div class="card" style="border-color:var(--cyan)"><h3>MetPay secure checkout</h3><p><b>To:</b> ${cloud?'Mettin':'MetCart owner wallet'}</p><p><b>Item:</b> ${esc(pending.name)}</p><p><b>Amount:</b> ${cloud?Number(pending.jpAmount).toLocaleString('en-IN')+' π (JP)':'π'+Number(pending.amount/100).toLocaleString('en-IN')}</p><p style="color:var(--muted)">Authorize with your separate MetPay transaction password (verified in MetCart). You must have sufficient wallet balance.</p><div class="form-group"><label for="mpCheckoutEmail">Receipt and order updates to</label><select id="mpCheckoutEmail" style="width:100%"><option value="">Loading your Met-Ail IDs…</option></select></div><button class="btn btn-primary" id="mpCheckoutPay">${cloud?'Pay and activate subscription':'Pay now'}</button><button class="btn" id="mpCheckoutCancel">Cancel checkout</button><p class="metpay-status" id="mpCheckoutStatus" aria-live="polite">Loading checkout details…</p></div>`;
       const status=document.getElementById('mpCheckoutStatus'),pay=document.getElementById('mpCheckoutPay'),emailSelect=document.getElementById('mpCheckoutEmail');
       if(pending.email)emailSelect.innerHTML='<option value="'+esc(pending.email)+'">'+esc(pending.email)+'</option>';
       else accountData().then(info=>{
@@ -4904,11 +4904,11 @@ window.addEventListener('click',async function(ev){
  const input=document.getElementById('mcConvertInr'),status=document.getElementById('mcConvertStatus'),amount=Number(input&&input.value);
  if(!Number.isFinite(amount)||amount<=0){alert('Enter a valid INR amount.');return;}if(!state.currentUser){alert('Sign in to MetCount first.');return;}
  const mailEmail=await window.metxonRequireMail();if(!mailEmail)return;
- if(!confirm('Add ₹'+amount.toLocaleString('en-IN',{maximumFractionDigits:2})+' to InstaPay? At ₹100 = 1 JP, you will receive '+(amount/100).toLocaleString('en-IN',{maximumFractionDigits:2})+' & (JP). This moves value from your MetCount INR balance to your spendable wallet.'))return;
+ if(!confirm('Add ₹'+amount.toLocaleString('en-IN',{maximumFractionDigits:2})+' to InstaPay? At ₹100 = 1 JP, you will receive '+(amount/100).toLocaleString('en-IN',{maximumFractionDigits:2})+' π (JP). This moves value from your MetCount INR balance to your spendable wallet.'))return;
  btn.disabled=true;if(status)status.textContent='Converting…';
  try{const result=await metxonSupabase.rpc('metxon_convert_balance_to_jp',{p_inr_amount:amount});if(result.error)throw result.error;
- if(status)status.textContent='Added ₹'+Number(result.data.inr_debited).toLocaleString('en-IN')+' to InstaPay as '+Number(result.data.jp_credited).toLocaleString('en-IN')+' & (JP).';
- if(input)input.value='';await refreshCloudAccount();await cloudLoadTransactions();if(typeof updateMcUI==='function')updateMcUI();await window.metxonNotifyTransaction('InstaPay wallet top-up','Added ₹'+Number(result.data.inr_debited).toLocaleString('en-IN')+' into InstaPay as '+Number(result.data.jp_credited).toLocaleString('en-IN')+' & (JP).');
+ if(status)status.textContent='Added ₹'+Number(result.data.inr_debited).toLocaleString('en-IN')+' to InstaPay as '+Number(result.data.jp_credited).toLocaleString('en-IN')+' π (JP).';
+ if(input)input.value='';await refreshCloudAccount();await cloudLoadTransactions();if(typeof updateMcUI==='function')updateMcUI();await window.metxonNotifyTransaction('InstaPay wallet top-up','Added ₹'+Number(result.data.inr_debited).toLocaleString('en-IN')+' into InstaPay as '+Number(result.data.jp_credited).toLocaleString('en-IN')+' π (JP).');
  }catch(err){if(status)status.textContent='Conversion failed: '+(err.message||err);alert('JP conversion failed: '+(err.message||err));}finally{btn.disabled=false;}
 });
 window.metCountCurrencyChanged=async function(currency){
@@ -4922,7 +4922,7 @@ window.metCountCurrencyChanged=async function(currency){
   const jp=inr/100;
   if(currency==='JP'){
    if(balanceField)balanceField.textContent=jp.toLocaleString('en-IN',{maximumFractionDigits:2})+' JP';
-   box.textContent='Converted display value: '+jp.toLocaleString('en-IN',{maximumFractionDigits:2})+' & (JP) at ₹100 = 1 JP; spendable InstaPay wallet is separate.';
+   box.textContent='Converted display value: '+jp.toLocaleString('en-IN',{maximumFractionDigits:2})+' π (JP) at ₹100 = 1 JP; spendable InstaPay wallet is separate.';
   }else if(currency==='USD'){
    const usd=inr*RATES.USD;
    if(balanceField)balanceField.textContent='$'+usd.toLocaleString('en-US',{maximumFractionDigits:2})+' USD';
@@ -5344,7 +5344,7 @@ function begin(d){
  let m=document.getElementById('metcartPasswordGate');
  if(!m){m=document.createElement('div');m.id='metcartPasswordGate';m.className='modal';m.innerHTML='<div class="modal-box"><h2 id="mpGateTitle">Delivery details</h2><p id="mpOrder"></p><p id="mpGateIntro">Optional: enter your class, section and roll number so our team can identify and deliver your order at school.</p><div id="mpFields"></div><p id="mpStatus" aria-live="polite"></p><button class="btn btn-primary" id="mpGo">Continue to payment</button><button class="btn" id="mpCancel">Cancel</button></div>';document.body.appendChild(m)}
  m.classList.add('show');const f=m.querySelector('#mpFields'),st=m.querySelector('#mpStatus'),go=m.querySelector('#mpGo'),title=m.querySelector('#mpGateTitle'),intro=m.querySelector('#mpGateIntro');
- m.querySelector('#mpOrder').textContent=o.name+' — '+(isCloud?'up to '+amount.toLocaleString('en-IN')+' & (JP); exact upgrade price confirmed securely':'₹'+amount.toLocaleString('en-IN'));
+ m.querySelector('#mpOrder').textContent=o.name+' — '+(isCloud?'up to '+amount.toLocaleString('en-IN')+' & (JP); exact upgrade price confirmed securely':'π'+(amount/100).toLocaleString('en-IN'));
  st.textContent='';go.disabled=false;go.textContent='Continue to payment';
  m.querySelector('#mpCancel').onclick=()=>{m.classList.remove('show');go.disabled=false;};
  const prepareCloudPasswordGate=async()=>{
@@ -5457,9 +5457,9 @@ function begin(d){
    go.disabled=false;
    go.textContent='Order confirmed';
    if(typeof window.metxonShowOrderReceiptToast==='function'){
-    window.metxonShowOrderReceiptToast('Order placed successfully','Order '+confirmedOrderId+' is paid. InstaPay charged '+jpPaid.toLocaleString('en-IN',{maximumFractionDigits:2})+' & (JP). Listed price: ₹'+Number(purchase.data.total||o.amount||0).toLocaleString('en-IN')+'. The receipt was saved to '+customerMailbox+' and '+ownerMailbox+'. Tap here to open Met-Ail.'); 
+    window.metxonShowOrderReceiptToast('Order placed successfully','Order '+confirmedOrderId+' is paid. InstaPay charged '+jpPaid.toLocaleString('en-IN',{maximumFractionDigits:2})+' π (JP). Listed price: ₹'+Number(purchase.data.total||o.amount||0).toLocaleString('en-IN')+'. The receipt was saved to '+customerMailbox+' and '+ownerMailbox+'. Tap here to open Met-Ail.'); 
    }else{
-    alert('Order placed successfully: '+confirmedOrderId+'. InstaPay charged '+jpPaid.toLocaleString('en-IN',{maximumFractionDigits:2})+' & (JP). Receipts saved to '+customerMailbox+' and '+ownerMailbox+'.');
+    alert('Order placed successfully: '+confirmedOrderId+'. InstaPay charged '+jpPaid.toLocaleString('en-IN',{maximumFractionDigits:2})+' π (JP). Receipts saved to '+customerMailbox+' and '+ownerMailbox+'.');
    }
   }catch(e){
    const message=String(e&&e.message||e||'Checkout failed.');
