@@ -872,19 +872,17 @@ function renderMolecule(filter='') {
 function renderMetcart() {
   const grid = document.getElementById('metcartGrid');
   if (!grid) return;
-  grid.innerHTML = CATALOG.map(item => `
-    <div class="card">
-      <h3>${item.name}</h3>
-      <p style="font-size:0.8rem;color:var(--muted)">${item.cat}</p>
-      <p>${item.desc}</p>
-      <div class="price">π${(metcartSalePrice(item.price)/100).toLocaleString('en-IN',{maximumFractionDigits:2})}${metcartSalePercent()? ` <span style="font-size:.75rem;color:var(--green)">-${metcartSalePercent()}% offer</span>` : ''}</div>
-      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
-        <button class="btn" onclick="addToCart('${item.name}', ${metcartSalePrice(item.price)})">Add to Cart</button>
-        <button class="btn btn-primary" onclick="startPay('${item.name}', ${metcartSalePrice(item.price)})">Buy Now</button>
-      </div>
-    </div>
-  `).join('');
-  updateCartBar();
+  grid.innerHTML = `
+    <div class="card" style="grid-column:1/-1;text-align:center;padding:26px">
+      <h3>MetCart — Full Storefront</h3>
+      <p>Configure one complete device, choose RAM, ROM, processor and cores, add a Tethys screen protector, and pay securely with MetPay from InstaPay.</p>
+      <p class="price" style="font-size:1.3rem;color:var(--green)">All storefront prices are displayed in π (JP).</p>
+      <a class="btn btn-primary" style="display:inline-block;margin-top:10px" href="https://nidhilarthicknet.github.io/MetCart/">Open MetCart storefront ↗</a>
+    </div>`;
+  const bar=document.getElementById('cartBar');
+  if(bar)bar.style.display='none';
+  const view=document.getElementById('cartView');
+  if(view)view.style.display='none';
 }
 
 function getCart() {
