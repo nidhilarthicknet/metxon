@@ -920,7 +920,7 @@ function updateCartBar() {
   const countEl = document.getElementById('cartCount');
   const totalEl = document.getElementById('cartTotal');
   if (countEl) countEl.textContent = count + (count === 1 ? ' item' : ' items');
-  if (totalEl) totalEl.textContent = count ? ('₹' + total.toLocaleString('en-IN')) : '';
+  if (totalEl) totalEl.textContent = count ? ('π' + (total/100).toLocaleString('en-IN',{maximumFractionDigits:2})) : '';
 }
 
 function toggleCartView() {
@@ -939,7 +939,7 @@ function toggleCartView() {
       <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
         <div>
           <strong>${item.name}</strong> × ${item.qty}
-          <div style="color:var(--green);font-size:0.9rem;">₹${(item.price*item.qty).toLocaleString('en-IN')}</div>
+          <div style="color:var(--green);font-size:0.9rem;">π${(item.price*item.qty/100).toLocaleString('en-IN',{maximumFractionDigits:2})}</div>
         </div>
         <div style="display:flex;gap:6px;">
           <button class="btn" style="padding:4px 10px;" onclick="changeCartQty(${idx}, -1)">−</button>
@@ -949,7 +949,7 @@ function toggleCartView() {
       </div>
     `).join('');
     const total = cart.reduce((s,i) => s + i.price * i.qty, 0);
-    html += `<div style="margin-top:12px;font-weight:700;color:var(--green);">Total: ₹${total.toLocaleString('en-IN')}</div>`;
+    html += `<div style="margin-top:12px;font-weight:700;color:var(--green);">Total: π${(total/100).toLocaleString('en-IN',{maximumFractionDigits:2})}</div>`;
     view.innerHTML = html;
   }
   view.style.display = 'block';
@@ -984,7 +984,7 @@ function checkoutCart() {
   const total = cart.reduce((s,i) => s + i.price * i.qty, 0);
   const names = cart.map(i => i.name + (i.qty>1?' ×'+i.qty:'')).join(', ');
   currentCheckout = {name: 'Cart: ' + names, price: total, isCart: true};
-  document.getElementById('payItemInfo').innerHTML = `Cart checkout (<strong>${cart.reduce((s,i)=>s+i.qty,0)} items</strong>) for <strong>₹${total.toLocaleString('en-IN')}</strong>`;
+  document.getElementById('payItemInfo').innerHTML = `Cart checkout (<strong>${cart.reduce((s,i)=>s+i.qty,0)} items</strong>) for <strong>π${(total/100).toLocaleString('en-IN',{maximumFractionDigits:2})}</strong>`;
   document.getElementById('payModal').classList.add('show');
 }
 
