@@ -67,3 +67,60 @@ $function$;
 revoke all on function public.metxon_buy_care_plan(text,numeric) from public;
 revoke all on function public.metxon_buy_care_plan(text,numeric) from anon;
 grant execute on function public.metxon_buy_care_plan(text,numeric) to authenticated;
+
+-- Supporting indexes for customer request history, owner queue and ticket threads.
+create index if not exists metxon_care_tickets_user_created_idx
+  on public.metxon_care_tickets (user_id, created_at desc);
+create index if not exists metxon_care_messages_ticket_created_idx
+  on public.metxon_care_messages (ticket_id, created_at asc);
+
+-- Cache auth.uid() once per statement while retaining the same ownership checks.
+drop policy if exists metxon_care_tickets_owner_insert on public.metxon_care_tickets;
+create policy metxon_care_tickets_owner_insert on public.metxon_care_tickets
+for insert to authenticated with check ((select auth.uid()) = user_id);
+drop policy if exists metxon_care_tickets_owner_select on public.metxon_care_tickets;
+create policy metxon_care_tickets_owner_select on public.metxon_care_tickets
+for select to authenticated using ((select auth.uid()) = user_id);
+drop policy if exists metxon_care_tickets_owner_update on public.metxon_care_tickets;
+create policy metxon_care_tickets_owner_update on public.metxon_care_tickets
+for update to authenticated using ((select auth.uid()) = user_id)
+with check ((select auth.uid()) = user_id);
+drop policy if exists metxon_care_tickets_support_read on public.metxon_care_tickets;
+create policy metxon_care_tickets_support_read on public.metxon_care_tickets
+for select to authenticated using (exists (
+  select 1 from public.profiles p where p.id = (select auth.uid()) and p.role in ('owner','admin')
+));
+drop policy if exists metxon_care_tickets_support_update on public.metxon_care_tickets;
+create policy metxon_care_tickets_support_update on public.metxon_care_tickets
+for update to authenticated using (exists (
+  select 1 from public.profiles p where p.id = (select auth.uid()) and p.role in ('owner','admin')
+)) with check (exists (
+  select 1 from public.profiles p where p.id = (select auth.uid()) and p.role in ('owner','admin')
+));
+drop policy if exists metxon_care_messages_customer_insert on public.metxon_care_messages;
+create policy metxon_care_messages_customer_insert on public.metxon_care_messages
+for insert to authenticated with check (
+  author_id = (select auth.uid()) and author_role = 'customer' and exists (
+    select 1 from public.metxon_care_tickets t
+    where t.id = ticket_id and t.user_id = (select auth.uid())
+  )
+);
+drop policy if exists metxon_care_messages_customer_read on public.metxon_care_messages;
+create policy metxon_care_messages_customer_read on public.metxon_care_messages
+for select to authenticated using (exists (
+  select 1 from public.metxon_care_tickets t
+  where t.id = ticket_id and t.user_id = (select auth.uid())
+));
+drop policy if exists metxon_care_messages_support_insert on public.metxon_care_messages;
+create policy metxon_care_messages_support_insert on public.metxon_care_messages
+for insert to authenticated with check (
+  author_id = (select auth.uid()) and author_role = 'support' and exists (
+    select 1 from public.profiles p
+    where p.id = (select auth.uid()) and p.role in ('owner','admin')
+  )
+);
+drop policy if exists metxon_care_messages_support_read on public.metxon_care_messages;
+create policy metxon_care_messages_support_read on public.metxon_care_messages
+for select to authenticated using (exists (
+  select 1 from public.profiles p where p.id = (select auth.uid()) and p.role in ('owner','admin')
+));
