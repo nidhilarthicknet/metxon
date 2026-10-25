@@ -156,3 +156,6 @@ $function$;
 revoke all on function public.metxon_create_care_ticket(text,text) from public;
 revoke all on function public.metxon_create_care_ticket(text,text) from anon;
 grant execute on function public.metxon_create_care_ticket(text,text) to authenticated;
+
+create index if not exists metxon_care_messages_author_id_idx
+  on public.metxon_care_messages (author_id);
