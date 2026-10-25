@@ -1236,11 +1236,11 @@ function buySub(tier, price) {
   if (acc.balance < price) return alert('Insufficient balance');
   acc.balance -= price;
   acc.sub = tier;
-  acc.subUntil = Date.now() + 7*86400000;
-  acc.txs.push({date:new Date().toISOString(), type:'Subscription', amount:-price, note:tier+' weekly'});
+  acc.subUntil = Date.now() + 30*86400000;
+  acc.txs.push({date:new Date().toISOString(), type:'Subscription', amount:-price, note:tier+' monthly'});
   save();
   updateMcUI();
-  alert(`Subscribed to ${tier} for ₹${price}/week`);
+  alert(`Subscribed to ${tier} for ₹${price}/month`);
 }
 
 
@@ -2701,7 +2701,7 @@ sendAlk=async function(){
 /* Subscription buttons are backed by the atomic database purchase function. */
 const __legacyBuySub=buySub;
 buySub=async function(tier,price){
-  try{await cloudSubscribe(tier,price);alert(`Subscribed to ${tier} for ₹${Number(price).toLocaleString('en-IN')}/week`);updateMcUI();}
+  try{await cloudSubscribe(tier,price);alert(`Subscribed to ${tier} for ₹${Number(price).toLocaleString('en-IN')}/month`);updateMcUI();}
   catch(e){alert(e.message||'Subscription failed');}
 };
 
