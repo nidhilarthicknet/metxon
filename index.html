@@ -4787,10 +4787,8 @@ async function profile(){if(!state.currentUser)throw Error('Please sign in to yo
    const submit=async()=>{const question=$('careQuestion').value.trim();if(!question)return alert('Enter your problem or question first.');
     const btn=$('careSubmit'),status=$('careSubmitStatus');btn.disabled=true;status.textContent='Sending request…';const device=$('careProblemDevice').value,subject=question.slice(0,180);
     const detail='Contact Met-Ail: '+selectedMail+'\nSelected MetCart devices: '+(selectedDevices.join(', ')||'None')+'\nSpecific device (optional): '+(device||'Not specified / software issue')+'\nProblem: '+question;
-    try{const ticket=await metxonSupabase.from('metxon_care_tickets').insert({user_id:p.id,subject}).select('id').single();if(ticket.error)throw ticket.error;
-     const msg=await metxonSupabase.from('metxon_care_messages').insert({ticket_id:ticket.data.id,author_id:p.id,author_role:'customer',message:detail});if(msg.error)throw msg.error;
-     await notifyOwner('New Metxon Care request','A new support request has arrived.\nTicket: '+ticket.data.id+'\nFrom Metxon account: '+(p.username||state.currentUser)+'\nContact Met-Ail: '+selectedMail+'\nDevices: '+(selectedDevices.join(', ')||'None')+'\nSpecific device: '+(device||'Not specified / software issue')+'\nProblem: '+question);
-     alert('Request sent to the Metxon Care team. A reply will be sent to your selected Met-Ail inbox.');showMailStep();
+    try{const ticket=await metxonSupabase.rpc('metxon_create_care_ticket',{p_subject:subject,p_message:detail.slice(0,5000)});if(ticket.error)throw ticket.error;if(!ticket.data?.success||!ticket.data.ticket_id)throw new Error('Supabase did not confirm the support request.');
+     alert('Request sent to the Metxon Care team. Ticket '+String(ticket.data.ticket_id).slice(0,8)+'. A reply will be sent to your selected Met-Ail inbox.');showMailStep();
     }catch(err){status.textContent='Could not send request: '+(err.message||err);btn.disabled=false;}
    };$('careSubmit').onclick=submit;$('careQuestion').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();submit();}};
   }
