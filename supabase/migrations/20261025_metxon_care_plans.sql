@@ -123,4 +123,36 @@ drop policy if exists metxon_care_messages_support_read on public.metxon_care_me
 create policy metxon_care_messages_support_read on public.metxon_care_messages
 for select to authenticated using (exists (
   select 1 from public.profiles p where p.id = (select auth.uid()) and p.role in ('owner','admin')
-));
+)); 
+
+-- Create the request and its first message atomically. If the message insert
+-- fails, PostgreSQL rolls back the ticket as well, so owners never see empty tickets.
+create or replace function public.metxon_create_care_ticket(p_subject text, p_message text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, extensions, pg_temp
+as $function$
+declare
+  v_uid uuid := auth.uid();
+  v_subject text := trim(coalesce(p_subject,''));
+  v_message text := trim(coalesce(p_message,''));
+  v_ticket_id uuid;
+begin
+  if v_uid is null then raise exception 'Sign in to contact Metxon Care.'; end if;
+  if char_length(v_subject) < 1 or char_length(v_subject) > 180 then
+    raise exception 'Question title must be between 1 and 180 characters.';
+  end if;
+  if char_length(v_message) < 1 or char_length(v_message) > 5000 then
+    raise exception 'Problem description must be between 1 and 5000 characters.';
+  end if;
+  insert into public.metxon_care_tickets(user_id, subject, status)
+  values (v_uid, v_subject, 'waiting') returning id into v_ticket_id;
+  insert into public.metxon_care_messages(ticket_id, author_id, author_role, message)
+  values (v_ticket_id, v_uid, 'customer', v_message);
+  return jsonb_build_object('success', true, 'ticket_id', v_ticket_id, 'subject', v_subject, 'status', 'waiting');
+end;
+$function$;
+revoke all on function public.metxon_create_care_ticket(text,text) from public;
+revoke all on function public.metxon_create_care_ticket(text,text) from anon;
+grant execute on function public.metxon_create_care_ticket(text,text) to authenticated;
