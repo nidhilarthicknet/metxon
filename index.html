@@ -479,19 +479,19 @@ tr:hover { background: rgba(255,255,255,0.03); }
       <div class="grid">
         <div class="card">
           <h3>Base</h3>
-          <p class="price">π5 JP / week</p>
+          <p class="price">π5 JP / month</p>
           <p>INR + USD • 5-min scan</p>
           <button class="btn" onclick="buySub('Base',500)">Subscribe</button>
         </div>
         <div class="card">
           <h3>Premium</h3>
-          <p class="price">π20 JP / week</p>
+          <p class="price">π20 JP / month</p>
           <p>INR USD EUR GBP JPY • Alerts</p>
           <button class="btn" onclick="buySub('Premium',2000)">Subscribe</button>
         </div>
         <div class="card">
           <h3>Elite</h3>
-          <p class="price">π100 JP / week</p>
+          <p class="price">π100 JP / month</p>
           <p>All currencies + KRW • AI Analyzer</p>
           <button class="btn" onclick="buySub('Elite',10000)">Subscribe</button>
         </div>
@@ -5488,6 +5488,56 @@ function begin(d){
 window.beginMetxonCheckout=begin;
 window.startPay=(name,price)=>begin({name,amount:Number(price),isCart:false,items:[]});
 window.checkoutCart=()=>{if(!state.currentUser){openAuth();return}let c=getCart();if(!c.length){alert('Cart is empty');return}let items=c.map(x=>({name:x.name,price:Number(x.price),qty:Number(x.qty||1)}));begin({name:'Cart: '+items.map(x=>x.name+(x.qty>1?' ×'+x.qty:'')).join(', '),amount:items.reduce((n,x)=>n+x.price*x.qty,0),isCart:true,items})};
+})();
+</script>
+
+
+<script>
+/* MetCount bridge: keep purchases, sales and subscription expiry in shared Supabase records. */
+(function(){
+  async function requireMetCountMail(){
+    if(typeof window.metxonRequireMail!=='function')throw new Error('Met-Ail verification is not available. Refresh and try again.');
+    const ok=await window.metxonRequireMail();
+    if(!ok)throw new Error('Verify your Met-Ail account before this action.');
+    const {data,error}=await metxonSupabase.auth.getSession();
+    if(error||!data.session)throw new Error('Your Metxon session expired. Sign in again.');
+  }
+  window.buyStock=async function(ticker,displayedPrice){
+    try{
+      ticker=String(ticker||'').trim().toUpperCase();
+      if(!ticker)throw new Error('Choose a stock ticker first.');
+      await requireMetCountMail();
+      const result=await cloudBuyStock(ticker,Number(displayedPrice)||0);
+      if(typeof updateMcUI==='function')updateMcUI();
+      if(typeof window.loadMetAiPortfolio==='function')await window.loadMetAiPortfolio();
+      alert('Bought 1 share of '+ticker+' using the most recent saved market quote. Your MetCount portfolio and InstaPay ledger are updated.');
+      return result;
+    }catch(e){alert((e&&e.message)||'Stock purchase could not be completed.');return null;}
+  };
+  window.sellStock=async function(ticker,displayedPrice){
+    try{
+      ticker=String(ticker||'').trim().toUpperCase();
+      if(!ticker)throw new Error('Choose a stock ticker first.');
+      await requireMetCountMail();
+      const result=await cloudSellStock(ticker,Number(displayedPrice)||0);
+      if(typeof updateMcUI==='function')updateMcUI();
+      alert('Sold 1 share of '+ticker+' using the most recent saved market quote. Proceeds were added to InstaPay and the shared portfolio is updated.');
+      return result;
+    }catch(e){alert((e&&e.message)||'Stock sale could not be completed.');return null;}
+  };
+  window.buySub=async function(tier,price){
+    try{
+      await requireMetCountMail();
+      const canonical={Base:500,Premium:2000,Elite:10000};
+      if(!canonical[tier]||Number(price)!==canonical[tier])throw new Error('Invalid subscription. Refresh this page and try again.');
+      const answer=window.confirm('Buy '+tier+' for π'+(canonical[tier]/100)+' per month from InstaPay? Renewal is manual; this is not an automatic recurring charge.');
+      if(!answer)return null;
+      const result=await cloudSubscribe(tier,canonical[tier]);
+      if(typeof updateMcUI==='function')updateMcUI();
+      alert(tier+' is active until '+new Date(result.expires_at||result.subscription_until||Date.now()+30*86400000).toLocaleString()+'.');
+      return result;
+    }catch(e){alert((e&&e.message)||'Subscription purchase could not be completed.');return null;}
+  };
 })();
 </script>
 
