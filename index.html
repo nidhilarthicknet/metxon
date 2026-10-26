@@ -4296,11 +4296,9 @@ window.showIncomingMessagePopup=function(username,message){
   async function loadMetPayContacts(){
     try{
       const me=await currentCloudProfile(); if(!me)return[];
-      const {data,error}=await metxonSupabase.from('metpay_contacts').select('contact_id,created_at').eq('user_id',me.id).order('created_at',{ascending:true});
+      const {data,error}=await metxonSupabase.rpc('metpay_get_contacts_with_usernames');
       if(error){console.warn('MetPay contacts unavailable:',error.message);return[];}
-      const ids=(data||[]).map(x=>x.contact_id); if(!ids.length)return[];
-      const {data:profiles,error:e2}=await metxonSupabase.from('profiles').select('id,username,display_name').in('id',ids);
-      if(e2){console.warn('MetPay profiles unavailable:',e2.message);return[];} return profiles||[];
+      return (data||[]).map(x=>({id:x.contact_id,username:x.username,display_name:x.display_name,created_at:x.created_at}));
     }catch(e){console.warn('MetPay contact loading failed:',e);return[];}
   }
   async function addMetPayContact(username){
