@@ -4598,7 +4598,7 @@ window.metxonNotifySound=function(kind='default'){
  Object.assign(overlay.style,{position:'fixed',inset:'0',zIndex:'99999',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:'#05080d',color:'#00d8f5',fontWeight:'800',letterSpacing:'.12em',fontSize:'clamp(2rem,8vw,4.5rem)',transition:'opacity .35s ease'});
  const style=document.createElement('style');style.textContent='#metxonBootTransition .metxon-boot-word{animation:metBootPulse .8s ease-in-out infinite alternate}#metxonBootTransition .metxon-boot-sub{font-size:12px;letter-spacing:.16em;color:#91a4b4;margin-top:16px;text-transform:uppercase}@keyframes metBootPulse{from{opacity:.55;transform:scale(.97)}to{opacity:1;transform:scale(1.02)}}';
  document.head.appendChild(style);document.body.appendChild(overlay);await new Promise(resolve=>setTimeout(resolve,500));
- overlay.querySelector('.metxon-boot-word').textContent='XON';overlay.querySelector('.metxon-boot-sub').textContent='Secured by Metware X';
+ overlay.querySelector('.metxon-boot-word').textContent='XON';overlay.querySelector('.metxon-boot-sub').textContent='Opening '+safe(appName)+'…';
  await new Promise(resolve=>setTimeout(resolve,650));overlay.style.opacity='0';await new Promise(resolve=>setTimeout(resolve,350));overlay.remove();style.remove();
 }
 async function profile(){if(!state.currentUser)throw Error('Please sign in to your Metxon account first.');const {data:sessionData,error:sessionError}=await metxonSupabase.auth.getSession();if(sessionError||!sessionData?.session)throw Error('Your secure Metxon session has expired. Please sign out and sign back in.');const p=await loadCloudAccount(state.currentUser);if(!p||!p.id||p.id!==sessionData.session.user.id)throw Error('Your Metxon profile could not be verified against the active session. Please sign out and sign back in.');return p;}
@@ -5584,7 +5584,7 @@ window.checkoutCart=()=>{if(!state.currentUser){openAuth();return}let c=getCart(
   };
   function navTarget(node){
     if(!(node instanceof Element))return null;
-    return node.closest('button[data-page],button[data-nav],nav button,a[href^="#"],button[onclick*="tryShow("],button[onclick*="openApp("]');
+    return node.closest('button[data-page],button[data-nav],nav button,a[href^="#"]');
   }
   function paymentTarget(node){
     if(!(node instanceof Element))return null;
