@@ -594,11 +594,12 @@ tr:hover { background: rgba(255,255,255,0.03); }
       <div class="form-group"><label>Address</label><input id="authAddr" type="text"></div>
       <div class="form-group"><label>Phone</label><input id="authPhone" type="text"></div>
     </div>
-    <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="handleAuth()">Continue</button>
+    <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="handleAuth()">Continue</button><button class="btn" style="width:100%;margin-top:8px;" onclick="openMetxonAlt()">Try another way</button>
     <button class="btn" style="width:100%;margin-top:8px;" onclick="closeAuth()">Cancel</button>
   </div>
 </div>
 
+<div class="modal" id="metxonAltModal"><div class="modal-box"><h2>Try another way</h2><p>Use Met-Ail recovery or sign in with a MetPass registered for Metxon.</p><div class="form-group"><label>Method</label><select id="metxonAltMethod" onchange="toggleMetxonAltMethod()"><option value="metail">Use Met-Ail</option><option value="passkey">Use passkey</option></select></div><div id="metxonAltMail"><div class="form-group"><label>Met-Ail ID</label><input id="metxonAltMailId" autocomplete="email"></div><button class="btn" onclick="sendMetxonAltCode()">Send one-time code</button><div id="metxonAltCodeBox" style="display:none"><div class="form-group"><label>One-time code</label><input id="metxonAltCode" inputmode="numeric" maxlength="6"></div><div class="form-group"><label>New Metxon password</label><input id="metxonAltNewPass" type="password" minlength="8" maxlength="128"></div><button class="btn btn-primary" onclick="confirmMetxonAltCode()">Verify and change password</button></div></div><div id="metxonAltPass" style="display:none"><div class="form-group"><label>Metxon username</label><input id="metxonAltUser" autocomplete="username"></div><div class="form-group"><label>MetPass passkey</label><input id="metxonAltSecret" type="password" autocomplete="current-password"></div><button class="btn btn-primary" onclick="verifyMetxonAltPass()">Verify and sign in</button></div><div id="metxonAltStatus" class="notice" aria-live="polite" style="margin-top:12px"></div><button class="btn" style="width:100%;margin-top:8px" onclick="closeMetxonAlt()">Back</button></div></div>
 <!-- MET-PAY MODAL -->
 <div class="modal" id="payModal">
   <div class="modal-box">
@@ -731,6 +732,12 @@ function handleAuth() {
   return alert('Metxon account security is still loading. Please try again.');
 }
 
+function openMetxonAlt(){document.getElementById('metxonAltModal').classList.add('show');document.getElementById('metxonAltStatus').textContent='';}
+function closeMetxonAlt(){document.getElementById('metxonAltModal').classList.remove('show');}
+function toggleMetxonAltMethod(){const pass=document.getElementById('metxonAltMethod').value==='passkey';document.getElementById('metxonAltMail').style.display=pass?'none':'block';document.getElementById('metxonAltPass').style.display=pass?'block':'none';}
+async function sendMetxonAltCode(){const s=document.getElementById('metxonAltStatus');s.textContent='Requesting one-time code…';try{const r=await metxonSupabase.functions.invoke('metcount-metpass',{body:{action:'request_metail_otp',metailId:document.getElementById('metxonAltMailId').value.trim()}});if(r.error)throw r.error;if(r.data?.error)throw new Error(r.data.error);document.getElementById('metxonAltCodeBox').style.display='block';s.textContent=r.data.message||'Check your Met-Ail inbox.';}catch(e){s.textContent=e.message||'Could not request code.';}}
+async function confirmMetxonAltCode(){const s=document.getElementById('metxonAltStatus');s.textContent='Verifying code…';try{const r=await metxonSupabase.functions.invoke('metcount-metpass',{body:{action:'confirm_metail_otp',metailId:document.getElementById('metxonAltMailId').value.trim(),code:document.getElementById('metxonAltCode').value.trim(),newPassword:document.getElementById('metxonAltNewPass').value}});if(r.error)throw r.error;if(r.data?.error)throw new Error(r.data.error);if(r.data.session){await metxonSupabase.auth.setSession(r.data.session);syncProfileToLegacy(r.data.profile);const u=String(r.data.profile.username||'').toLowerCase();state.currentUser=u;onLogin(u);closeMetxonAlt();closeAuth();}else s.textContent='Password changed. Return to sign in with your new password.';}catch(e){s.textContent=e.message||'Recovery failed.';}}
+async function verifyMetxonAltPass(){const s=document.getElementById('metxonAltStatus');s.textContent='Verifying passkey…';try{const r=await metxonSupabase.functions.invoke('metcount-metpass',{body:{action:'passkey_login',username:document.getElementById('metxonAltUser').value.trim(),secret:document.getElementById('metxonAltSecret').value,website:'Metxon'}});if(r.error)throw r.error;if(r.data?.error)throw new Error(r.data.error);const v=await metxonSupabase.auth.setSession(r.data.session);if(v.error)throw v.error;syncProfileToLegacy(r.data.profile);const u=String(r.data.profile.username||'').toLowerCase();state.currentUser=u;onLogin(u);document.getElementById('metxonAltSecret').value='';closeMetxonAlt();closeAuth();}catch(e){s.textContent=e.message||'Passkey sign-in failed.';}}
 function onLogin(user) {
   state.currentUser = user;
   const badge = document.getElementById('userBadge');
