@@ -2818,69 +2818,98 @@ async function secureMigrateLegacyAccount(username, password){
 
 const __secureLegacyHandleAuth = handleAuth;
 window.__METXON_SECURE_HANDLE_AUTH = async function(){
+  if(window.__METXON_AUTH_BUSY) return;
+  window.__METXON_AUTH_BUSY = true;
   const user=(document.getElementById('authUser').value||'').trim().toLowerCase();
   const pass=(document.getElementById('authPass').value||'');
-  if(!user || !pass) return alert('Username and password required');
+  const submitButton=document.querySelector('#authModal button.btn-primary');
+  const oldButtonText=submitButton ? submitButton.textContent : '';
+  if(submitButton){submitButton.disabled=true;submitButton.textContent='Signing in…';}
 
   try{
+    if(!user || !pass) throw new Error('Username and password required');
+
+    let result;
+    let migrationSessionAlreadySet=false;
+
     if(window._authMode==='existing'){
-      let result;
       try{
         result=await metxonAuthRequest('login',{username:user,password:pass});
       }catch(firstError){
         const local=state.accounts[user];
         if(!local || !local.pass) throw firstError;
         result=await secureMigrateLegacyAccount(user,pass);
+        migrationSessionAlreadySet=Boolean(result.session);
       }
-
-      if(result.session){
-        await metxonSupabase.auth.setSession({
-          access_token:result.session.access_token,
-          refresh_token:result.session.refresh_token
-        });
-      }
-
-      syncProfileToLegacy(result.profile);
-      state.currentUser=user;
-      stripLocalPassword(user);
-      save();
-      closeAuth();
-      onLogin(user);
-      await cloudLoadTransactions();
-      await cloudLoadHoldings();
-      await cloudLoadCart();
-      await cloudRealtime();
-      return;
-    }
-
-    const result=await metxonAuthRequest('signup',{
-      username:user,
-      password:pass,
-      display_name:document.getElementById('authName').value||user,
-      dob:document.getElementById('authDob').value,
-      address:document.getElementById('authAddr').value,
-      phone:document.getElementById('authPhone').value
-    });
-
-    if(result.session){
-      await metxonSupabase.auth.setSession({
-        access_token:result.session.access_token,
-        refresh_token:result.session.refresh_token
+    }else{
+      result=await metxonAuthRequest('signup',{
+        username:user,
+        password:pass,
+        display_name:document.getElementById('authName').value||user,
+        dob:document.getElementById('authDob').value,
+        address:document.getElementById('authAddr').value,
+        phone:document.getElementById('authPhone').value
       });
     }
 
+    if(!result || !result.profile) throw new Error('The account service did not return your Metxon profile.');
+    if(!result.session || !result.session.access_token || !result.session.refresh_token){
+      throw new Error('Your credentials were accepted, but Metxon did not return a persistent login session. Please try again.');
+    }
+
+    if(!migrationSessionAlreadySet){
+      const {data:sessionResult,error:sessionError}=await metxonSupabase.auth.setSession({
+        access_token:result.session.access_token,
+        refresh_token:result.session.refresh_token
+      });
+      if(sessionError) throw sessionError;
+      if(!sessionResult || !sessionResult.session) throw new Error('Metxon could not save your login session.');
+    }
+
+    const {data:storedSession,error:storedSessionError}=await metxonSupabase.auth.getSession();
+    if(storedSessionError) throw storedSessionError;
+    if(!storedSession || !storedSession.session){
+      throw new Error('Your login was not saved on this device. Please try again.');
+    }
+    if(result.profile.id && storedSession.session.user.id!==result.profile.id){
+      throw new Error('The saved login does not match this Metxon account. Please sign in again.');
+    }
+
+    const signedInUser=String(result.profile.username||user).trim().toLowerCase();
+    if(signedInUser!==user) throw new Error('The returned Metxon profile does not match the username entered.');
+
     syncProfileToLegacy(result.profile);
-    state.currentUser=user;
-    stripLocalPassword(user);
+    state.currentUser=signedInUser;
+    stripLocalPassword(signedInUser);
     save();
     closeAuth();
-    onLogin(user);
-    await cloudLoadTransactions();
-    await cloudLoadHoldings();
-    await cloudLoadCart();
-    await cloudRealtime();
+    const passwordField=document.getElementById('authPass');
+    if(passwordField) passwordField.value='';
+    onLogin(signedInUser);
+
+    // The user entered through Mettin's access gate, so open Mettin immediately.
+    tryShow('mettin');
+
+    // Cloud panels refresh after the authenticated page is visible. A secondary
+    // data-panel error must not undo a successful login or send the user back.
+    for(const [label,task] of [
+      ['transactions',cloudLoadTransactions],
+      ['holdings',cloudLoadHoldings],
+      ['cart',cloudLoadCart],
+      ['realtime',cloudRealtime]
+    ]){
+      try{await task();}
+      catch(syncError){console.warn('Metxon '+label+' refresh failed after login:',syncError);}
+    }
+    if(typeof renderInstalledApps==='function'){
+      try{await renderInstalledApps();}
+      catch(renderError){console.warn('Metxon installed-app refresh failed:',renderError);}
+    }
   }catch(e){
     alert(e.message||'Unable to connect to Metxon account service');
+  }finally{
+    window.__METXON_AUTH_BUSY=false;
+    if(submitButton){submitButton.disabled=false;submitButton.textContent=oldButtonText||'Continue';}
   }
 };
 
