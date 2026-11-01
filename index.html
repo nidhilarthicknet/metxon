@@ -792,6 +792,8 @@ function tryShow(page) {
   if (btn) btn.classList.add('active');
   window.scrollTo(0,0);
 
+  if (page === 'molecule') syncMoleculeCatalogue();
+
   if (page === 'metcount') {
     const authBox=document.getElementById('mcAuthBox');
     const dashboard=document.getElementById('mcDashboard');
@@ -830,7 +832,8 @@ function flexibleSearch(query) {
 
   const results = CATALOG.filter(item => {
     const n = item.name.toLowerCase();
-    return n.includes(term) || term.split(/\s+/).every(w => n.includes(w));
+    const searchable=[n,String(item.cat||'').toLowerCase(),String(item.desc||'').toLowerCase()].join(' ');
+    return searchable.includes(term) || term.split(/\s+/).filter(Boolean).every(w=>searchable.includes(w));
   });
   return results;
 }
@@ -881,7 +884,7 @@ function renderMolecule(filter='') {
 
 async function syncMoleculeCatalogue(){
   try{
-    const {data,error}=await metxonSupabase.functions.invoke('metcart-catalog-sync');
+    const {data,error}=await metxonSupabase.functions.invoke('metcart-catalog-sync',{method:'GET'});
     if(error)throw error;
     if(!data||!Array.isArray(data.products)||!data.products.length)throw new Error('The live MetCart catalogue returned no products.');
     const products=data.products.filter(p=>p&&p.name&&Number.isFinite(Number(p.price))).map(p=>({
