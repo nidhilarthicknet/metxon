@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="546" height="570" viewBox="0 0 546 570" role="img" aria-labelledby="title desc">
+<title id="title">Molecule — a Metxon product</title>
+<desc id="desc">Blue rounded plus symbol above the Molecule wordmark and the tagline a Metxon product.</desc>
+<defs>
+  <linearGradient id="moleculeWord" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#2872b9"/>
+    <stop offset="1" stop-color="#667b99"/>
+  </linearGradient>
+  <filter id="softShadow" x="-15%" y="-20%" width="140%" height="150%">
+    <feDropShadow dx="2.5" dy="3.5" stdDeviation="1.8" flood-color="#172d49" flood-opacity=".28"/>
+  </filter>
+</defs>
+<rect width="546" height="570" fill="#e9ebef"/>
+<path d="M238 134
+         H291
+         C304 134 315 145 315 158
+         V176
+         C315 187 324 196 335 196
+         H368
+         C374 196 378 202 378 208
+         V259
+         C378 266 372 271 365 271
+         H335
+         C324 271 315 280 315 291
+         V320
+         C315 328 309 333 301 333
+         H250
+         C243 333 238 327 238 320
+         V291
+         C238 280 229 271 218 271
+         H187
+         C180 271 175 266 175 259
+         V208
+         C175 201 180 196 187 196
+         H218
+         C229 196 238 187 238 176
+         V158
+         C238 145 226 134 238 134 Z" fill="#0871bd"/>
+<text x="273" y="396" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="36" font-weight="800" fill="url(#moleculeWord)" filter="url(#softShadow)">Molecule</text>
+<text x="273" y="422" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="400" fill="#0966bd">a Metxon product</text>
+</svg>
