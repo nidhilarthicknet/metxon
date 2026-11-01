@@ -325,7 +325,7 @@ tr:hover { background: rgba(255,255,255,0.03); }
 <nav>
   <div class="logo" onclick="tryShow('home')">METXON</div>
   <div class="nav-links">
-    <button class="nav-btn active" data-page="home" onclick="tryShow('home')">Wiki / Home</button>
+    <button class="nav-btn active" data-page="home" onclick="tryShow('home')">Home</button>
     <button class="nav-btn locked" data-page="molecule" onclick="tryShow('molecule')">Molecule</button>
     <button class="nav-btn locked" data-page="mettin" onclick="tryShow('mettin')">Mettin</button>
     <button class="nav-btn locked" data-page="metcount" onclick="tryShow('metcount')">MetCount</button>
@@ -339,7 +339,9 @@ tr:hover { background: rgba(255,255,255,0.03); }
 <div id="page-home" class="page active">
   <div class="hero">
     <div style="font-size:0.8rem;color:var(--cyan);letter-spacing:2px;margin-bottom:8px;">METXON CORPORATE</div>
+    <img src="https://nidhilarthicknet.github.io/metxon/molecule-logo.svg" alt="Molecule — a Metxon product" style="width:min(180px,55vw);height:auto;display:block;margin:8px auto 18px">
     <h1>Metxon Corporate</h1>
+    <p style="font-size:1.05rem;font-weight:700;letter-spacing:.02em;color:var(--cyan);margin:4px 0 12px">The tech for a new era</p>
     <p>Welcome to the official <strong>Metxon Corporate</strong> ecosystem portal: Molecule hardware, Mettin software &amp; AI, MetCount financial infrastructure, MetCart commerce, and Chess Boys.</p>
     
     <div class="search-wrap">
@@ -392,6 +394,7 @@ tr:hover { background: rgba(255,255,255,0.03); }
     <button class="btn btn-primary" onclick="openAuth()">Join Metxon</button>
   </div>
   <div id="moleculeContent">
+    <img src="https://nidhilarthicknet.github.io/metxon/molecule-logo.svg" alt="Molecule — a Metxon product" style="width:min(170px,48vw);height:auto;display:block;margin:0 auto 12px">
     <h1 style="color:var(--cyan);">Molecule™ – Hardware Division</h1>
     <p style="color:var(--muted);margin-bottom:16px;">Complete device catalog with Cule-In search.</p>
     <div class="cule-search-bar">
@@ -874,6 +877,24 @@ function renderMolecule(filter='') {
       <div class="price">π${(item.price/100).toLocaleString('en-IN',{maximumFractionDigits:2})}</div>
     </div>
   `).join('') || '<p style="color:var(--muted)">No devices match.</p>';
+}
+
+async function syncMoleculeCatalogue(){
+  try{
+    const {data,error}=await metxonSupabase.functions.invoke('metcart-catalog-sync');
+    if(error)throw error;
+    if(!data||!Array.isArray(data.products)||!data.products.length)throw new Error('The live MetCart catalogue returned no products.');
+    const products=data.products.filter(p=>p&&p.name&&Number.isFinite(Number(p.price))).map(p=>({
+      name:String(p.name),cat:String(p.category||'Products'),desc:String(p.description||''),price:Number(p.price)
+    }));
+    if(!products.length)throw new Error('No valid live products were returned.');
+    CATALOG.splice(0,CATALOG.length,...products);
+    renderMolecule(document.getElementById('molSearch')?.value||'');
+    return true;
+  }catch(error){
+    console.warn('Molecule live catalogue sync failed; keeping the built-in catalogue:',error.message||error);
+    return false;
+  }
 }
 
 function renderMetcart() {
@@ -1929,6 +1950,7 @@ function chessClick(r, c) {
 load();
 setTimeout(()=>{if(typeof renderInstalledApps==='function')renderInstalledApps();},600);
 renderMolecule();
+syncMoleculeCatalogue();
 renderMetcart();
 renderSMEs();
 // Initial lock state
