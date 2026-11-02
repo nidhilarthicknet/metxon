@@ -345,10 +345,10 @@ tr:hover { background: rgba(255,255,255,0.03); }
     <p>Welcome to the official <strong>Metxon Corporate</strong> ecosystem portal: Molecule hardware, Mettin software &amp; AI, MetCount financial infrastructure, MetCart commerce, and Chess Boys.</p>
     
     <div class="search-wrap">
-      <input type="text" id="homeSearch" placeholder="Search the Metxon ecosystem with Cule-In..." onkeydown="if(event.key==='Enter')homeSearch()">
+      <input type="text" id="homeSearch" placeholder="Search Metxon knowledge with Cule-In..." onkeydown="if(event.key==='Enter')homeSearch()">
       <button onclick="homeSearch()">Search</button>
     </div>
-    <button class="cule-toggle" id="homeCuleToggle" onclick="toggleCuleAI(this)">Cule AI OFF</button>
+    <button class="cule-toggle" id="homeCuleToggle" onclick="window.location.href='https://nidhilarthicknet.github.io/Mettin/'">Open Cule AI chat in Mettin</button>
     <div id="homeSearchResult" style="margin-top:16px;max-width:700px;margin-left:auto;margin-right:auto;text-align:left;"></div>
   </div>
 
@@ -838,33 +838,24 @@ function flexibleSearch(query) {
   return results;
 }
 
-function homeSearch() {
-  const q = document.getElementById('homeSearch').value;
-  const box = document.getElementById('homeSearchResult');
-  if (!q) return;
-  const results = flexibleSearch(q);
-  if (state.culeAI || document.getElementById('homeCuleToggle').classList.contains('on')) {
-    if (results.length) {
-      box.innerHTML = `<div class="card"><strong style="color:var(--purple)">[Cule AI]</strong><br>
-        According to Molecule & MetCart records:<br>` +
-        results.map(r => `• <strong>${r.name}</strong> – π${(r.price/100).toLocaleString('en-IN',{maximumFractionDigits:2})} (${r.cat})`).join('<br>') +
-        `</div>`;
-    } else {
-      box.innerHTML = `<div class="card"><strong style="color:var(--purple)">[Cule AI]</strong> No matching product found for "${q}".</div>`;
-    }
-  } else {
-    if (results.length) {
-      box.innerHTML = results.map(r => `<div class="card"><strong>${r.name}</strong> – π${(r.price/100).toLocaleString('en-IN',{maximumFractionDigits:2})} <span style="color:var(--muted)">(${r.cat})</span></div>`).join('');
-    } else {
-      box.innerHTML = `<div class="card">No results for "${q}"</div>`;
-    }
-  }
+function culeHtmlEscape(value){
+  return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 }
-
-function toggleCuleAI(btn) {
-  btn.classList.toggle('on');
-  btn.textContent = btn.classList.contains('on') ? 'Cule AI ON' : 'Cule AI OFF';
-  state.culeAI = btn.classList.contains('on');
+async function homeSearch() {
+  const q=document.getElementById('homeSearch').value.trim();
+  const box=document.getElementById('homeSearchResult');
+  if(!q)return;
+  box.innerHTML='<div class="card">Cule-In is searching the public Metxon knowledge base…</div>';
+  try{
+    const {data,error}=await metxonSupabase.functions.invoke('cule-in-search',{body:{question:q}});
+    if(error)throw error;
+    if(!data||data.error)throw new Error(data?.error||'No Cule-In results were returned.');
+    const results=Array.isArray(data.results)?data.results:[];
+    box.innerHTML='<div class="card"><strong style="color:var(--purple)">[Cule-In · Supabase knowledge search]</strong><p>'+culeHtmlEscape(data.answer||'No matching information was found.')+'</p></div>'+
+      results.map(item=>'<div class="card"><strong>'+culeHtmlEscape(item.title||'Metxon information')+'</strong><p style="color:var(--muted)">'+culeHtmlEscape(item.category||'Metxon reference')+'</p><p>'+culeHtmlEscape(item.summary||'')+'</p>'+(item.details?'<p>'+culeHtmlEscape(item.details)+'</p>':'')+'</div>').join('');
+  }catch(error){
+    box.innerHTML='<div class="card"><strong>Cule-In could not search.</strong><p>'+culeHtmlEscape(error.message||'Sign in to Metxon and try again.')+'</p></div>';
+  }
 }
 
 /* ===================== RENDERERS ===================== */
