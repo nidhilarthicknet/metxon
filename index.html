@@ -4205,27 +4205,40 @@ window.showIncomingMessagePopup=function(username,message){
     }catch(e){console.warn(e);}
   }
 
+  function nebulaJpPrice(amountInr){
+    return 'π'+(Number(amountInr||0)/100).toLocaleString('en-IN',{maximumFractionDigits:2})+' JP';
+  }
+
   window.installNebulaApp=async function(key){
     const app=APPS[key]; if(!app)return;
     if(!state.currentUser)return openAuth();
     if(await nebulaIsInstalled(app.id))return launchNebulaApp(key);
 
+    const amountJp=Number(app.price)/100;
     const ok=confirm(
-      `Install ${app.name} for ₹${app.price.toLocaleString('en-IN')}?\n\n`+
-      `This is a ONE-TIME installation payment. The amount is charged from your Metxon balance only after you confirm.`
+      `Install ${app.name} for ${nebulaJpPrice(app.price)}?\n\n`+
+      'This is a one-time purchase from your InstaPay JP wallet. A MetPay transaction password is required.'
     );
     if(!ok)return;
 
+    let password='';
+    if(amountJp>0){
+      password=prompt('Enter your MetPay transaction password to install '+app.name+'.');
+      if(password===null)return;
+    }
     try{
-      const {error}=await metxonSupabase.rpc('metxon_install_app',{
-        p_app_id:app.id,p_app_name:app.name,p_price:app.price
+      const {data,error}=await metxonSupabase.rpc('mettin_install_nebula_app',{
+        p_app_id:app.id,p_metpay_password:password
       });
       if(error)throw error;
+      if(!data||!data.installed)throw new Error('Supabase did not confirm this installation.');
       await refreshCloudAccount();
       await cloudLoadTransactions();
       await refreshInstalledApps();
       await renderNebulaStore();
-      alert(`${app.name} installed successfully. ₹${app.price.toLocaleString('en-IN')} was charged from your Metxon balance.`);
+      alert(data.charged
+        ? app.name+' installed successfully for '+nebulaJpPrice(data.price_inr||app.price)+'.'
+        : app.name+' is already installed.');
     }catch(e){
       alert(e.message||'Installation failed.');
     }
@@ -4239,10 +4252,10 @@ window.showIncomingMessagePopup=function(username,message){
         ${installed?'<span class="nebula-installed">INSTALLED</span>':''}
       </div>
       <p style="color:var(--muted);min-height:44px">${esc(a.desc)}</p>
-      <div class="nebula-price">₹${a.price.toLocaleString('en-IN')} one-time</div>
+      <div class="nebula-price">${nebulaJpPrice(a.price)} · one-time</div>
       <button class="btn ${installed?'':'btn-primary'}" style="margin-top:10px"
         onclick="${installed?`launchNebulaApp('${key}')`:`installNebulaApp('${key}')`}">
-        ${installed?'Open':`Install · ₹${a.price.toLocaleString('en-IN')}`}
+        ${installed?'Open':`Install · ${nebulaJpPrice(a.price)}`}
       </button>
     </div>`;
   }
@@ -4271,15 +4284,15 @@ window.showIncomingMessagePopup=function(username,message){
     content.innerHTML=`
       <div class="card" style="margin-bottom:16px">
         <h3>Nebula Store</h3>
-        <p style="color:var(--muted)">Install an app before using it. Every installation is a one-time payment from your Metxon balance and requires confirmation.</p>
+        <p style="color:var(--muted)">Install an app before using it. One-time prices are charged from the InstaPay JP wallet after MetPay password verification.</p>
       </div>
       <h3>Apps & Games</h3>
       <div class="nebula-store-grid">${Object.keys(APPS).map(k=>appCard(k,installed.has(APPS[k].id))).join('')}</div>
       <div class="card" style="margin-top:16px">
         <strong>One-time installation prices</strong>
         <p style="color:var(--muted);margin-bottom:0">
-          MetDevelop ₹20,000 · Cule-In ₹1,000 · Nebula AI ₹10,000 · Met-Alk ₹15,000 ·
-          Block Breaker ₹500 · Football ₹200 · Chess Boys ₹10,000 · MetPay ₹1,000
+          MetDevelop π200 JP · Cule-In π10 JP · Nebula AI π100 JP · Met-Alk π150 JP ·
+          Block Breaker π5 JP · Football π2 JP · Chess Boys π100 JP · MetPay π10 JP
         </p>
       </div>
       <div id="gameArea" style="margin-top:16px"></div>`;
