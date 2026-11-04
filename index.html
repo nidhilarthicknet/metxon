@@ -5711,7 +5711,7 @@ window.checkoutCart=()=>{if(!state.currentUser){openAuth();return}let c=getCart(
 /* MetConnect bridge: Corporate Nebula Store uses the same secure Mettin installer and app. */
 (function(){
   const apps=window.NEBULA_APPS||{};
-  apps.metConnect={id:'metconnect',name:'MetConnect',price:50000,desc:'Private username messaging, Talk, voice/video calls and browser-approved screen sharing.'};
+  apps.metConnect={id:'metconnect',name:'MetConnect',price:5000,desc:'Private username messaging, Talk, voice/video calls and browser-approved screen sharing.'};
   window.NEBULA_APPS=apps;
 
   const oldInstall=window.installNebulaApp;
@@ -5724,8 +5724,8 @@ window.checkoutCart=()=>{if(!state.currentUser){openAuth();return}let c=getCart(
       const check=await metxonSupabase.from('metxon_app_installations').select('app_id').eq('user_id',p.id).eq('app_id','metconnect').maybeSingle();
       if(check.error)throw check.error;
       if(check.data)return window.launchNebulaApp('metConnect');
-      if(!confirm('Install MetConnect for π500 JP? This is a one-time purchase using your MetPay password.'))return;
-      const password=prompt('Enter your MetPay transaction password to install MetConnect (π500 JP).');
+      if(!confirm('Install MetConnect for π50 JP? This is a one-time purchase using your MetPay password.'))return;
+      const password=prompt('Enter your MetPay transaction password to install MetConnect (π50 JP).');
       if(password===null)return;
       const purchase=await metxonSupabase.rpc('mettin_install_nebula_app',{
         p_app_id:'metconnect',
@@ -5736,7 +5736,7 @@ window.checkoutCart=()=>{if(!state.currentUser){openAuth();return}let c=getCart(
       if(typeof cloudLoadTransactions==='function')await cloudLoadTransactions();
       if(typeof window.renderInstalledApps==='function')await window.renderInstalledApps();
       if(typeof window.renderNebulaStore==='function')await window.renderNebulaStore();
-      alert(purchase.data&&purchase.data.charged?'MetConnect installed. π500 JP was charged.':'MetConnect is already installed.');
+      alert(purchase.data&&purchase.data.charged?'MetConnect installed. π50 JP was charged.':'MetConnect is already installed.');
     }catch(e){console.error('MetConnect purchase:',e);alert(e.message||'MetConnect installation failed.');}
   };
 
@@ -5764,7 +5764,7 @@ window.checkoutCart=()=>{if(!state.currentUser){openAuth();return}let c=getCart(
       const title=card.querySelector('h3');
       if(!title||title.textContent.trim()!=='MetConnect')return;
       const price=card.querySelector('.nebula-price');
-      if(price)price.textContent='π500 JP · one-time';
+      if(price)price.textContent='π50 JP · one-time';
       const button=card.querySelector('button');
       if(button){
         const p=loadCloudAccount(state.currentUser);
@@ -5772,7 +5772,7 @@ window.checkoutCart=()=>{if(!state.currentUser){openAuth();return}let c=getCart(
           if(!profile?.id)return;
           const r=await metxonSupabase.from('metxon_app_installations').select('app_id').eq('user_id',profile.id).eq('app_id','metconnect').maybeSingle();
           if(r.error)return;
-          button.textContent=r.data?'Open':'Install · π500 JP';
+          button.textContent=r.data?'Open':'Install · π50 JP';
           button.onclick=()=>r.data?window.launchNebulaApp('metConnect'):window.installNebulaApp('metConnect');
         }).catch(e=>console.warn('MetConnect store status:',e));
       }
