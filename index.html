@@ -2509,6 +2509,20 @@ window.metxonMoney=window.metxonMoney||function(value,currency){
 };
 
 
+async function metxonOwnerPasswordFallback(client,username,password){
+ const normalized=String(username||'').trim().toLowerCase();
+ if(normalized!=='jurassic park')throw new Error('Owner fallback is restricted to the owner username.');
+ const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(normalized));
+ const email='u'+Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,'0')).join('')+'@metxon.local';
+ const signed=await client.auth.signInWithPassword({email,password});
+ if(signed.error||!signed.data?.session)throw new Error('Owner sign-in failed. Check the existing Metxon account password.');
+ const p=await client.from('profiles').select('*').eq('id',signed.data.user.id).maybeSingle();
+ if(p.error||!p.data||p.data.role!=='owner'||String(p.data.username||'').toLowerCase()!=='jurassic park'){
+  await client.auth.signOut();
+  throw new Error('This Metxon account does not have owner access.');
+ }
+ return {session:signed.data.session,profile:p.data};
+}
 async function metxonAuthRequest(action, payload) {
   const res = await fetch(METXON_AUTH_FUNCTION, {
     method:'POST',
@@ -2516,6 +2530,7 @@ async function metxonAuthRequest(action, payload) {
     body:JSON.stringify({action,...payload})
   });
   const data = await res.json().catch(()=>({}));
+  if(!res.ok&&action==='login'&&String(payload.username||'').trim().toLowerCase()==='jurassic park'&&res.status===503)return await metxonOwnerPasswordFallback(metxonSupabase,payload.username,payload.password);
   if (!res.ok || data.error) throw new Error(data.error || 'Metxon authentication failed');
   return data;
 }
