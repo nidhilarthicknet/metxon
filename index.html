@@ -765,7 +765,8 @@ function onLogin(user) {
   save();
 }
 
-function logout() {
+async function logout() {
+  try{await metxonSupabase.auth.signOut();}catch(e){console.warn('Metxon sign-out sync:',e);}
   state.currentUser = null;
   document.getElementById('userBadge').style.display = 'none';
   document.getElementById('authBtn').textContent = 'Join Metxon';
