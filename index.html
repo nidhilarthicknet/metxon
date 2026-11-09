@@ -5779,7 +5779,7 @@ window.checkoutCart=()=>{if(!state.currentUser){openAuth();return}let c=getCart(
       const q=await metxonSupabase.from('metxon_app_installations').select('app_id').eq('user_id',p.id).eq('app_id','metconnect').maybeSingle();
       if(q.error)throw q.error;
       if(!q.data)return alert('Install MetConnect from Nebula Store first.');
-      window.location.href='https://nidhilarthicknet.github.io/Mettin/?openApp=metconnect';
+      const metconnectWindow=window.open('https://nidhilarthicknet.github.io/Mettin/?openApp=metconnect','MetConnect','popup,width=1120,height=820,resizable=yes,scrollbars=yes');if(!metconnectWindow)window.location.href='https://nidhilarthicknet.github.io/Mettin/?openApp=metconnect';
     }catch(e){console.error('MetConnect open:',e);alert(e.message||'Could not open MetConnect.');}
   };
 
