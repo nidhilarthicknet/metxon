@@ -5780,7 +5780,7 @@ window.checkoutCart=()=>{if(!state.currentUser){openAuth();return}let c=getCart(
       const q=await metxonSupabase.from('metxon_app_installations').select('app_id').eq('user_id',p.id).eq('app_id','metconnect').maybeSingle();
       if(q.error)throw q.error;
       if(!q.data)return alert('Install MetConnect from Nebula Store first.');
-      const metconnectWindow=window.open('metconnect.html?openApp=metconnect','MetConnect','popup,width=1120,height=820,resizable=yes,scrollbars=yes');if(!metconnectWindow)window.location.href='metconnect.html?openApp=metconnect';
+      const metconnectWindow=window.open('metconnect.html?openApp=metconnect','MetConnect','popup,width=1120,height=820,resizable=yes,scrollbars=yes');if(!metconnectWindow)alert('Your browser blocked the MetConnect window. Allow pop-ups for this website and try again.');
     }catch(e){console.error('MetConnect open:',e);alert(e.message||'Could not open MetConnect.');}
   };
 
