@@ -5228,21 +5228,23 @@ window.metCountCurrencyChanged=async function(currency){
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const registry=window.NEBULA_APPS||{};
  const fresh=['metAil','metxonCare','metCloud','metNa'];
- async function currentProfile(){
-  if(!state.currentUser)throw Error('Please sign in to your Metxon account first.');
-  const p=await loadCloudAccount(state.currentUser);
-  if(!p||!p.id)throw Error('Could not load your Metxon profile. Please sign out and sign back in.');
-  return p;
- }
  async function readInstalled(){
-  const p=await currentProfile();
-  const r=await metxonSupabase.from('metxon_app_installations').select('app_id').eq('user_id',p.id);
+  if(!state.currentUser)throw Error('Please sign in to your Metxon account first.');
+  const withTimeout=(task,label,ms)=>new Promise((resolve,reject)=>{
+   let timer=setTimeout(()=>reject(new Error(label+' timed out.')),ms);
+   Promise.resolve(task).then(value=>{clearTimeout(timer);resolve(value);},error=>{clearTimeout(timer);reject(error);});
+  });
+  const sessionResult=await withTimeout(metxonSupabase.auth.getSession(),'Metxon session check',2200);
+  if(sessionResult.error)throw sessionResult.error;
+  const userId=sessionResult.data&&sessionResult.data.session&&sessionResult.data.session.user&&sessionResult.data.session.user.id;
+  if(!userId)throw Error('Your Metxon session has expired. Sign in again.');
+  const r=await withTimeout(metxonSupabase.from('metxon_app_installations').select('app_id').eq('user_id',userId),'Installation status lookup',2500);
   if(r.error)throw r.error;
-  return {p,set:new Set((r.data||[]).map(x=>x.app_id))};
+  return {p:{id:userId},set:new Set((r.data||[]).map(x=>x.app_id))};
  }
  window.renderNebulaStore=async function(){
   const c=$('appContent');if(!c)return;
-  c.innerHTML='<div class="card"><h3>Nebula Store</h3><p style="color:var(--muted)">Met-Ail, Metxon Care, Met-Cloud and Met-Na are free to install. Internal Metxon services do not require Gmail or a public mail domain.</p><p id="nebulaStoreStatus">Loading apps…</p></div><div id="nebulaStoreGrid" class="nebula-store-grid"></div>';
+  c.innerHTML='<div class="card"><h3>Nebula Store</h3><p style="color:var(--muted)">App catalogue is ready. Checking your installation status…</p><p id="nebulaStoreStatus">Loading installation status…</p></div><div id="nebulaStoreGrid" class="nebula-store-grid"></div>';
   const grid=$('nebulaStoreGrid');
   const keys=Object.keys(registry);
   grid.innerHTML=keys.map(k=>{const a=registry[k];return '<div class="nebula-app-card"><h3>'+esc(a.name)+'</h3><p style="color:var(--muted);min-height:42px">'+esc(a.desc||'Metxon ecosystem app')+'</p><div class="nebula-price">'+(Number(a.price)===0?'Free':'₹'+Number(a.price).toLocaleString('en-IN')+' one-time')+'</div><button class="btn btn-primary" data-app="'+esc(k)+'">'+(Number(a.price)===0?'Install free':'Install · ₹'+Number(a.price).toLocaleString('en-IN'))+'</button></div>';}).join('');
