@@ -4380,15 +4380,32 @@ window.showIncomingMessagePopup=function(username,message){
 
     if(key==='mettinProductions'){
       try{
-        const workspace=document.getElementById('appWorkspace'),title=document.getElementById('appTitle'),content=document.getElementById('appContent');
+        const workspace=document.getElementById('appWorkspace');
+        const title=document.getElementById('appTitle');
+        const content=document.getElementById('appContent');
         if(!workspace||!content)throw new Error('Nebula app workspace is unavailable.');
-        workspace.style.display='block';if(title)title.textContent='Mettin Productions';
-        content.innerHTML='<div class="card"><h3>Opening Mettin Productions…</h3><p style="color:var(--muted)">Loading your presentation workspace.</p></div>';
-        const html=undefined;
-        const frame=document.createElement('iframe');frame.id='mettinProductionsFrame';frame.title='Mettin Productions';frame.style.cssText='width:100%;min-height:82vh;height:calc(100vh - 170px);border:1px solid var(--border);border-radius:14px;background:#071522';frame.setAttribute('allow','fullscreen; autoplay; encrypted-media; picture-in-picture');
-        frame.srcdoc=html.replace('</body>',"<script>(function(){var pending={},seq=0;window.Mettin={projectStore:{list:function(){return call('list',{});},save:function(p){return call('save',p||{});}}};function call(op,p){return new Promise(function(resolve,reject){var id='mp_'+Date.now()+'_'+(++seq);pending[id]={resolve:resolve,reject:reject};parent.postMessage({type:'mett-prod-project',id:id,op:op,payload:p},'*');setTimeout(function(){if(pending[id]){delete pending[id];reject(new Error('Project sync timed out. Please retry.'));}},15000);});}window.addEventListener('message',function(e){if(e.source!==parent||!e.data||e.data.type!=='mett-prod-project-response')return;var x=pending[e.data.id];if(!x)return;delete pending[e.data.id];e.data.ok?x.resolve(e.data.data):x.reject(new Error(e.data.error||'Project sync failed.'));});})();</script>"+'</body>');
-        content.innerHTML='';content.appendChild(frame);workspace.scrollIntoView({behavior:'smooth',block:'start'});
-      }catch(e){console.error('Mettin Productions launch:',e);document.getElementById('appContent').innerHTML='<div class="card"><h3>Could not open Mettin Productions</h3><p>'+String(e.message||e)+'</p></div>';}
+        workspace.style.display='block';
+        if(title)title.textContent='Mettin Productions';
+        content.innerHTML='<div class="card"><h3>Opening Mettin Productions…</h3><p>Loading your presentation workspace.</p></div>';
+        const result=await metxonSupabase.rpc('mettin_get_created_app',{p_app_id:'6adb2467-72bd-4267-a72f-5bed5aa56b71'});
+        if(result.error)throw result.error;
+        const app=result.data;
+        if(!app||!app.app_code)throw new Error('Published app source is unavailable.');
+        const frame=document.createElement('iframe');
+        frame.id='mettinProductionsFrame';
+        frame.title='Mettin Productions';
+        frame.style.cssText='width:100%;min-height:82vh;height:calc(100vh - 170px);border:1px solid var(--border);border-radius:14px;background:#071522';
+        frame.setAttribute('allow','fullscreen; autoplay; encrypted-media; picture-in-picture');
+        content.innerHTML='';
+        content.appendChild(frame);
+        const bridgeScript='<scr'+'ipt>(function(){var pending={},seq=0;window.Mettin={projectStore:{list:function(){return call("list",{});},save:function(p){return call("save",p||{});}}};function call(op,p){return new Promise(function(resolve,reject){var id="mp_"+Date.now()+"_"+(++seq);pending[id]={resolve:resolve,reject:reject};parent.postMessage({type:"mett-prod-project",id:id,op:op,payload:p},"*");setTimeout(function(){if(pending[id]){delete pending[id];reject(new Error("Project sync timed out. Please retry."));}},15000);});}window.addEventListener("message",function(e){if(e.source!==parent||!e.data||e.data.type!=="mett-prod-project-response")return;var x=pending[e.data.id];if(!x)return;delete pending[e.data.id];e.data.ok?x.resolve(e.data.data):x.reject(new Error(e.data.error||"Project sync failed."));});})();<'+'/scr'+'ipt>';
+        frame.srcdoc=String(app.app_code).replace('</body>',bridgeScript+'</body>');
+        workspace.scrollIntoView({behavior:'smooth',block:'start'});
+      }catch(e){
+        console.error('Mettin Productions launch:',e);
+        const content=document.getElementById('appContent');
+        if(content)content.innerHTML='<div class="card"><h3>Could not open Mettin Productions</h3><p>'+String(e.message||e).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))+'</p></div>';
+      }
       return;
     }
 
@@ -5844,44 +5861,6 @@ window.checkoutCart=()=>{if(!state.currentUser){openAuth();return}let c=getCart(
 </script>
 
 
-<script id="nebula-shared-community-catalog-v1">
-(function(){
- 'use strict';
- const APP_ID='6adb2467-72bd-4267-a72f-5bed5aa56b71';
- if(window.NEBULA_APPS)delete window.NEBULA_APPS.mettinProductions;
- const $=id=>document.getElementById(id);
- const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- async function profile(){if(!state.currentUser)throw new Error('Sign in to your Metxon account first.');const r=await loadCloudAccount(state.currentUser);if(!r||!r.id)throw new Error('Could not verify your Metxon profile.');return r;}
- async function listApps(){const r=await metxonSupabase.from('mettin_created_apps').select('id,creator_id,title,description,category,price_jp,source_language,needs_backend').eq('status','published').order('created_at',{ascending:false}).limit(100);if(r.error)throw r.error;return r.data||[];}
- async function loadCommunity(){
-  const content=$('appContent');if(!content)return;
-  const apps=await listApps(),p=await profile();
-  const q=await metxonSupabase.from('metxon_app_installations').select('app_id').eq('user_id',p.id);if(q.error)throw q.error;
-  const installed=new Set((q.data||[]).map(x=>x.app_id));
-  let section=$('nebulaSharedCommunity');if(!section){section=document.createElement('section');section.id='nebulaSharedCommunity';section.style.marginTop='22px';content.appendChild(section);}
-  section.innerHTML='<h2 style="margin:0 0 12px;color:var(--cyan)">Shared Nebula Store · Mettin + Metxon</h2><div class="card" style="margin-bottom:14px"><h3>Publish an app from Metxon</h3><form id="nebulaPublishForm"><input id="nebulaPublishTitle" required maxlength="60" placeholder="App name" style="width:100%;margin:8px 0;padding:10px"><input id="nebulaPublishDescription" maxlength="240" placeholder="Short description" style="width:100%;margin:8px 0;padding:10px"><textarea id="nebulaPublishCode" required rows="6" placeholder="Paste a complete HTML app here" style="width:100%;margin:8px 0;padding:10px"></textarea><button class="btn btn-primary" type="submit">Publish free app</button><span id="nebulaPublishStatus" style="margin-left:10px"></span></form></div><div class="grid">'+(apps.map(a=>{const id='mettin_custom:'+a.id,yes=installed.has(id),own=a.creator_id===p.id;return '<article class="card"><div class="creator">Published to shared Nebula Store</div><h3>'+esc(a.title)+'</h3><p>'+esc(a.description||'Community app')+'</p><p class="price">'+(Number(a.price_jp)===0?'Free':'π'+esc(a.price_jp))+'</p><button class="btn btn-primary" data-shared-app="'+esc(a.id)+'" data-installed="'+(yes||own?'1':'0')+'">'+(yes||own?'Open app':'Install app')+'</button></article>';}).join('')||'<p class="card">No community apps have been published yet.</p>')+'</div>';
-  const publishForm=$('nebulaPublishForm');if(publishForm)publishForm.addEventListener('submit',async ev=>{ev.preventDefault();const status=$('nebulaPublishStatus');status.textContent='Publishing…';try{const owner=await profile(),title=$('nebulaPublishTitle').value.trim(),description=$('nebulaPublishDescription').value.trim(),code=$('nebulaPublishCode').value;if(title.length<2||!code.trim())throw new Error('Enter an app name and HTML source.');const ins=await metxonSupabase.from('mettin_created_apps').insert({creator_id:owner.id,title,description,category:'Utility',price_jp:0,app_code:code,source_language:'html',needs_backend:false,status:'published'});if(ins.error)throw ins.error;status.textContent='Published to both stores.';publishForm.reset();await loadCommunity();}catch(e){status.textContent=e.message||'Publish failed.';}});
-  section.querySelectorAll('[data-shared-app]').forEach(btn=>btn.addEventListener('click',async()=>{const id=btn.dataset.sharedApp;btn.disabled=true;const old=btn.textContent;btn.textContent='Please wait…';try{if(btn.dataset.installed!=='1'){const price=Number(apps.find(x=>x.id===id)?.price_jp||0),password=price>0?prompt('Enter your MetPay transaction password to install this app.'):'';if(password===null)return;const ins=await metxonSupabase.rpc('mettin_install_created_app',{p_app_id:id,p_metpay_password:password});if(ins.error)throw ins.error;}await window.openSharedNebulaApp(id);}catch(e){alert(e.message||'Could not install or open this app.');}finally{btn.disabled=false;btn.textContent=old;}}));
- }
- window.openSharedNebulaApp=async function(id){
-  const r=await metxonSupabase.rpc('mettin_get_created_app',{p_app_id:id});if(r.error)throw r.error;
-  const app=r.data;if(!app||!app.app_code)throw new Error('Published app source is unavailable.');
-  const ws=$('appWorkspace'),title=$('appTitle'),content=$('appContent');if(!ws||!content)throw new Error('Nebula app workspace is unavailable.');
-  ws.style.display='block';if(title)title.textContent=app.title;
-  const code=String(app.app_code),lang=String(app.source_language||'html').toLowerCase();
-  let html=lang==='html'?code:'<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><div id="app"></div><script>'+code.replace(/<\/script/gi,'<\\/script')+'<\/script></body></html>';
-  const frameId=app.id===APP_ID?'mettinProductionsFrame':'sharedNebulaAppFrame';
-  if(app.id===APP_ID){const bridge='<script>(function(){var pending={},seq=0;window.Mettin={projectStore:{list:function(){return call("list",{});},save:function(p){return call("save",p||{});}}};function call(op,p){return new Promise(function(resolve,reject){var id="mp_"+Date.now()+"_"+(++seq);pending[id]={resolve:resolve,reject:reject};parent.postMessage({type:"mett-prod-project",id:id,op:op,payload:p},"*");setTimeout(function(){if(pending[id]){delete pending[id];reject(new Error("Project sync timed out. Please retry."));}},15000);});}window.addEventListener("message",function(e){if(e.source!==parent||!e.data||e.data.type!=="mett-prod-project-response")return;var x=pending[e.data.id];if(!x)return;delete pending[e.data.id];e.data.ok?x.resolve(e.data.data):x.reject(new Error(e.data.error||"Project sync failed."));});})();<\/script>';html=html.replace('</body>',bridge+'</body>');}
-  content.innerHTML='<iframe id="'+frameId+'" title="'+esc(app.title)+'" sandbox="allow-scripts allow-forms allow-popups allow-modals allow-downloads" allow="fullscreen; clipboard-read; clipboard-write" style="width:100%;height:82vh;min-height:620px;border:1px solid var(--border);border-radius:12px;background:#fff"></iframe>';
-  $(frameId).srcdoc=html;ws.scrollIntoView({behavior:'smooth',block:'start'});
- };
- const oldRender=window.renderNebulaStore;
- window.renderNebulaStore=async function(){if(typeof oldRender==='function')await oldRender.apply(this,arguments);try{await loadCommunity();}catch(e){console.error('Shared Nebula catalogue:',e);const c=$('appContent');if(c)c.insertAdjacentHTML('beforeend','<div class="card" style="margin-top:16px">Shared community apps could not load: '+esc(e.message||e)+'</div>');}};
- const oldInstalled=window.renderInstalledApps;
- if(typeof oldInstalled==='function')window.renderInstalledApps=async function(){await oldInstalled.apply(this,arguments);try{const box=$('installedAppsGrid');if(!box||!state.currentUser)return;const p=await profile(),q=await metxonSupabase.from('metxon_app_installations').select('app_id,app_name').eq('user_id',p.id).like('app_id','mettin_custom:%');if(q.error)throw q.error;const rows=q.data||[];if(!rows.length)return;box.insertAdjacentHTML('beforeend',rows.map(x=>'<div class="card"><h3>'+esc(x.app_name||'Community app')+'</h3><p>Installed · Shared Nebula Store</p><button class="btn btn-primary" data-installed-shared="'+esc(x.app_id.slice(14))+'">Open app</button></div>').join(''));box.querySelectorAll('[data-installed-shared]').forEach(b=>b.addEventListener('click',()=>window.openSharedNebulaApp(b.dataset.installedShared).catch(e=>alert(e.message||'Could not open app.'))));}catch(e){console.error('Shared installed apps:',e);}};
- const oldLaunch=window.launchNebulaApp;
- window.launchNebulaApp=async function(key){if(key==='mettinProductions'){try{await window.openSharedNebulaApp(APP_ID);}catch(e){alert('Mettin Productions could not open: '+(e.message||e));}return;}return typeof oldLaunch==='function'?oldLaunch.apply(this,arguments):undefined;};
-})();
-</script>
+
 </body>
 </html>
