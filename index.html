@@ -4214,6 +4214,9 @@ window.showIncomingMessagePopup=function(username,message){
      if(!state.currentUser)throw new Error('Sign in to your Metxon account first.');
      if(op==='list'){
       const r=await metxonSupabase.rpc('mettin_productions_list_projects');if(r.error)throw r.error;reply(true,r.data||[]);
+     }else if(op==='get'){
+      if(!payload.id)throw new Error('Project ID is missing.');
+      const r=await metxonSupabase.rpc('mettin_productions_get_project',{p_id:payload.id});if(r.error)throw r.error;reply(true,r.data);
      }else if(op==='save'){
       const r=await metxonSupabase.rpc('mettin_productions_save_project',{p_id:payload.id||null,p_name:String(payload.name||''),p_code:String(payload.code||'')});if(r.error)throw r.error;reply(true,r.data);
      }else{throw new Error('Unsupported project operation.');}
