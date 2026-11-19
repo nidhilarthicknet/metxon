@@ -4227,15 +4227,38 @@ window.showIncomingMessagePopup=function(username,message){
   function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   async function currentCloudProfile(){return state.currentUser?await loadCloudAccount(state.currentUser):null;}
 
+  // Bound and cache the installation lookup. Session UUID comes directly from Auth,
+  // avoiding an extra profiles lookup for every app launch.
+  let nebulaInstallCache={uid:null,at:0,ids:new Set(),pending:null};
   async function installedSet(){
-    const me=await currentCloudProfile(); if(!me)return new Set();
-    try{
-      const {data,error}=await metxonSupabase.from('metxon_app_installations').select('app_id').eq('user_id',me.id);
-      if(!error)return new Set((data||[]).map(x=>x.app_id));
-    }catch(e){}
-    return new Set();
-  }
-  window.nebulaIsInstalled=async id=>(await installedSet()).has(id);
+    const sessionResult=await Promise.race([
+      metxonSupabase.auth.getSession(),
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error('Metxon session check timed out')),2000))
+    ]);
+    if(sessionResult.error)throw sessionResult.error;
+    const uid=sessionResult.data?.session?.user?.id;
+    if(!uid)return new Set();
+    if(nebulaInstallCache.uid===uid&&Date.now()-nebulaInstallCache.at<20000)return new Set(nebulaInstallCache.ids);
+    if(nebulaInstallCache.pending&&nebulaInstallCache.uid===uid)return new Set(await nebulaInstallCache.pending);
+    nebulaInstallCache.uid=uid;
+    const pending=(async()=>{
+      let timer;
+      try{
+        const query=metxonSupabase.from('metxon_app_installations').select('app_id').eq('user_id',uid);
+        const result=await Promise.race([query,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('Installation status timed out')),2500);})]);
+        if(result.error)throw result.error;
+        const ids=new Set((result.data||[]).map(x=>x.app_id));
+        nebulaInstallCache={uid,at:Date.now(),ids,pending:null};
+        return ids;
+      }catch(error){
+        console.warn('Nebula installation status:',error.message||error);
+        if(nebulaInstallCache.uid===uid&&nebulaInstallCache.at)return nebulaInstallCache.ids;
+        return new Set();
+      }finally{if(timer)clearTimeout(timer);nebulaInstallCache.pending=null;}
+    })();
+    nebulaInstallCache.pending=pending;
+    return new Set(await pending);
+  }  window.nebulaIsInstalled=async id=>(await installedSet()).has(id);
 
   async function refreshInstalledApps(){
     try{
@@ -4320,41 +4343,28 @@ window.showIncomingMessagePopup=function(username,message){
   }
 
   window.renderInstalledApps=async function(){
-    const box=document.getElementById('installedAppsGrid');
-    if(!box)return;
-    if(!state.currentUser){
-      box.innerHTML='<div class="card"><span style="color:var(--muted)">Sign in to see installed apps.</span></div>';
-      return;
-    }
+    const box=document.getElementById('installedAppsGrid');if(!box)return;
+    if(!state.currentUser){box.innerHTML='<div class="card"><span style="color:var(--muted)">Sign in to see installed apps.</span></div>';return;}
+    box.innerHTML='<div class="card"><span style="color:var(--muted)">Checking installed apps…</span></div>';
     const installed=await installedSet();
     const keys=Object.keys(APPS).filter(k=>installed.has(APPS[k].id));
-    box.innerHTML=keys.length
-      ? keys.map(k=>`<div class="card" style="cursor:pointer" onclick="launchNebulaApp('${k}')">
-          <h3>${esc(APPS[k].name)}</h3>
-          <p style="color:var(--muted)">Installed · one-time purchase</p>
-          <button class="btn btn-primary" onclick="event.stopPropagation();launchNebulaApp('${k}')">Open</button>
-        </div>`).join('')
-      : '<div class="card"><span style="color:var(--muted)">No apps installed yet. Open Nebula Store to install one.</span></div>';
+    box.innerHTML=keys.length?keys.map(k=>`<div class="card"><h3>${esc(APPS[k].name)}</h3><p style="color:var(--muted)">Installed · one-time purchase</p><button class="btn btn-primary" onclick="launchNebulaApp('${k}')">Open</button></div>`).join(''):'<div class="card"><span style="color:var(--muted)">No installed apps were found. Open Nebula Store to install one.</span></div>';
   };
-
   window.renderNebulaStore=async function(){
-    const content=document.getElementById('appContent'); if(!content)return;
+    const content=document.getElementById('appContent');if(!content)return;
+    const keys=Object.keys(APPS);
+    content.innerHTML='<div class="card" style="margin-bottom:16px"><h3>Nebula Store</h3><p style="color:var(--muted)">Apps appear immediately. Installation status loads separately.</p><p id="nebulaStatus" style="color:var(--muted)">Checking installed apps…</p></div><h3>Apps & Games</h3><div class="nebula-store-grid">'+keys.map(k=>appCard(k,false)).join('')+'</div><div class="card" style="margin-top:16px"><strong>One-time installation prices</strong><p style="color:var(--muted);margin-bottom:0">MetDevelop π200 JP · Cule-In π10 JP · Nebula AI π100 JP · Met-Alk π150 JP · Block Breaker π5 JP · Football π2 JP · Chess Boys π100 JP · MetPay π10 JP · Mettin Productions π20 JP</p></div><div id="gameArea" style="margin-top:16px"></div>';
+    if(!state.currentUser){const status=document.getElementById('nebulaStatus');if(status)status.textContent='Sign in to install and open apps.';return;}
     const installed=await installedSet();
-    content.innerHTML=`
-      <div class="card" style="margin-bottom:16px">
-        <h3>Nebula Store</h3>
-        <p style="color:var(--muted)">Install an app before using it. One-time prices are charged from the InstaPay JP wallet after MetPay password verification.</p>
-      </div>
-      <h3>Apps & Games</h3>
-      <div class="nebula-store-grid">${Object.keys(APPS).map(k=>appCard(k,installed.has(APPS[k].id))).join('')}</div>
-      <div class="card" style="margin-top:16px">
-        <strong>One-time installation prices</strong>
-        <p style="color:var(--muted);margin-bottom:0">
-          MetDevelop π200 JP · Cule-In π10 JP · Nebula AI π100 JP · Met-Alk π150 JP ·
-          Block Breaker π5 JP · Football π2 JP · Chess Boys π100 JP · MetPay π10 JP
-        </p>
-      </div>
-      <div id="gameArea" style="margin-top:16px"></div>`;
+    if(!content.isConnected)return;
+    keys.forEach((k,index)=>{
+      const card=content.querySelectorAll('.nebula-app-card')[index];if(!card)return;
+      const button=card.querySelector('button'),yes=installed.has(APPS[k].id);
+      if(button){button.textContent=yes?'Open':'Install · '+nebulaJpPrice(APPS[k].price);button.classList.toggle('btn-primary',!yes);button.onclick=()=>yes?window.launchNebulaApp(k):window.installNebulaApp(k);}
+      const label=card.querySelector('.nebula-installed');
+      if(label){label.textContent=yes?'INSTALLED':'';label.style.display=yes?'inline-block':'none';}
+    });
+    const status=document.getElementById('nebulaStatus');if(status)status.textContent='App catalogue ready. Installation status checked.';
   };
 
   window.launchNebulaApp=async function(key){
