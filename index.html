@@ -4200,7 +4200,7 @@ window.showIncomingMessagePopup=function(username,message){
     football:{id:'football',name:'Football',price:200,desc:'One-player football/soccer challenge with touch and keyboard controls.'},
     chessBoys:{id:'chess_boys',name:'Chess Boys',price:10000,desc:'Chess matchmaking, chat and post-game Stockfish review.'},
     metPay:{id:'metpay',name:'MetPay',price:1000,desc:'Metxon payments, cash chat, QR scanning and payment contacts.'},
-    mettinProductions:{id:'mettin_productions',name:'Mettin Productions',price:0,desc:'Create presentation projects with notes, headings and embedded seed-growth time-lapse videos. Optimized for large 16:9 screens.'}
+    mettinProductions:{id:'mettin_custom:6adb2467-72bd-4267-a72f-5bed5aa56b71',name:'Mettin Productions',price:2000,desc:'Create presentation projects with notes, headings and embedded seed-growth time-lapse videos. Optimized for large 16:9 screens.'}
   };
   window.NEBULA_APPS=APPS;
   if(!window.__mettinProductionsProjectBridge){
@@ -4248,6 +4248,27 @@ window.showIncomingMessagePopup=function(username,message){
     const app=APPS[key]; if(!app)return;
     if(!state.currentUser)return openAuth();
     if(await nebulaIsInstalled(app.id))return launchNebulaApp(key);
+
+    if(key==='mettinProductions'){
+      const ok=confirm('Install Mettin Productions for π20 JP?\\n\\nThis is a one-time purchase through the Secure MetPay installer.');
+      if(!ok)return;
+      const password=prompt('Enter your MetPay transaction password to install Mettin Productions.');
+      if(password===null)return;
+      try{
+        const {data,error}=await metxonSupabase.rpc('mettin_install_created_app',{
+          p_app_id:'6adb2467-72bd-4267-a72f-5bed5aa56b71',
+          p_metpay_password:password
+        });
+        if(error)throw error;
+        if(!data||data.installed!==true)throw new Error('Secure MetPay did not confirm this installation.');
+        await refreshCloudAccount();
+        if(typeof cloudLoadTransactions==='function')await cloudLoadTransactions();
+        await refreshInstalledApps();
+        await renderNebulaStore();
+        alert(data.charged?'Mettin Productions installed. π20 JP was transferred to its creator.':'Mettin Productions installed. Creator installation verified through Secure MetPay.');
+      }catch(e){alert(e.message||'Secure MetPay installation failed.');}
+      return;
+    }
 
     const amountJp=Number(app.price)/100;
     const ok=confirm(
