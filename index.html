@@ -4335,7 +4335,7 @@ window.showIncomingMessagePopup=function(username,message){
 
   window.launchNebulaApp=async function(key){
     const app=APPS[key]; if(!app)return;
-    if(!(key==='metPay'&&window.metpayPendingCheckout)&&!(await nebulaIsInstalled(app.id)))return alert(`Please install ${app.name} from the Nebula Store first.`);
+    if(key!=='mettinProductions'&&!(key==='metPay'&&window.metpayPendingCheckout)&&!(await nebulaIsInstalled(app.id)))return alert(`Please install ${app.name} from the Nebula Store first.`);
 
     const ws=document.getElementById('appWorkspace');
     const title=document.getElementById('appTitle');
