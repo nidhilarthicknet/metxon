@@ -4213,7 +4213,7 @@ window.showIncomingMessagePopup=function(username,message){
     try{
      if(!state.currentUser)throw new Error('Sign in to your Metxon account first.');
      if(op==='list'){
-      const r=await metxonSupabase.rpc('mettin_productions_list_projects');if(r.error)throw r.error;reply(true,r.data||[]);
+      const r=await metxonSupabase.rpc('mettin_productions_list_projects_fast');if(r.error)throw r.error;reply(true,r.data||[]);
      }else if(op==='get'){
       if(!payload.id)throw new Error('Project ID is missing.');
       const r=await metxonSupabase.rpc('mettin_productions_get_project',{p_id:payload.id});if(r.error)throw r.error;reply(true,r.data);
@@ -5766,7 +5766,7 @@ window.checkoutCart=()=>{if(!state.currentUser){openAuth();return}let c=getCart(
     if(!(node instanceof Element))return null;
     const target=node.closest('button,a[href],input[type="submit"],[role="button"]');
     if(!target)return null;
-    if(target.matches('button[onclick*="tryShow("],button[onclick*="openApp("]'))return null;
+    if(target.matches('button[onclick*="tryShow("],button[onclick*="openApp("],button[onclick*="launchNebulaApp("],[onclick*="launchNebulaApp("],button[onclick*="launchMettinProductions("],[onclick*="openCreatedApp("]'))return null;
     return target;
   }
   function paymentTarget(node){
